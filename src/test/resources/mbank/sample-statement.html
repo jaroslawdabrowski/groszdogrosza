@@ -1,32 +1,95 @@
 <!--
-  PLACEHOLDER FIXTURE - NOT a real mBank statement export.
+  ANONYMIZED real mBank "Powiadomienie e-mail" (daily account-activity notification) sample.
 
-  This file exists only so MBankStatementHtmlParserTest has something to point at and the
-  test suite documents the expected shape. It matches the guessed selectors in
-  MBankStatementHtmlParser (table.transactions / tr.transaction-row / .sender-name /
-  .transaction-title / .amount / .transaction-date) by construction, so the test below is
-  currently only proving the parser can parse ITS OWN assumptions, not that those
-  assumptions match reality.
-
-  TODO: replace this with a real (redacted - strip account numbers/balances) mBank
-  statement HTML attachment, then fix up the parser's selectors in
-  MBankStatementHtmlParser.java to match what's actually here.
+  This is a REAL export's structure (confirmed working against the actual HTML mBank
+  sends), with all personal data replaced: names, email address, account number fragments,
+  balances and the amount on the second row are all fabricated - only the markup shape,
+  the Polish sentence templates ("Przelew przych. z rach. ... kwota ... PLN od ... .;
+  ...; Dost. ... PLN", the login-confirmation sentence) and the heading/table structure are
+  real. Do not replace this with an unredacted export - see CLAUDE.md ("Real mBank sample
+  received and anonymized before committing").
 -->
 <html>
-<body>
-<table class="transactions">
-  <tr class="transaction-row">
-    <td class="transaction-date">15.09.2026</td>
-    <td class="sender-name">Jan Kowalski</td>
-    <td class="transaction-title">Skladka na prezent dla Pani</td>
-    <td class="amount">+50,00 PLN</td>
-  </tr>
-  <tr class="transaction-row">
-    <td class="transaction-date">15.09.2026</td>
-    <td class="sender-name">Anna Nowak</td>
-    <td class="transaction-title">wplata klasowa</td>
-    <td class="amount">+50,00 PLN</td>
-  </tr>
-</table>
-</body>
+  <head>
+    <title>Powiadomienie e-mail</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+  </head>
+  <body>
+    <div>
+      <table role="presentation" cellpadding="0" cellspacing="0" width="600">
+        <tr>
+          <td>
+            <h1 class="h1">2026-09-15 -
+Powiadomienie <span lang="en">e-mail</span></h1>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <table cellpadding="1" cellspacing="0" border="1" width="600">
+              <tr>
+                <th class="th">Dane banku</th>
+                <th class="th">Dane klienta</th>
+              </tr>
+              <tr>
+                <td class="td">
+mBank S.A.<br />
+Bankowosc Detaliczna<br />
+Skrytka Pocztowa 2108<br />
+90-959 Lodz 2<br /><a href="https://www.mbank.pl" target="_blank">www.mBank.pl</a><br />
+mLinia: +48 42 6 300 800
+</td>
+                <td class="td">JAN MARIAN KOWALSKI<br />JAN.KOWALSKI@EXAMPLE.COM</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <p>
+              <h2 class="h2">Operacje</h2>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <table cellpadding="1" cellspacing="0" border="1">
+              <tr>
+                <th class="th">
+                  <nobr>Czas operacji</nobr>
+                  <br />(GG:MM)</th>
+                <th class="th">Opis operacji</th>
+              </tr>
+              <tr>
+                <td class="td">
+                  <nobr>08:12</nobr>
+                </td>
+                <td class="td">mBank: Przelew przych. z rach. 1111...222222 na rach. 33334444 kwota 50,00 PLN od Anna Nowak .; /OPF/AN/PL11...; Dost. 1200,00 PLN</td>
+              </tr>
+              <tr>
+                <td class="td">
+                  <nobr>09:47</nobr>
+                </td>
+                <td class="td">mBank: Przelew przych. z rach. 5555...666677 na rach. 33334444 kwota 45,50 PLN od Piotr Wisniewski .; /OPF/AN/PL22...; Dost. 1245,50 PLN</td>
+              </tr>
+              <tr>
+                <td class="td">
+                  <nobr>22:03</nobr>
+                </td>
+                <td class="td">mBank: Potwierdzenie poprawnego logowania do kanalu Internet. Data i godzina zdarzenia: 15-09-2026 22:03.</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      <p>
+        <table role="presentation" cellpadding="0" cellspacing="0" width="600">
+          <tr>
+            <td class="td">
+Dokument sporzadzono na podstawie art. 7 Ustawy Prawo Bankowe. Numer referencyjny maila: L000TEST0.
+</td>
+          </tr>
+        </table>
+      </p>
+    </div>
+  </body>
 </html>

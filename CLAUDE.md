@@ -426,14 +426,26 @@ see TODO.
 
 Roughly in the order they'd block real usage:
 
-1. **Get a real mBank statement HTML sample** (forward yourself a day's statement email,
-   save the attachment) and fix `MBankStatementHtmlParser`'s selectors
-   (`TRANSACTION_ROW_SELECTOR` etc.) to match it - everything in that class is currently a
-   best-effort guess, explicitly flagged as such in its javadoc, and
-   `MBankStatementHtmlParserTest` only proves the parser can parse its own placeholder
-   fixture, not a real statement. Also confirm/fix the guessed MIME structure in
-   `ImapBankStatementFetchAdapter.extractHtmlAttachment` (is the statement literally an
-   HTML attachment, or the mail body, or nested multipart/related?).
+1. ~~Get a real mBank statement HTML sample~~ **Done** - the user provided a real
+   "Powiadomienie e-mail" (anonymized before committing; see
+   `src/test/resources/mbank/sample-statement.html`'s header comment for what was changed).
+   This turned out to be a fundamentally different shape than originally guessed: not a
+   batch statement export with one row per transaction field, but a daily event log (one
+   `<table>`, columns "Czas operacji"/"Opis operacji", one free-text Polish sentence per
+   event, mixing transfers with unrelated events like login confirmations) covering one
+   calendar day, with the date only in the page heading, not per row. `MBankStatementHtmlParser`
+   was rewritten against this real structure - see its class javadoc. `ImapBankStatementFetchAdapter.extractHtmlPart`
+   was also made recursive (was one-level-only) so a `multipart/related`-wrapped HTML part
+   (e.g. an embedded logo) isn't silently missed - still unconfirmed against the real raw
+   MIME source though (only the rendered/saved HTML was available), so verify this once
+   real IMAP access works (TODO #2).
+   **Still open**: the sample only ever showed incoming-transfer and login-confirmation
+   sentences - an actual outgoing transfer's sentence shape (to confirm it's never
+   accidentally matched) and whether the trailing reference code (`/OPF/AN/PL11...`) is
+   ever a human-typed title vs. always a structured code are both unconfirmed; the "From"
+   address for `groszdogrosza.bankstatement.imap.expected-sender` also still needs
+   verifying against a real header (only the rendered body was available, not the raw
+   `.eml`).
 2. **Create a Gmail App Password** for jaros.dabrowski@gmail.com (Google Account → Security
    → 2-Step Verification → App passwords - requires 2FA already enabled) and set
    `groszdogrosza.bankstatement.imap.username`/`app-password` locally (env vars, never
@@ -491,20 +503,17 @@ and were deliberately left for a later session:
   table exists - harmless (the resulting `ResourceInUseException` is caught) but wasted
   latency on every cold start. Should be gated behind `@IfBuildProfile("dev")` like
   `BankStatementDevPoller`.
-- **`ImapBankStatementFetchAdapter.extractHtmlAttachment` only walks one level of
-  `Multipart`** - a `multipart/mixed` → `multipart/related` → `text/html` structure (common
-  for HTML mail with inline images) would silently find nothing. Will very likely need
-  fixing alongside TODO #1 once a real mBank mail sample is available.
-- **`MBankStatementHtmlParser.parseAmount` discards the transaction's sign (`.abs()`)** -
-  fine as long as the matched table rows are only ever incoming transfers, but if a real
-  mBank statement's HTML table also includes outgoing transactions, one could theoretically
-  be mis-booked as an incoming contribution. Needs revisiting once the real HTML structure
-  (TODO #1) shows whether outgoing rows even appear in the same table.
-- **The idempotency hash (`MBankStatementHtmlParser.computeReferenceHash`) is derived from
-  (sender, title, amount, date), not mBank's own transaction id** - two genuinely separate
-  transfers from the same parent on the same day with an identical title and amount would
-  collide and the second would be silently treated as a duplicate. Prefer mBank's own
-  transaction reference once the real HTML (TODO #1) shows whether one is exposed.
+- ~~`ImapBankStatementFetchAdapter` only walked one level of `Multipart`~~ **Fixed** -
+  `extractHtmlPart` is now recursive (see TODO #1).
+- ~~`MBankStatementHtmlParser.parseAmount` discarded the transaction's sign~~ **Moot with the
+  real parser** - only rows matching the confirmed "Przelew przych." (incoming transfer)
+  sentence pattern are ever converted to a `BankTransaction` now; anything else (an outgoing
+  transfer's sentence, once its shape is confirmed - see TODO #1) is skipped outright rather
+  than parsed with a sign to get wrong.
+- ~~The idempotency hash was derived from (sender, title, amount, date) only~~ **Fixed** -
+  `MBankStatementHtmlParser.computeReferenceHash` now hashes the transaction's date plus its
+  full notification sentence (which includes the running post-transaction account balance),
+  so two distinct transfers with identical sender/amount/date no longer collide.
 - **No UI to manually record a contribution** - `RecordManualContributionUseCase` and
   `CollectionApiService.recordContribution` are fully wired backend-to-frontend-service, but
   no component/template calls it yet (e.g. a cash payment the treasurer wants to log by

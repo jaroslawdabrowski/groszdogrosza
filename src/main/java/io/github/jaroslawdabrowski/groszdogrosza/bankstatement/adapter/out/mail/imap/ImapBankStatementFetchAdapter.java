@@ -85,7 +85,7 @@ public class ImapBankStatementFetchAdapter implements BankStatementFetchPort {
             Message[] messages = inbox.search(searchTerm);
 
             for (Message message : messages) {
-                java.util.Optional<String> html = extractHtmlAttachment(message);
+                java.util.Optional<String> html = extractHtmlPart(message);
                 if (html.isPresent()) {
                     attachments.add(new RawStatementAttachment(
                             messageIdOf(message), message.getReceivedDate().toInstant(), html.get()));
@@ -104,23 +104,27 @@ public class ImapBankStatementFetchAdapter implements BankStatementFetchPort {
         return attachments;
     }
 
-    private static java.util.Optional<String> extractHtmlAttachment(Message message) {
+    /**
+     * A real mBank "Powiadomienie e-mail" was confirmed to be a plain
+     * {@code text/html} document (see {@code MBankStatementHtmlParser}'s javadoc and the
+     * anonymized fixture) - as delivered by Gmail this is very likely wrapped in
+     * {@code multipart/alternative} (a plain-text sibling part) and possibly further inside
+     * {@code multipart/related} (e.g. an embedded bank logo image), so this walks the whole
+     * MIME tree recursively for the first {@code text/html} part instead of assuming a
+     * fixed one-level structure.
+     */
+    private static java.util.Optional<String> extractHtmlPart(Part part) {
         try {
-            Object content = message.getContent();
-            if (content instanceof Multipart multipart) {
+            if (part.isMimeType("text/html")) {
+                return java.util.Optional.of((String) part.getContent());
+            }
+            if (part.isMimeType("multipart/*") && part.getContent() instanceof Multipart multipart) {
                 for (int i = 0; i < multipart.getCount(); i++) {
-                    Part part = multipart.getBodyPart(i);
-                    // TODO: verify against a real mBank statement mail - the exact MIME
-                    // structure (is the HTML statement an attachment with a specific
-                    // filename pattern, or the mail body itself, or nested in another
-                    // multipart/related part?) needs to be confirmed against a real sample.
-                    // This is a best-effort guess: first part whose content type is HTML.
-                    if (part.isMimeType("text/html")) {
-                        return java.util.Optional.of((String) part.getContent());
+                    java.util.Optional<String> found = extractHtmlPart(multipart.getBodyPart(i));
+                    if (found.isPresent()) {
+                        return found;
                     }
                 }
-            } else if (message.isMimeType("text/html")) {
-                return java.util.Optional.of((String) content);
             }
         } catch (MessagingException | IOException e) {
             LOG.error("Failed to extract HTML content from bank statement mail", e);
