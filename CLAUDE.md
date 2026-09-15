@@ -439,13 +439,15 @@ Roughly in the order they'd block real usage:
    (e.g. an embedded logo) isn't silently missed - still unconfirmed against the real raw
    MIME source though (only the rendered/saved HTML was available), so verify this once
    real IMAP access works (TODO #2).
-   **Still open**: the sample only ever showed incoming-transfer and login-confirmation
-   sentences - an actual outgoing transfer's sentence shape (to confirm it's never
-   accidentally matched) and whether the trailing reference code (`/OPF/AN/PL11...`) is
-   ever a human-typed title vs. always a structured code are both unconfirmed; the "From"
-   address for `groszdogrosza.bankstatement.imap.expected-sender` also still needs
-   verifying against a real header (only the rendered body was available, not the raw
-   `.eml`).
+   **Outgoing transfers are a non-issue by design, not just by the regex**: the user
+   configured mBank's notification settings to fire only for incoming transfers, so an
+   outgoing-transfer sentence will never appear in this mailbox at all - `INCOMING_TRANSFER_PATTERN`
+   requiring literally "Przelew przych." is a second, redundant safety net, not the only
+   thing preventing a wrongly-matched outgoing payment.
+   **Still open**: whether the trailing reference code (`/OPF/AN/PL11...`) is ever a
+   human-typed title vs. always a structured code is unconfirmed; the "From" address for
+   `groszdogrosza.bankstatement.imap.expected-sender` also still needs verifying against a
+   real header (only the rendered body was available, not the raw `.eml`).
 2. **Create a Gmail App Password** for jaros.dabrowski@gmail.com (Google Account → Security
    → 2-Step Verification → App passwords - requires 2FA already enabled) and set
    `groszdogrosza.bankstatement.imap.username`/`app-password` locally (env vars, never

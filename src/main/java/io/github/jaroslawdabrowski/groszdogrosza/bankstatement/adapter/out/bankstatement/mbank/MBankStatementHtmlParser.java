@@ -29,17 +29,20 @@ import org.jsoup.select.Elements;
  * this parser guessed. The real shape is an event log: a single two-column table
  * ("Czas operacji" / "Opis operacji") whose second column is one free-text Polish sentence
  * per account event that day, mixing genuine incoming transfers with unrelated events (a
- * login confirmation was the only other kind seen in the sample; outgoing transfers, card
- * payments etc. presumably also appear this way but haven't been observed yet). There is no
- * separate date column - the notification covers exactly one calendar day, printed once in
- * the page heading ("YYYY-MM-DD - Powiadomienie e-mail"), and each row only has a time.
+ * login confirmation was the only other kind seen in the sample). The mBank account's
+ * notification settings are deliberately configured to fire only for incoming transfers -
+ * so outgoing transfers/card payments etc. should never appear in this mailbox at all, not
+ * just be filtered out here. There is no separate date column - the notification covers
+ * exactly one calendar day, printed once in the page heading ("YYYY-MM-DD - Powiadomienie
+ * e-mail"), and each row only has a time.
  *
  * <p>Only rows matching {@link #INCOMING_TRANSFER_PATTERN} become a {@link BankTransaction}
  * - every other row (a login, or any sentence not shaped like this exact incoming-transfer
- * pattern) is silently skipped. This is also what keeps an outgoing transaction from ever
- * being mistaken for an incoming contribution - unlike the original guessed parser, there is
- * no minus-sign/direction field to get wrong, because only the recognized incoming-transfer
- * sentence shape is ever converted to a transaction at all.
+ * pattern) is silently skipped. This is a second, redundant safety net against an outgoing
+ * transaction ever being mistaken for an incoming contribution, on top of the notification
+ * settings above - unlike the original guessed parser, there is no minus-sign/direction
+ * field to get wrong, because only the recognized incoming-transfer sentence shape is ever
+ * converted to a transaction at all.
  */
 @ApplicationScoped
 public class MBankStatementHtmlParser implements StatementParserPort {
