@@ -1,0 +1,25 @@
+{
+  "realm": "quarkus",
+  "enabled": true,
+  "sslRequired": "none",
+  "clients": [
+    {
+      "clientId": "local-dev-client",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:8080/*", "http://localhost:4200/*"],
+      "webOrigins": ["+"]
+    }
+  ],
+  "users": [
+    {
+      "username": "skarbnik",
+      "enabled": true,
+      "email": "skarbnik@example.com",
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "skarbnik", "temporary": false }]
+    }
+  ]
+}

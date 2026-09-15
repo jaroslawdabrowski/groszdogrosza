@@ -1,0 +1,81 @@
+{
+  "nav": {
+    "treasurer": "Panel skarbnika"
+  },
+  "common": {
+    "loading": "Ładowanie...",
+    "backToDashboard": "← Powrót do listy zbiórek",
+    "backToTreasurerPanel": "← Powrót do panelu skarbnika"
+  },
+  "login": {
+    "subtitle": "Zaloguj się, aby zarządzać zbiórkami klasowymi",
+    "submit": "Zaloguj się"
+  },
+  "dashboard": {
+    "title": "Zbiórki klasowe",
+    "empty": "Nie ma jeszcze żadnych zbiórek.",
+    "baseAmount": "Kwota bazowa"
+  },
+  "collection": {
+    "status": {
+      "DRAFT": "Wersja robocza",
+      "ACTIVE": "Aktywna",
+      "SETTLED": "Rozliczona"
+    }
+  },
+  "requirementStatus": {
+    "PENDING": "Do zapłaty",
+    "PAID": "Zapłacone",
+    "OVERPAID": "Nadpłacone"
+  },
+  "contributionSource": {
+    "BANK_STATEMENT_AUTO": "z wyciągu bankowego",
+    "MANUAL": "wpłata ręczna",
+    "PIGGY_BANK_APPLIED": "ze skarbonki"
+  },
+  "collectionDetails": {
+    "requirements": "Ile kto powinien wpłacić",
+    "parent": "Rodzic",
+    "required": "Wymagane",
+    "paid": "Wpłacone",
+    "requirementStatus": "Status",
+    "contributions": "Wpłaty",
+    "noContributions": "Jeszcze nikt nie wpłacił.",
+    "settle": "Rozliczenie zbiórki",
+    "actualCost": "Rzeczywisty koszt (zł)",
+    "settleButton": "Rozlicz zbiórkę",
+    "totalSurplus": "Nadwyżka do zwrotu",
+    "totalShortfall": "Brakująca kwota",
+    "toPiggyBank": "do skarbonki",
+    "progress": "Postęp zbiórki",
+    "parentsPaid": "Wpłaciło rodziców",
+    "totalPaid": "Zebrano"
+  },
+  "parentView": {
+    "piggyBank": "Skarbonka",
+    "ledger": "Dziennik zdarzeń",
+    "noEntries": "Brak wpisów."
+  },
+  "treasurer": {
+    "title": "Panel skarbnika",
+    "parents": "Rodzice",
+    "addParent": "Dodaj rodzica",
+    "firstName": "Imię",
+    "lastName": "Nazwisko",
+    "email": "E-mail",
+    "expectedSenderName": "Nazwa nadawcy na przelewie",
+    "addParentButton": "Dodaj rodzica",
+    "newCollection": "Nowa zbiórka",
+    "collectionTitle": "Tytuł zbiórki",
+    "collectionDescription": "Opis",
+    "baseAmount": "Kwota bazowa od osoby (zł)",
+    "createCollectionButton": "Utwórz zbiórkę",
+    "collectionCreated": "Zbiórka została utworzona."
+  },
+  "ledger": {
+    "CONTRIBUTION_RECEIVED": "Wpłata {{amount}} zł na zbiórkę \"{{collectionTitle}}\"",
+    "COLLECTION_SETTLED": "Zbiórka \"{{collectionTitle}}\" rozliczona, zwrot do skarbonki: {{leftoverAmount}} zł",
+    "PIGGY_BANK_CREDITED": "Wpłata {{amount}} zł zasiliła skarbonkę",
+    "PIGGY_BANK_APPLIED_TO_COLLECTION": "Ze skarbonki przeniesiono {{amount}} zł na zbiórkę"
+  }
+}

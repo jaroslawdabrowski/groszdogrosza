@@ -1,0 +1,97 @@
+@if (view(); as v) {
+  <a routerLink="/">{{ 'common.backToDashboard' | translate }}</a>
+
+  <h1 class="gg-heading">{{ v.collection.title }}</h1>
+  <p>{{ v.collection.description }}</p>
+  <p>{{ 'dashboard.baseAmount' | translate }}: {{ v.collection.baseAmountPerParent }} zł</p>
+
+  @if (isCollectionDetails(v)) {
+    <mat-card class="gg-card">
+      <mat-card-header>
+        <mat-card-title>{{ 'collectionDetails.requirements' | translate }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="v.requirements">
+          <ng-container matColumnDef="parentId">
+            <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.parent' | translate }}</th>
+            <td mat-cell *matCellDef="let r">{{ r.parentId }}</td>
+          </ng-container>
+          <ng-container matColumnDef="requiredAmount">
+            <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.required' | translate }}</th>
+            <td mat-cell *matCellDef="let r">{{ r.requiredAmount }} zł</td>
+          </ng-container>
+          <ng-container matColumnDef="paidAmount">
+            <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.paid' | translate }}</th>
+            <td mat-cell *matCellDef="let r">{{ r.paidAmount }} zł</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.requirementStatus' | translate }}</th>
+            <td mat-cell *matCellDef="let r">{{ ('requirementStatus.' + r.status) | translate }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="requirementColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: requirementColumns"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="gg-card gg-card--sky">
+      <mat-card-header>
+        <mat-card-title>{{ 'collectionDetails.contributions' | translate }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        @if (v.contributions.length === 0) {
+          <p>{{ 'collectionDetails.noContributions' | translate }}</p>
+        } @else {
+          <ul>
+            @for (c of v.contributions; track c.id) {
+              <li>{{ c.parentId }} - {{ c.amount }} zł ({{ ('contributionSource.' + c.source) | translate }})</li>
+            }
+          </ul>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    @if (v.collection.status === 'ACTIVE') {
+      <mat-card class="gg-card gg-card--blush">
+        <mat-card-header>
+          <mat-card-title>{{ 'collectionDetails.settle' | translate }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field>
+            <mat-label>{{ 'collectionDetails.actualCost' | translate }}</mat-label>
+            <input matInput type="number" [ngModel]="actualCostSpent()" (ngModelChange)="actualCostSpent.set($event)">
+          </mat-form-field>
+          <div>
+            <button mat-flat-button color="primary" (click)="settle()">{{ 'collectionDetails.settleButton' | translate }}</button>
+          </div>
+
+          @if (settlementPreview(); as result) {
+            <div class="settlement-result">
+              <p>{{ 'collectionDetails.totalSurplus' | translate }}: {{ result.totalSurplus }} zł</p>
+              @if (result.totalShortfall > 0) {
+                <p>{{ 'collectionDetails.totalShortfall' | translate }}: {{ result.totalShortfall }} zł</p>
+              }
+              <ul>
+                @for (s of result.parentSettlements; track s.parentId) {
+                  <li>{{ s.parentId }}: +{{ s.leftoverToCredit }} zł {{ 'collectionDetails.toPiggyBank' | translate }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+  } @else {
+    <mat-card class="gg-card">
+      <mat-card-header>
+        <mat-card-title>{{ 'collectionDetails.progress' | translate }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-progress-bar mode="determinate" [value]="v.percentComplete"></mat-progress-bar>
+        <p>{{ v.percentComplete }}%</p>
+        <p>{{ 'collectionDetails.parentsPaid' | translate }}: {{ v.parentsPaidCount }} / {{ v.parentsCount }}</p>
+        <p>{{ 'collectionDetails.totalPaid' | translate }}: {{ v.totalPaid }} zł / {{ v.totalRequired }} zł</p>
+      </mat-card-content>
+    </mat-card>
+  }
+}

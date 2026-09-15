@@ -1,0 +1,28 @@
+<mat-toolbar class="app-toolbar">
+  <a class="brand" routerLink="/">
+    <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.25"/>
+      <circle cx="12" cy="12" r="5" fill="currentColor"/>
+    </svg>
+    <span class="brand-name gg-heading">Grosz do Grosza</span>
+  </a>
+  <span class="spacer"></span>
+  @if (isAuthenticated()) {
+    <a mat-button class="nav-link" routerLink="/treasurer">{{ 'nav.treasurer' | translate }}</a>
+  }
+  <button mat-button class="lang-button" [matMenuTriggerFor]="languageMenu">{{ currentLanguage().toUpperCase() }}</button>
+  <mat-menu #languageMenu="matMenu">
+    @for (language of languages; track language) {
+      <button mat-menu-item (click)="changeLanguage(language)">{{ language.toUpperCase() }}</button>
+    }
+  </mat-menu>
+  @if (isAuthenticated()) {
+    <button mat-icon-button class="logout-button" (click)="logout()" aria-label="Log out">
+      <mat-icon>logout</mat-icon>
+    </button>
+  }
+</mat-toolbar>
+
+<div class="app-content">
+  <router-outlet />
+</div>

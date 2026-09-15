@@ -1,0 +1,67 @@
+<a routerLink="/">{{ 'common.backToDashboard' | translate }}</a>
+
+<h1 class="gg-heading">{{ 'treasurer.title' | translate }}</h1>
+
+<mat-card class="gg-card">
+  <mat-card-header>
+    <mat-card-title>{{ 'treasurer.parents' | translate }}</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-list>
+      @for (parent of parents(); track parent.id) {
+        <mat-list-item>
+          <a [routerLink]="['/parents', parent.id]">
+            {{ parent.firstName }} {{ parent.lastName }} - {{ 'parentView.piggyBank' | translate }}: {{ parent.piggyBankBalance }} zł
+          </a>
+        </mat-list-item>
+      }
+    </mat-list>
+
+    <h3>{{ 'treasurer.addParent' | translate }}</h3>
+    <div class="form-grid">
+      <mat-form-field>
+        <mat-label>{{ 'treasurer.firstName' | translate }}</mat-label>
+        <input matInput [ngModel]="newParentFirstName()" (ngModelChange)="newParentFirstName.set($event)">
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>{{ 'treasurer.lastName' | translate }}</mat-label>
+        <input matInput [ngModel]="newParentLastName()" (ngModelChange)="newParentLastName.set($event)">
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>{{ 'treasurer.email' | translate }}</mat-label>
+        <input matInput [ngModel]="newParentEmail()" (ngModelChange)="newParentEmail.set($event)">
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>{{ 'treasurer.expectedSenderName' | translate }}</mat-label>
+        <input matInput [ngModel]="newParentExpectedSenderName()" (ngModelChange)="newParentExpectedSenderName.set($event)">
+      </mat-form-field>
+    </div>
+    <button mat-flat-button color="primary" (click)="createParent()">{{ 'treasurer.addParentButton' | translate }}</button>
+  </mat-card-content>
+</mat-card>
+
+<mat-card class="gg-card gg-card--sky">
+  <mat-card-header>
+    <mat-card-title>{{ 'treasurer.newCollection' | translate }}</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <div class="form-grid">
+      <mat-form-field>
+        <mat-label>{{ 'treasurer.collectionTitle' | translate }}</mat-label>
+        <input matInput [ngModel]="newCollectionTitle()" (ngModelChange)="newCollectionTitle.set($event)">
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>{{ 'treasurer.collectionDescription' | translate }}</mat-label>
+        <input matInput [ngModel]="newCollectionDescription()" (ngModelChange)="newCollectionDescription.set($event)">
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>{{ 'treasurer.baseAmount' | translate }}</mat-label>
+        <input matInput type="number" [ngModel]="newCollectionBaseAmount()" (ngModelChange)="newCollectionBaseAmount.set($event)">
+      </mat-form-field>
+    </div>
+    <button mat-flat-button color="primary" (click)="createCollection()">{{ 'treasurer.createCollectionButton' | translate }}</button>
+    @if (collectionCreated()) {
+      <p class="success">{{ 'treasurer.collectionCreated' | translate }}</p>
+    }
+  </mat-card-content>
+</mat-card>

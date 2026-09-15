@@ -1,0 +1,15 @@
+.collection-list {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.collection-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.base-amount {
+  margin-top: 0.5rem;
+  font-weight: 600;
+}

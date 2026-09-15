@@ -1,0 +1,81 @@
+{
+  "nav": {
+    "treasurer": "Treasurer panel"
+  },
+  "common": {
+    "loading": "Loading...",
+    "backToDashboard": "← Back to collections",
+    "backToTreasurerPanel": "← Back to treasurer panel"
+  },
+  "login": {
+    "subtitle": "Log in to manage class collections",
+    "submit": "Log in"
+  },
+  "dashboard": {
+    "title": "Class collections",
+    "empty": "There are no collections yet.",
+    "baseAmount": "Base amount"
+  },
+  "collection": {
+    "status": {
+      "DRAFT": "Draft",
+      "ACTIVE": "Active",
+      "SETTLED": "Settled"
+    }
+  },
+  "requirementStatus": {
+    "PENDING": "Pending",
+    "PAID": "Paid",
+    "OVERPAID": "Overpaid"
+  },
+  "contributionSource": {
+    "BANK_STATEMENT_AUTO": "from bank statement",
+    "MANUAL": "manual entry",
+    "PIGGY_BANK_APPLIED": "from piggy bank"
+  },
+  "collectionDetails": {
+    "requirements": "Who owes what",
+    "parent": "Parent",
+    "required": "Required",
+    "paid": "Paid",
+    "requirementStatus": "Status",
+    "contributions": "Contributions",
+    "noContributions": "Nobody has contributed yet.",
+    "settle": "Settle collection",
+    "actualCost": "Actual cost (PLN)",
+    "settleButton": "Settle collection",
+    "totalSurplus": "Surplus to refund",
+    "totalShortfall": "Shortfall",
+    "toPiggyBank": "to piggy bank",
+    "progress": "Collection progress",
+    "parentsPaid": "Parents paid",
+    "totalPaid": "Collected"
+  },
+  "parentView": {
+    "piggyBank": "Piggy bank",
+    "ledger": "Event journal",
+    "noEntries": "No entries yet."
+  },
+  "treasurer": {
+    "title": "Treasurer panel",
+    "parents": "Parents",
+    "addParent": "Add a parent",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "expectedSenderName": "Expected sender name on transfers",
+    "addParentButton": "Add parent",
+    "newCollection": "New collection",
+    "collectionTitle": "Collection title",
+    "collectionDescription": "Description",
+    "baseAmount": "Base amount per parent (PLN)",
+    "createCollectionButton": "Create collection",
+    "collectionCreated": "Collection created."
+  },
+  "ledger": {
+    "CONTRIBUTION_RECEIVED": "Contribution of {{amount}} PLN to \"{{collectionTitle}}\"",
+    "COLLECTION_SETTLED": "\"{{collectionTitle}}\" settled, {{leftoverAmount}} PLN credited to piggy bank",
+    "PIGGY_BANK_CREDITED": "{{amount}} PLN credited to piggy bank",
+    "PIGGY_BANK_APPLIED_TO_COLLECTION": "{{amount}} PLN applied from piggy bank to a collection"
+  }
+}

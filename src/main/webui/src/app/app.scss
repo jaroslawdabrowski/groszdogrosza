@@ -1,0 +1,47 @@
+.app-toolbar {
+  background: var(--gg-ink);
+  color: var(--gg-cream);
+  border-bottom: 1px solid var(--gg-coin);
+  padding-inline-end: 1rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand-mark {
+  width: 24px;
+  height: 24px;
+  color: var(--gg-coin);
+  flex: none;
+}
+
+.brand-name {
+  font-size: 1.3rem;
+  color: var(--gg-cream);
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.app-toolbar .nav-link,
+.app-toolbar .lang-button {
+  color: var(--gg-cream) !important;
+  font-weight: 600;
+}
+
+.app-toolbar .logout-button {
+  color: var(--gg-cream) !important;
+  margin-inline-start: 0.25rem;
+}
+
+.app-content {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+}

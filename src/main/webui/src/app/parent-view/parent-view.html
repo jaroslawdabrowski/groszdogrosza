@@ -1,0 +1,34 @@
+@if (parent(); as p) {
+  <a routerLink="/treasurer">{{ 'common.backToTreasurerPanel' | translate }}</a>
+
+  <h1 class="gg-heading">{{ p.firstName }} {{ p.lastName }}</h1>
+  <p>{{ p.email }}</p>
+
+  <mat-card class="gg-card gg-card--mint">
+    <mat-card-header>
+      <mat-card-title>{{ 'parentView.piggyBank' | translate }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <p class="piggy-balance">{{ p.piggyBankBalance }} zł</p>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="gg-card gg-card--sky">
+    <mat-card-header>
+      <mat-card-title>{{ 'parentView.ledger' | translate }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (ledger().length === 0) {
+        <p>{{ 'parentView.noEntries' | translate }}</p>
+      } @else {
+        <mat-list>
+          @for (entry of ledger(); track entry.id) {
+            <mat-list-item>
+              <span>{{ translationKeyFor(entry) | translate: entry.params }}</span>
+            </mat-list-item>
+          }
+        </mat-list>
+      }
+    </mat-card-content>
+  </mat-card>
+}

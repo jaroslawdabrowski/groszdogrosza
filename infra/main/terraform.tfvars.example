@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (gitignored) or set the equivalent TF_VAR_* env vars.
+# Never commit real values here - the poll secret and IMAP app password are real
+# credentials with real money on the other end (Gmail access + automatic bookkeeping).
+
+bankstatement_poll_secret       = "replace-with-a-long-random-string"
+bankstatement_imap_username     = "jaros.dabrowski@gmail.com"
+bankstatement_imap_app_password = "replace-with-a-gmail-app-password"

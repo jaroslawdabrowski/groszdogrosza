@@ -1,0 +1,64 @@
+// Include theming for Angular Material with `mat.theme()`.
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$green-palette,
+      tertiary: mat.$orange-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+// Hand-picked pastel palette - warm, friendly, "piggy bank / classroom" tones, deliberately
+// NOT run through Material's HCT token system (their derived light tones don't land as
+// true pastels - same reasoning as the sibling "pvopt"/"turboorders" projects' own --pv-*/
+// --to-* conventions). Used directly only on surfaces this app fully controls: the
+// toolbar, headings, card accent stripes, progress bars. Prefer --mat-sys-* tokens for
+// anything Material renders itself (form fields, buttons' internal states, table
+// structure) - mixing the two systems on the same element is how this breaks later.
+:root {
+  --gg-cream: #fbf6ec;
+  --gg-cream-elevated: #ffffff;
+  --gg-ink: #3a3226;
+  --gg-ink-soft: #6b5f4d;
+  --gg-coin: #e0b64f;
+  --gg-coin-soft: #f3dfa4;
+  --gg-mint: #a8d8c9;
+  --gg-blush: #f2c6c2;
+  --gg-sky: #b7d3e8;
+}
+
+body {
+  color-scheme: light;
+  background-color: var(--gg-cream);
+  color: var(--gg-ink);
+  font: var(--mat-sys-body-medium);
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+html, body { height: 100%; }
+
+.gg-heading {
+  font-family: "Nunito", Roboto, sans-serif;
+  font-weight: 800;
+}
+
+.gg-card {
+  border-top: 4px solid var(--gg-coin);
+}
+
+.gg-card--mint {
+  border-top-color: var(--gg-mint);
+}
+
+.gg-card--blush {
+  border-top-color: var(--gg-blush);
+}
+
+.gg-card--sky {
+  border-top-color: var(--gg-sky);
+}

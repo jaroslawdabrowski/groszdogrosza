@@ -1,0 +1,32 @@
+<!--
+  PLACEHOLDER FIXTURE - NOT a real mBank statement export.
+
+  This file exists only so MBankStatementHtmlParserTest has something to point at and the
+  test suite documents the expected shape. It matches the guessed selectors in
+  MBankStatementHtmlParser (table.transactions / tr.transaction-row / .sender-name /
+  .transaction-title / .amount / .transaction-date) by construction, so the test below is
+  currently only proving the parser can parse ITS OWN assumptions, not that those
+  assumptions match reality.
+
+  TODO: replace this with a real (redacted - strip account numbers/balances) mBank
+  statement HTML attachment, then fix up the parser's selectors in
+  MBankStatementHtmlParser.java to match what's actually here.
+-->
+<html>
+<body>
+<table class="transactions">
+  <tr class="transaction-row">
+    <td class="transaction-date">15.09.2026</td>
+    <td class="sender-name">Jan Kowalski</td>
+    <td class="transaction-title">Skladka na prezent dla Pani</td>
+    <td class="amount">+50,00 PLN</td>
+  </tr>
+  <tr class="transaction-row">
+    <td class="transaction-date">15.09.2026</td>
+    <td class="sender-name">Anna Nowak</td>
+    <td class="transaction-title">wplata klasowa</td>
+    <td class="amount">+50,00 PLN</td>
+  </tr>
+</table>
+</body>
+</html>

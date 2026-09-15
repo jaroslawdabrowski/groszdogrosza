@@ -1,0 +1,15 @@
+mat-card {
+  margin-top: 1rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-bottom: 0.5rem;
+}
+
+.success {
+  color: var(--gg-ink);
+  font-weight: 600;
+}
