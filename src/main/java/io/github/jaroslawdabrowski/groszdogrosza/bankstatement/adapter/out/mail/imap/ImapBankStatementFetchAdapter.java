@@ -105,22 +105,39 @@ public class ImapBankStatementFetchAdapter implements BankStatementFetchPort {
     }
 
     /**
-     * A real mBank "Powiadomienie e-mail" was confirmed to be a plain
-     * {@code text/html} document (see {@code MBankStatementHtmlParser}'s javadoc and the
-     * anonymized fixture) - as delivered by Gmail this is very likely wrapped in
-     * {@code multipart/alternative} (a plain-text sibling part) and possibly further inside
-     * {@code multipart/related} (e.g. an embedded bank logo image), so this walks the whole
-     * MIME tree recursively for the first {@code text/html} part instead of assuming a
-     * fixed one-level structure.
+     * Confirmed against a real raw {@code .eml}: the message is S/MIME-signed
+     * ({@code multipart/signed}, one part being the actual message, the other a detached
+     * {@code application/pkcs7-signature} we don't care about), and the actual message is
+     * {@code multipart/mixed} with TWO {@code text/html} parts, not one - a generic "Dzień
+     * dobry, przesyłamy dzienny wykaz..." greeting nested inside a {@code multipart/alternative}
+     * (paired with a {@code text/plain} sibling), and, as a SEPARATE sibling part carrying
+     * {@code Content-Disposition: attachment; filename="Powiadomienie e-mail z YYYY-MM-DD.htm"},
+     * the actual notification table this parser needs. A naive "first text/html part found"
+     * walk would silently grab the greeting (wrong - no operations table in it, so the
+     * statement parser would find nothing and every transaction for that day would be
+     * missed) since the alternative part comes first in MIME order. This does two passes:
+     * first only accepting a {@code text/html} part whose {@code Content-Disposition} is
+     * {@code attachment} (matches the real structure), falling back to any {@code text/html}
+     * part only if no attachment-disposition one exists at all (defensive, in case mBank
+     * ever changes this).
      */
-    private static java.util.Optional<String> extractHtmlPart(Part part) {
+    static java.util.Optional<String> extractHtmlPart(Part part) {
+        java.util.Optional<String> attachment = findHtmlPart(part, true);
+        return attachment.isPresent() ? attachment : findHtmlPart(part, false);
+    }
+
+    private static java.util.Optional<String> findHtmlPart(Part part, boolean requireAttachmentDisposition) {
         try {
             if (part.isMimeType("text/html")) {
-                return java.util.Optional.of((String) part.getContent());
+                boolean isAttachment = Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition());
+                if (!requireAttachmentDisposition || isAttachment) {
+                    return java.util.Optional.of((String) part.getContent());
+                }
+                return java.util.Optional.empty();
             }
             if (part.isMimeType("multipart/*") && part.getContent() instanceof Multipart multipart) {
                 for (int i = 0; i < multipart.getCount(); i++) {
-                    java.util.Optional<String> found = extractHtmlPart(multipart.getBodyPart(i));
+                    java.util.Optional<String> found = findHtmlPart(multipart.getBodyPart(i), requireAttachmentDisposition);
                     if (found.isPresent()) {
                         return found;
                     }
