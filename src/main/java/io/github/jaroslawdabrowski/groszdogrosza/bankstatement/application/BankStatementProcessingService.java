@@ -97,7 +97,19 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
         int ignoredTreasurerOwnAccount = 0;
 
         for (RawStatementAttachment attachment : attachments) {
-            for (BankTransaction transaction : parserPort.parse(attachment.htmlContent())) {
+            List<BankTransaction> transactions;
+            try {
+                transactions = parserPort.parse(attachment.htmlContent());
+            } catch (RuntimeException e) {
+                // A mail from the expected sender that isn't shaped like a real "Powiadomienie
+                // e-mail" (e.g. IMAP's attachment-disposition fallback picked up something
+                // unexpected, or mBank changes the format) must be skipped, not crash the
+                // whole poll - every other attachment in this cycle still deserves a chance.
+                LOG.errorf(e, "Failed to parse a fetched mail (messageId=%s) as an mBank statement - skipping it",
+                        attachment.messageId());
+                continue;
+            }
+            for (BankTransaction transaction : transactions) {
                 seen++;
 
                 Optional<MatchResult> match = ParentMatchingPolicy.match(transaction, parents, minConfidence);
