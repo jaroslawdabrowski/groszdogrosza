@@ -58,7 +58,7 @@
         "dynamodb:UntagResource",
         "dynamodb:ListTagsOfResource"
       ],
-      "Resource": "arn:aws:dynamodb:eu-central-1:*:table/groszdogrosza-terraform-lock"
+      "Resource": "arn:aws:dynamodb:eu-central-1:814478897174:table/groszdogrosza-terraform-lock"
     },
     {
       "Sid": "AppDynamoDbTable",
@@ -74,7 +74,7 @@
         "dynamodb:UntagResource",
         "dynamodb:ListTagsOfResource"
       ],
-      "Resource": "arn:aws:dynamodb:eu-central-1:*:table/groszdogrosza-*"
+      "Resource": "arn:aws:dynamodb:eu-central-1:814478897174:table/groszdogrosza-*"
     },
     {
       "Sid": "EcrRepositoryManagement",
@@ -94,7 +94,7 @@
         "ecr:GetRepositoryPolicy",
         "ecr:DeleteRepositoryPolicy"
       ],
-      "Resource": "arn:aws:ecr:eu-central-1:*:repository/groszdogrosza-*"
+      "Resource": "arn:aws:ecr:eu-central-1:814478897174:repository/groszdogrosza-*"
     },
     {
       "Sid": "EcrAuth",
@@ -115,7 +115,7 @@
         "ecr:CompleteLayerUpload",
         "ecr:DescribeImages"
       ],
-      "Resource": "arn:aws:ecr:eu-central-1:*:repository/groszdogrosza-*"
+      "Resource": "arn:aws:ecr:eu-central-1:814478897174:repository/groszdogrosza-*"
     },
     {
       "Sid": "LambdaFunction",
@@ -140,7 +140,7 @@
         "lambda:ListVersionsByFunction",
         "lambda:PutFunctionConcurrency"
       ],
-      "Resource": "arn:aws:lambda:eu-central-1:*:function:groszdogrosza-*"
+      "Resource": "arn:aws:lambda:eu-central-1:814478897174:function:groszdogrosza-*"
     },
     {
       "Sid": "IamRolesForLambdaAndScheduler",
@@ -160,13 +160,13 @@
         "iam:TagRole",
         "iam:UntagRole"
       ],
-      "Resource": "arn:aws:iam::*:role/groszdogrosza-*"
+      "Resource": "arn:aws:iam::814478897174:role/groszdogrosza-*"
     },
     {
       "Sid": "PassRoleToLambdaAndScheduler",
       "Effect": "Allow",
       "Action": "iam:PassRole",
-      "Resource": "arn:aws:iam::*:role/groszdogrosza-*",
+      "Resource": "arn:aws:iam::814478897174:role/groszdogrosza-*",
       "Condition": {
         "StringEquals": {
           "iam:PassedToService": ["lambda.amazonaws.com", "scheduler.amazonaws.com"]
@@ -186,7 +186,7 @@
         "logs:ListTagsLogGroup",
         "logs:ListTagsForResource"
       ],
-      "Resource": "arn:aws:logs:eu-central-1:*:log-group:/aws/lambda/groszdogrosza-*"
+      "Resource": "arn:aws:logs:eu-central-1:814478897174:log-group:/aws/lambda/groszdogrosza-*"
     },
     {
       "Sid": "CloudWatchLogsDescribe",
@@ -252,7 +252,7 @@
         "scheduler:UntagResource",
         "scheduler:ListTagsForResource"
       ],
-      "Resource": "arn:aws:scheduler:eu-central-1:*:schedule/default/groszdogrosza-*"
+      "Resource": "arn:aws:scheduler:eu-central-1:814478897174:schedule/default/groszdogrosza-*"
     }
   ]
 }
