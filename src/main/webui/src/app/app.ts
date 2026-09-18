@@ -34,6 +34,13 @@ export class App implements OnInit {
     return this.currentUser.isTreasurer();
   }
 
+  /** Null until GET /api/parents/me resolves, or if the treasurer hasn't created a matching
+   *  Parent record for this account yet - the "my piggy bank" nav link only makes sense
+   *  once there's actually a Parent record to link to. */
+  myParentId(): string | null {
+    return this.currentUser.parent()?.id ?? null;
+  }
+
   currentLanguage(): Language {
     return this.languageService.current();
   }

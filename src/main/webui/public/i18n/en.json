@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Collections",
+    "myWallet": "My piggy bank",
     "ledger": "Activity log",
     "treasurer": "Treasurer panel",
     "login": "Log in"

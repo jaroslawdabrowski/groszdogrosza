@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Zbiórki",
+    "myWallet": "Moja skarbonka",
     "ledger": "Dziennik zdarzeń",
     "treasurer": "Panel skarbnika",
     "login": "Zaloguj się"
