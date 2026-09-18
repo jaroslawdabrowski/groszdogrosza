@@ -33,4 +33,8 @@ export class ParentApiService {
   creditPiggyBank(id: string, amount: number): Observable<Parent> {
     return this.http.post<Parent>(`/api/parents/${id}/piggy-bank/credit`, { amount });
   }
+
+  updatePaymentInfo(id: string, bankAccountNumber: string, blikPhoneNumber: string): Observable<Parent> {
+    return this.http.put<Parent>(`/api/parents/${id}/payment-info`, { bankAccountNumber, blikPhoneNumber });
+  }
 }

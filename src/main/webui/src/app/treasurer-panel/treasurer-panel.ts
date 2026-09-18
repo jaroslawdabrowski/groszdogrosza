@@ -22,6 +22,10 @@ export class TreasurerPanel {
   private readonly collectionApi = inject(CollectionApiService);
 
   readonly parents = signal<Parent[]>([]);
+  readonly me = signal<Parent | null>(null);
+  readonly bankAccountNumber = signal('');
+  readonly blikPhoneNumber = signal('');
+  readonly paymentInfoSaved = signal(false);
 
   readonly newParentFirstName = signal('');
   readonly newParentLastName = signal('');
@@ -35,10 +39,26 @@ export class TreasurerPanel {
 
   constructor() {
     this.reloadParents();
+    this.parentApi.me().subscribe((me) => {
+      this.me.set(me);
+      this.bankAccountNumber.set(me.bankAccountNumber ?? '');
+      this.blikPhoneNumber.set(me.blikPhoneNumber ?? '');
+    });
   }
 
   reloadParents(): void {
     this.parentApi.list().subscribe((parents) => this.parents.set(parents));
+  }
+
+  savePaymentInfo(): void {
+    const currentUser = this.me();
+    if (!currentUser) {
+      return;
+    }
+    this.parentApi.updatePaymentInfo(currentUser.id, this.bankAccountNumber(), this.blikPhoneNumber()).subscribe((updated) => {
+      this.me.set(updated);
+      this.paymentInfoSaved.set(true);
+    });
   }
 
   createParent(): void {

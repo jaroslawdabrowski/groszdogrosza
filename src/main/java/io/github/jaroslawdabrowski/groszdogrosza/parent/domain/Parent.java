@@ -19,6 +19,9 @@ import java.math.BigDecimal;
  *                           drives every authorization decision in the app.
  * @param piggyBankBalance   money this parent has overpaid on past collections, available to
  *                           be applied automatically to future ones. Never negative.
+ * @param paymentInfo        null unless the treasurer has configured it - see
+ *                           {@link PaymentInfo}. Shown on the public, unauthenticated
+ *                           collection overview page so anyone can pay in.
  */
 public record Parent(
         String id,
@@ -28,7 +31,8 @@ public record Parent(
         String expectedSenderName,
         String cognitoSubjectId,
         ParentRole role,
-        BigDecimal piggyBankBalance) {
+        BigDecimal piggyBankBalance,
+        PaymentInfo paymentInfo) {
 
     public Parent {
         if (piggyBankBalance == null) {

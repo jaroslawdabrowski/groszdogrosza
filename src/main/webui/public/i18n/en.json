@@ -1,6 +1,9 @@
 {
   "nav": {
-    "treasurer": "Treasurer panel"
+    "dashboard": "Collections",
+    "ledger": "Activity log",
+    "treasurer": "Treasurer panel",
+    "login": "Log in"
   },
   "common": {
     "loading": "Loading...",
@@ -15,6 +18,21 @@
     "title": "Class collections",
     "empty": "There are no collections yet.",
     "baseAmount": "Base amount"
+  },
+  "publicOverview": {
+    "title": "Class collection",
+    "loginHint": "Want to see your own piggy bank?",
+    "howToPay": "How to pay",
+    "bankAccountNumber": "Account number",
+    "blikPhoneNumber": "BLIK phone number",
+    "noActiveCollections": "There is no active collection right now.",
+    "parentsPaid": "Parents paid",
+    "totalPaid": "Collected"
+  },
+  "globalLedger": {
+    "title": "Full activity log",
+    "noEntries": "No entries yet.",
+    "forbidden": "This view is only available to the treasurer."
   },
   "collection": {
     "status": {
@@ -70,7 +88,11 @@
     "collectionDescription": "Description",
     "baseAmount": "Base amount per parent (PLN)",
     "createCollectionButton": "Create collection",
-    "collectionCreated": "Collection created."
+    "collectionCreated": "Collection created.",
+    "paymentInfo": "Payment info",
+    "paymentInfoHint": "Visible to anyone on the public homepage, no login required.",
+    "savePaymentInfoButton": "Save",
+    "paymentInfoSaved": "Saved."
   },
   "ledger": {
     "CONTRIBUTION_RECEIVED": "Contribution of {{amount}} PLN to \"{{collectionTitle}}\"",

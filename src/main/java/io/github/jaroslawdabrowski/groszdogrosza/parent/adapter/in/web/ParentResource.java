@@ -6,6 +6,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreateParentUseC
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreditPiggyBankManuallyUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ListParentsUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.UpdatePaymentInfoUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -13,6 +14,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -46,6 +48,9 @@ public class ParentResource {
 
     @Inject
     CreditPiggyBankManuallyUseCase creditPiggyBankManuallyUseCase;
+
+    @Inject
+    UpdatePaymentInfoUseCase updatePaymentInfoUseCase;
 
     @Inject
     AuthorizationSupport authorizationSupport;
@@ -93,5 +98,18 @@ public class ParentResource {
     public ParentResponse creditPiggyBank(@PathParam("id") String id, CreditPiggyBankRequest request) {
         authorizationSupport.requireTreasurer(identity);
         return ParentResponse.from(creditPiggyBankManuallyUseCase.creditPiggyBankManually(id, request.amount()));
+    }
+
+    /**
+     * Treasurer-only. In practice only ever called for the treasurer's own record (that's
+     * the only one shown on the public overview page - see {@code PublicOverviewResource})
+     * but not restricted to self, since only the treasurer can call this at all.
+     */
+    @PUT
+    @Path("/{id}/payment-info")
+    public ParentResponse updatePaymentInfo(@PathParam("id") String id, UpdatePaymentInfoRequest request) {
+        authorizationSupport.requireTreasurer(identity);
+        return ParentResponse.from(
+                updatePaymentInfoUseCase.updatePaymentInfo(id, request.bankAccountNumber(), request.blikPhoneNumber()));
     }
 }

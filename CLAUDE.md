@@ -225,6 +225,58 @@ problem for a brand new deployment. For now this means seeding it manually (e.g.
 DynamoDB, or temporarily relaxing the check for one call) rather than through the normal
 treasurer-only `POST /api/parents` - see "TODO for the next session".
 
+### Public collection overview - deliberately unauthenticated
+
+The user explicitly wants a class-wide "how's the collection going and how do I pay" page
+visible to **anyone**, no login required - a grandparent, a parent who never bothered
+creating an account, anyone with the link. `GET /api/public/overview`
+(`platform.web.PublicOverviewResource`) is the one endpoint in this app with no
+`@Authenticated` at all, carved out via `quarkus.http.auth.permission.public.paths` (which
+must include `/api/public/*` alongside the pre-existing `/api/auth-config`) rather than a
+role check - Quarkus's `@Authenticated` model has no "public" level to fall back to, so this
+has to be a routing-level exemption, same mechanism as `/internal/*` for the bank-statement
+poll (see below) but with the opposite intent (never authenticated, vs. authenticated by a
+shared secret instead of Cognito).
+
+It returns, for every currently `ACTIVE` collection, the exact same aggregate-only shape
+`CollectionProgressResponse` already gives a logged-in non-treasurer parent (percent
+complete, how many parents paid out of how many, total collected out of total required) -
+**never** a per-parent breakdown, matching the user's explicit choice (see below) that
+individual names/amounts stay behind login. Alongside that, it returns the treasurer's
+payment info (`Parent.paymentInfo`, a `bankAccountNumber`/`blikPhoneNumber` pair, settable
+via the treasurer-only `PUT /api/parents/{id}/payment-info` and edited from a card on
+`TreasurerPanel`) so anyone can actually pay in without needing an account first. Payment
+info is deliberately modeled as one field on **the treasurer's own** `Parent` record, not a
+per-collection setting - every collection is paid into the same account regardless of which
+collection it's for, so duplicating account/BLIK fields onto every `Collection` would just
+be a chance for them to drift out of sync. `ParentService.getTreasurerPaymentInfo` finds it
+by scanning for `role == TREASURER` (there's normally exactly one - see `ParentRole`), not
+by a dedicated "the" pointer, consistent with how the rest of this app treats the treasurer
+as just another `Parent` row rather than a special singleton entity.
+
+The Angular route `/` was repointed from `Dashboard` to a new unauthenticated
+`PublicOverview` component for this - `Dashboard` (the full collection list, previously at
+`/`) moved to `/dashboard`, now behind `authGuard` like everything else. `PublicOverview`
+shows a "log in to see your own piggy bank" prompt (`AuthService.login()`) rather than
+forcing a redirect, since the whole point is that an anonymous visitor can use this page.
+
+**The full cross-parent transaction log stays authenticated, on purpose** - the user's own
+worked example ("Kowalski wpłacił 50 zł... 50 zł przekazane do skarbonki Kowalskiego...")
+names specific parents, which is exactly the per-parent detail kept off the public page
+(see above). `GET /api/ledger` (`ledger.adapter.in.web.GlobalLedgerResource`) is
+**treasurer-only** (`AuthorizationSupport.requireTreasurer`, same pattern as every other
+treasurer-only endpoint) and returns every parent's `LedgerEntry`s in one feed, newest first
+(`LedgerRepositoryPort.findAll` - a full table scan filtered by the `LEDGER#` sk prefix,
+same accepted-at-this-scale tradeoff as every other cross-partition read in this adapter,
+sorted in application code since `Scan` has no ordering guarantee), enriched with each
+entry's `parentName` (looked up once via `ListParentsUseCase` and joined in
+`GlobalLedgerResource`, since a global feed - unlike a single parent's own ledger page -
+needs to say whose entry each one is). A *regular* parent still only ever sees their own
+entries via the pre-existing `GET /api/parents/{id}/ledger` (self-or-treasurer, unchanged) -
+there is deliberately no "any parent can see everyone's log" middle option, matching the
+user's explicit answer when asked ("tylko po zalogowaniu i dostępny dla skarbnika dla
+dowolnej osoby").
+
 ### Why IMAP + a Gmail App Password instead of the Gmail API/OAuth
 
 The mail lives in a personal Gmail (jaros.dabrowski@gmail.com), read by one unattended
@@ -402,12 +454,15 @@ logout (`AuthService.logout()` redirects back to `/`, which immediately re-trigg
 `authGuard` anyway, so `/login` is mostly a discoverable manual re-entry point rather than
 a load-bearing part of the auth flow).
 
-Pages: `Dashboard` (`/`, collection cards with a status chip), `CollectionDetails`
-(`/collections/:id`, requirements table, contributions list, the settle form - see the
-"no preview yet" TODO above), `ParentView` (`/parents/:id`, piggy bank balance + ledger
-rendered via the `ledger.*` i18n keys), `TreasurerPanel` (`/treasurer`, parent list + "add
-parent" + "create collection" forms - the closest thing to an admin page), `Login`
-(`/login`, unguarded).
+Pages: `PublicOverview` (`/`, unauthenticated - active collections' progress + how to pay,
+see "Public collection overview" above), `Dashboard` (`/dashboard`, guarded, full collection
+list with a status chip), `CollectionDetails` (`/collections/:id`, requirements table,
+contributions list, the settle form - see the "no preview yet" TODO above), `ParentView`
+(`/parents/:id`, piggy bank balance + ledger rendered via the `ledger.*` i18n keys),
+`GlobalLedger` (`/ledger`, guarded, treasurer-only - every parent's ledger entries in one
+feed, each prefixed with `parentName`), `TreasurerPanel` (`/treasurer`, parent list + "add
+parent" + "create collection" forms + the payment-info card - the closest thing to an admin
+page), `Login` (`/login`, unguarded).
 
 **Visual style**: `--gg-*` custom properties on `:root` in `styles.scss` (cream/ink base,
 coin-gold/mint/blush/sky accents) - same "hand-picked pastel palette as plain CSS custom

@@ -4,6 +4,10 @@ import { authGuard } from './core/auth.guard';
 export const routes: Routes = [
   {
     path: '',
+    loadComponent: () => import('./public-overview/public-overview').then((m) => m.PublicOverview),
+  },
+  {
+    path: 'dashboard',
     loadComponent: () => import('./dashboard/dashboard').then((m) => m.Dashboard),
     canActivate: [authGuard],
   },
@@ -20,6 +24,11 @@ export const routes: Routes = [
   {
     path: 'treasurer',
     loadComponent: () => import('./treasurer-panel/treasurer-panel').then((m) => m.TreasurerPanel),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'ledger',
+    loadComponent: () => import('./global-ledger/global-ledger').then((m) => m.GlobalLedger),
     canActivate: [authGuard],
   },
   {

@@ -11,6 +11,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.out.LedgerRepositoryPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -18,6 +19,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
+import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
 /**
  * Key layout: {@code pk = "PARENT#<parentId>"}, {@code sk = "LEDGER#<occurredAt ISO-8601>#<id>"}.
@@ -59,6 +61,24 @@ public class LedgerDynamoDbAdapter implements LedgerRepositoryPort {
                         .build())
                 .items().stream()
                 .map(LedgerDynamoDbAdapter::fromItem)
+                .toList();
+    }
+
+    @Override
+    public List<LedgerEntry> findAll() {
+        // Full table scan filtered by sk prefix - entries are partitioned per-parent
+        // (pk = "PARENT#<id>"), so there is no single partition a Query could target for
+        // "every entry across every parent". Fine at this app's scale (see
+        // ParentDynamoDbAdapter.findAll's javadoc for the same accepted tradeoff); sorted
+        // in application code since Scan gives no ordering guarantee.
+        return dynamoDbClient.scan(ScanRequest.builder()
+                        .tableName(tableName)
+                        .filterExpression("begins_with(sk, :skPrefix)")
+                        .expressionAttributeValues(Map.of(":skPrefix", s(SK_PREFIX)))
+                        .build())
+                .items().stream()
+                .map(LedgerDynamoDbAdapter::fromItem)
+                .sorted(Comparator.comparing(LedgerEntry::occurredAt).reversed())
                 .toList();
     }
 

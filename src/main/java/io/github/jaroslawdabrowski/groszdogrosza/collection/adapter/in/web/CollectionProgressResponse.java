@@ -11,7 +11,9 @@ import java.math.RoundingMode;
  * progress only - never the per-parent requirement/contribution breakdown that
  * {@link CollectionDetailsResponse} carries, since that would expose every other family's
  * payment status and amounts. See {@code CollectionResource.get} for the role check that
- * picks between the two.
+ * picks between the two. Also reused (public {@link #from}) by
+ * {@code platform.web.PublicOverviewResource} for the unauthenticated public page, which
+ * shows this same aggregate-only shape for every currently ACTIVE collection.
  */
 public record CollectionProgressResponse(
         CollectionResponse collection,
@@ -21,7 +23,7 @@ public record CollectionProgressResponse(
         BigDecimal totalPaid,
         int percentComplete) {
 
-    static CollectionProgressResponse from(CollectionDetails details) {
+    public static CollectionProgressResponse from(CollectionDetails details) {
         BigDecimal totalRequired = BigDecimal.ZERO;
         BigDecimal totalPaid = BigDecimal.ZERO;
         int paidCount = 0;

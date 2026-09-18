@@ -70,6 +70,8 @@ export interface Parent {
   expectedSenderName: string;
   role: 'TREASURER' | 'PARENT';
   piggyBankBalance: number;
+  bankAccountNumber: string | null;
+  blikPhoneNumber: string | null;
 }
 
 export interface LedgerEntry {
@@ -77,4 +79,21 @@ export interface LedgerEntry {
   eventType: 'CONTRIBUTION_RECEIVED' | 'COLLECTION_SETTLED' | 'PIGGY_BANK_CREDITED' | 'PIGGY_BANK_APPLIED_TO_COLLECTION';
   occurredAt: string;
   params: Record<string, string>;
+}
+
+/** Same as LedgerEntry, plus parentName - see backend GlobalLedgerEntryResponse. */
+export interface GlobalLedgerEntry extends LedgerEntry {
+  parentId: string;
+  parentName: string;
+}
+
+export interface PublicPaymentInfo {
+  bankAccountNumber: string | null;
+  blikPhoneNumber: string | null;
+}
+
+/** GET /api/public/overview - unauthenticated. See backend PublicOverviewResponse. */
+export interface PublicOverview {
+  paymentInfo: PublicPaymentInfo | null;
+  activeCollections: CollectionProgress[];
 }

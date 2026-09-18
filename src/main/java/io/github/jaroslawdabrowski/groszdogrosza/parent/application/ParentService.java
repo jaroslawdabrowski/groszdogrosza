@@ -4,13 +4,16 @@ import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.RecordLedgerEntryUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.ParentRole;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.PaymentInfo;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreateParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreditPiggyBankManuallyUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreditPiggyBankUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.DebitPiggyBankUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetParentByEmailUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetParentUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetTreasurerPaymentInfoUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ListParentsUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.UpdatePaymentInfoUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.out.ParentRepositoryPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -23,7 +26,8 @@ import java.util.UUID;
 
 @ApplicationScoped
 public class ParentService implements CreateParentUseCase, GetParentUseCase, GetParentByEmailUseCase,
-        ListParentsUseCase, CreditPiggyBankUseCase, DebitPiggyBankUseCase, CreditPiggyBankManuallyUseCase {
+        ListParentsUseCase, CreditPiggyBankUseCase, DebitPiggyBankUseCase, CreditPiggyBankManuallyUseCase,
+        UpdatePaymentInfoUseCase, GetTreasurerPaymentInfoUseCase {
 
     @Inject
     ParentRepositoryPort parentRepository;
@@ -35,7 +39,7 @@ public class ParentService implements CreateParentUseCase, GetParentUseCase, Get
     public Parent createParent(String firstName, String lastName, String email, String expectedSenderName,
             ParentRole role) {
         Parent parent = new Parent(UUID.randomUUID().toString(), firstName, lastName, email,
-                expectedSenderName, null, role, BigDecimal.ZERO);
+                expectedSenderName, null, role, BigDecimal.ZERO, null);
         return parentRepository.save(parent);
     }
 
@@ -88,6 +92,24 @@ public class ParentService implements CreateParentUseCase, GetParentUseCase, Get
         return updated;
     }
 
+    @Override
+    public Parent updatePaymentInfo(String parentId, String bankAccountNumber, String blikPhoneNumber) {
+        Parent parent = requireParent(parentId);
+        Parent updated = new Parent(parent.id(), parent.firstName(), parent.lastName(), parent.email(),
+                parent.expectedSenderName(), parent.cognitoSubjectId(), parent.role(), parent.piggyBankBalance(),
+                new PaymentInfo(bankAccountNumber, blikPhoneNumber));
+        return parentRepository.save(updated);
+    }
+
+    @Override
+    public Optional<PaymentInfo> getTreasurerPaymentInfo() {
+        return parentRepository.findAll().stream()
+                .filter(parent -> parent.role() == ParentRole.TREASURER)
+                .map(Parent::paymentInfo)
+                .filter(java.util.Objects::nonNull)
+                .findFirst();
+    }
+
     private Parent requireParent(String parentId) {
         return parentRepository.findById(parentId)
                 .orElseThrow(() -> new NoSuchElementException("No such parent: " + parentId));
@@ -95,6 +117,7 @@ public class ParentService implements CreateParentUseCase, GetParentUseCase, Get
 
     private static Parent withPiggyBankBalance(Parent parent, BigDecimal newBalance) {
         return new Parent(parent.id(), parent.firstName(), parent.lastName(), parent.email(),
-                parent.expectedSenderName(), parent.cognitoSubjectId(), parent.role(), newBalance);
+                parent.expectedSenderName(), parent.cognitoSubjectId(), parent.role(), newBalance,
+                parent.paymentInfo());
     }
 }

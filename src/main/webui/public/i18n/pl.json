@@ -1,6 +1,9 @@
 {
   "nav": {
-    "treasurer": "Panel skarbnika"
+    "dashboard": "Zbiórki",
+    "ledger": "Dziennik zdarzeń",
+    "treasurer": "Panel skarbnika",
+    "login": "Zaloguj się"
   },
   "common": {
     "loading": "Ładowanie...",
@@ -15,6 +18,21 @@
     "title": "Zbiórki klasowe",
     "empty": "Nie ma jeszcze żadnych zbiórek.",
     "baseAmount": "Kwota bazowa"
+  },
+  "publicOverview": {
+    "title": "Zbiórka klasowa",
+    "loginHint": "Chcesz zobaczyć swoją skarbonkę?",
+    "howToPay": "Jak zapłacić",
+    "bankAccountNumber": "Numer konta",
+    "blikPhoneNumber": "BLIK na telefon",
+    "noActiveCollections": "Obecnie nie ma żadnej aktywnej zbiórki.",
+    "parentsPaid": "Wpłaciło rodziców",
+    "totalPaid": "Zebrano"
+  },
+  "globalLedger": {
+    "title": "Log wszystkich transakcji",
+    "noEntries": "Brak wpisów.",
+    "forbidden": "Ten widok jest dostępny tylko dla skarbnika."
   },
   "collection": {
     "status": {
@@ -70,7 +88,11 @@
     "collectionDescription": "Opis",
     "baseAmount": "Kwota bazowa od osoby (zł)",
     "createCollectionButton": "Utwórz zbiórkę",
-    "collectionCreated": "Zbiórka została utworzona."
+    "collectionCreated": "Zbiórka została utworzona.",
+    "paymentInfo": "Dane do wpłat",
+    "paymentInfoHint": "Widoczne dla każdego na stronie głównej, bez logowania.",
+    "savePaymentInfoButton": "Zapisz",
+    "paymentInfoSaved": "Zapisano."
   },
   "ledger": {
     "CONTRIBUTION_RECEIVED": "Wpłata {{amount}} zł na zbiórkę \"{{collectionTitle}}\"",

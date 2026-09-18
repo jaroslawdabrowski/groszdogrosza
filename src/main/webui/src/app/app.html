@@ -8,6 +8,8 @@
   </a>
   <span class="spacer"></span>
   @if (isAuthenticated()) {
+    <a mat-button class="nav-link" routerLink="/dashboard">{{ 'nav.dashboard' | translate }}</a>
+    <a mat-button class="nav-link" routerLink="/ledger">{{ 'nav.ledger' | translate }}</a>
     <a mat-button class="nav-link" routerLink="/treasurer">{{ 'nav.treasurer' | translate }}</a>
   }
   <button mat-button class="lang-button" [matMenuTriggerFor]="languageMenu">{{ currentLanguage().toUpperCase() }}</button>

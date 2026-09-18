@@ -17,7 +17,7 @@ class ParentMatchingPolicyTest {
 
     private static Parent parent(String id, String expectedSenderName) {
         return new Parent(id, "First", "Last", "x@example.com", expectedSenderName, null, ParentRole.PARENT,
-                BigDecimal.ZERO);
+                BigDecimal.ZERO, null);
     }
 
     private static BankTransaction transaction(String senderName) {

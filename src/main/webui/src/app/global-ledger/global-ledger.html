@@ -1,0 +1,25 @@
+<a routerLink="/treasurer">{{ 'common.backToTreasurerPanel' | translate }}</a>
+
+<h1 class="gg-heading">{{ 'globalLedger.title' | translate }}</h1>
+
+@if (loading()) {
+  <p>{{ 'common.loading' | translate }}</p>
+} @else if (forbidden()) {
+  <p>{{ 'globalLedger.forbidden' | translate }}</p>
+} @else {
+  <mat-card class="gg-card gg-card--sky">
+    <mat-card-content>
+      @if (entries().length === 0) {
+        <p>{{ 'globalLedger.noEntries' | translate }}</p>
+      } @else {
+        <mat-list>
+          @for (entry of entries(); track entry.id) {
+            <mat-list-item>
+              <span><strong>{{ entry.parentName }}</strong> — {{ translationKeyFor(entry) | translate: entry.params }}</span>
+            </mat-list-item>
+          }
+        </mat-list>
+      }
+    </mat-card-content>
+  </mat-card>
+}

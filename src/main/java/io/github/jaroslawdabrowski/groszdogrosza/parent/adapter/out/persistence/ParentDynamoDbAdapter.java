@@ -9,6 +9,7 @@ import static io.github.jaroslawdabrowski.groszdogrosza.platform.persistence.Att
 
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.ParentRole;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.PaymentInfo;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.out.ParentRepositoryPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -95,20 +96,27 @@ public class ParentDynamoDbAdapter implements ParentRepositoryPort {
     }
 
     private static Map<String, AttributeValue> toItem(Parent parent) {
-        return Map.of(
-                "pk", s(pk(parent.id())),
-                "sk", s(SK),
-                "id", s(parent.id()),
-                "firstName", s(parent.firstName()),
-                "lastName", s(parent.lastName()),
-                "email", s(parent.email()),
-                "expectedSenderName", s(parent.expectedSenderName()),
-                "cognitoSubjectId", sOrNull(parent.cognitoSubjectId()),
-                "role", s(parent.role().name()),
-                "piggyBankBalance", n(parent.piggyBankBalance()));
+        return Map.ofEntries(
+                Map.entry("pk", s(pk(parent.id()))),
+                Map.entry("sk", s(SK)),
+                Map.entry("id", s(parent.id())),
+                Map.entry("firstName", s(parent.firstName())),
+                Map.entry("lastName", s(parent.lastName())),
+                Map.entry("email", s(parent.email())),
+                Map.entry("expectedSenderName", s(parent.expectedSenderName())),
+                Map.entry("cognitoSubjectId", sOrNull(parent.cognitoSubjectId())),
+                Map.entry("role", s(parent.role().name())),
+                Map.entry("piggyBankBalance", n(parent.piggyBankBalance())),
+                Map.entry("bankAccountNumber", sOrNull(parent.paymentInfo() == null ? null : parent.paymentInfo().bankAccountNumber())),
+                Map.entry("blikPhoneNumber", sOrNull(parent.paymentInfo() == null ? null : parent.paymentInfo().blikPhoneNumber())));
     }
 
     private static Parent fromItem(Map<String, AttributeValue> item) {
+        String bankAccountNumber = strOrNull(item, "bankAccountNumber");
+        String blikPhoneNumber = strOrNull(item, "blikPhoneNumber");
+        PaymentInfo paymentInfo = bankAccountNumber == null && blikPhoneNumber == null
+                ? null
+                : new PaymentInfo(bankAccountNumber, blikPhoneNumber);
         return new Parent(
                 str(item, "id"),
                 str(item, "firstName"),
@@ -117,6 +125,7 @@ public class ParentDynamoDbAdapter implements ParentRepositoryPort {
                 str(item, "expectedSenderName"),
                 strOrNull(item, "cognitoSubjectId"),
                 ParentRole.valueOf(str(item, "role")),
-                decimal(item, "piggyBankBalance"));
+                decimal(item, "piggyBankBalance"),
+                paymentInfo);
     }
 }

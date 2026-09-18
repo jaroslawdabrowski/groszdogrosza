@@ -2,6 +2,7 @@ package io.github.jaroslawdabrowski.groszdogrosza.ledger.application;
 
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEntry;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
+import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.GetFullLedgerUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.GetLedgerForParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.RecordLedgerEntryUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.out.LedgerRepositoryPort;
@@ -13,7 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @ApplicationScoped
-public class LedgerService implements GetLedgerForParentUseCase, RecordLedgerEntryUseCase {
+public class LedgerService implements GetLedgerForParentUseCase, RecordLedgerEntryUseCase, GetFullLedgerUseCase {
 
     @Inject
     LedgerRepositoryPort ledgerRepository;
@@ -21,6 +22,11 @@ public class LedgerService implements GetLedgerForParentUseCase, RecordLedgerEnt
     @Override
     public List<LedgerEntry> getLedgerFor(String parentId) {
         return ledgerRepository.findByParentId(parentId);
+    }
+
+    @Override
+    public List<LedgerEntry> getFullLedger() {
+        return ledgerRepository.findAll();
     }
 
     @Override
