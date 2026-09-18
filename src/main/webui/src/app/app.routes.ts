@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
+import { treasurerGuard } from './core/treasurer.guard';
 
 export const routes: Routes = [
   {
@@ -24,12 +25,12 @@ export const routes: Routes = [
   {
     path: 'treasurer',
     loadComponent: () => import('./treasurer-panel/treasurer-panel').then((m) => m.TreasurerPanel),
-    canActivate: [authGuard],
+    canActivate: [authGuard, treasurerGuard],
   },
   {
     path: 'ledger',
     loadComponent: () => import('./global-ledger/global-ledger').then((m) => m.GlobalLedger),
-    canActivate: [authGuard],
+    canActivate: [authGuard, treasurerGuard],
   },
   {
     path: 'login',

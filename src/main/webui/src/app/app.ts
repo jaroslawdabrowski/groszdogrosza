@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from './core/auth.service';
+import { CurrentUserService } from './core/current-user.service';
 import { LanguageService, SUPPORTED_LANGUAGES, type Language } from './core/language.service';
 
 @Component({
@@ -17,11 +18,19 @@ import { LanguageService, SUPPORTED_LANGUAGES, type Language } from './core/lang
 export class App implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly languageService = inject(LanguageService);
+  private readonly currentUser = inject(CurrentUserService);
 
   readonly languages = SUPPORTED_LANGUAGES;
 
   ngOnInit(): void {
     this.languageService.init();
+    if (this.isAuthenticated()) {
+      this.currentUser.load().subscribe();
+    }
+  }
+
+  isTreasurer(): boolean {
+    return this.currentUser.isTreasurer();
   }
 
   currentLanguage(): Language {
