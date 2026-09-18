@@ -1,9 +1,9 @@
 package io.github.jaroslawdabrowski.groszdogrosza.ledger.adapter.in.web;
 
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.GetFullLedgerUseCase;
-import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
-import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ListParentsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
+import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
+import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Treasurer-only "log wszystkich transakcji" - every parent's ledger entries in one feed,
- * unlike {@code LedgerResource} which only ever returns one parent's own (self-or-treasurer).
+ * Treasurer-only "log wszystkich transakcji" - every student's ledger entries in one feed,
+ * unlike {@code LedgerResource} which only ever returns one student's own (self-or-treasurer).
  */
 @Path("/api/ledger")
 @Authenticated
@@ -27,7 +27,7 @@ public class GlobalLedgerResource {
     GetFullLedgerUseCase getFullLedgerUseCase;
 
     @Inject
-    ListParentsUseCase listParentsUseCase;
+    ListStudentsUseCase listStudentsUseCase;
 
     @Inject
     AuthorizationSupport authorizationSupport;
@@ -38,11 +38,11 @@ public class GlobalLedgerResource {
     @GET
     public List<GlobalLedgerEntryResponse> get() {
         authorizationSupport.requireTreasurer(identity);
-        Map<String, String> namesByParentId = listParentsUseCase.listParents().stream()
-                .collect(java.util.stream.Collectors.toMap(Parent::id, Parent::fullName, (a, b) -> a));
+        Map<String, String> namesByStudentId = listStudentsUseCase.listStudents().stream()
+                .collect(java.util.stream.Collectors.toMap(Student::id, Student::fullName, (a, b) -> a));
         return getFullLedgerUseCase.getFullLedger().stream()
                 .map(entry -> GlobalLedgerEntryResponse.from(entry,
-                        namesByParentId.getOrDefault(entry.parentId(), entry.parentId())))
+                        namesByStudentId.getOrDefault(entry.studentId(), entry.studentId())))
                 .toList();
     }
 }

@@ -8,7 +8,7 @@
     <p class="description">{{ v.collection.description }}</p>
     <mat-chip-set>
       <mat-chip [class]="'status-chip status-chip--' + v.collection.status">{{ ('collection.status.' + v.collection.status) | translate }}</mat-chip>
-      <mat-chip class="amount-chip">{{ 'dashboard.baseAmount' | translate }}: {{ v.collection.baseAmountPerParent }} zł</mat-chip>
+      <mat-chip class="amount-chip">{{ 'dashboard.baseAmount' | translate }}: {{ v.collection.baseAmountPerStudent }} zł</mat-chip>
     </mat-chip-set>
   </header>
 
@@ -20,9 +20,9 @@
       <mat-card-content>
         <div class="gg-scroll-x">
           <table mat-table [dataSource]="v.requirements">
-            <ng-container matColumnDef="parentId">
-              <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.parent' | translate }}</th>
-              <td mat-cell *matCellDef="let r">{{ r.parentId }}</td>
+            <ng-container matColumnDef="studentName">
+              <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.student' | translate }}</th>
+              <td mat-cell *matCellDef="let r">{{ r.studentName }}</td>
             </ng-container>
             <ng-container matColumnDef="requiredAmount">
               <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.required' | translate }}</th>
@@ -56,7 +56,7 @@
           <ul class="contribution-list">
             @for (c of v.contributions; track c.id) {
               <li>
-                <span class="contribution-parent">{{ c.parentId }}</span>
+                <span class="contribution-parent">{{ c.studentName }}</span>
                 <span class="contribution-amount">{{ c.amount }} zł</span>
                 <span class="contribution-source">{{ ('contributionSource.' + c.source) | translate }}</span>
               </li>
@@ -110,8 +110,8 @@
               }
             </div>
             <ul class="settlement-list">
-              @for (s of result.parentSettlements; track s.parentId) {
-                <li>{{ s.parentId }}: <strong>+{{ s.leftoverToCredit }} zł</strong> {{ 'collectionDetails.toPiggyBank' | translate }}</li>
+              @for (s of result.studentSettlements; track s.studentId) {
+                <li>{{ nameForStudent(s.studentId) }}: <strong>+{{ s.leftoverToCredit }} zł</strong> {{ 'collectionDetails.toPiggyBank' | translate }}</li>
               }
             </ul>
           </div>
@@ -127,8 +127,8 @@
         <mat-progress-bar mode="determinate" [value]="v.percentComplete"></mat-progress-bar>
         <p class="percent">{{ v.percentComplete }}%</p>
         <div class="stat-row">
-          <span>{{ 'collectionDetails.parentsPaid' | translate }}</span>
-          <strong>{{ v.parentsPaidCount }} / {{ v.parentsCount }}</strong>
+          <span>{{ 'collectionDetails.studentsPaid' | translate }}</span>
+          <strong>{{ v.studentsPaidCount }} / {{ v.studentsCount }}</strong>
         </div>
         <div class="stat-row">
           <span>{{ 'collectionDetails.totalPaid' | translate }}</span>

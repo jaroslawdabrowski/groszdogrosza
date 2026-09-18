@@ -32,15 +32,15 @@ import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
  * <ul>
  *   <li>Collection: {@code pk = "COLLECTION#<id>"}, {@code sk = "COLLECTION"}</li>
  *   <li>ContributionRequirement: {@code pk = "COLLECTION#<collectionId>"},
- *       {@code sk = "REQUIREMENT#<parentId>"} - one per (collection, parent) pair, a
+ *       {@code sk = "REQUIREMENT#<studentId>"} - one per (collection, student) pair, a
  *       Query on the collection's pk with a "REQUIREMENT#" sk prefix lists them all.</li>
  *   <li>Contribution: {@code pk = "COLLECTION#<collectionId>"},
  *       {@code sk = "CONTRIBUTION#<id>"}</li>
  * </ul>
  *
- * <p>{@link #findActivePendingRequirementsForParent(String)} is the one query that cuts
+ * <p>{@link #findActivePendingRequirementsForStudent(String)} is the one query that cuts
  * across collections instead of staying within one partition - there's no GSI for it yet
- * (would need one keyed by parentId), so it scans the whole table filtering by sk prefix
+ * (would need one keyed by studentId), so it scans the whole table filtering by sk prefix
  * and re-checks each matching requirement's parent collection status individually. Fine at
  * this app's scale (one class, a handful of collections a year); revisit with a GSI if
  * that ever stops being true.
@@ -73,7 +73,7 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
                 "title", s(collection.title()),
                 "description", s(collection.description() == null ? "" : collection.description()),
                 "status", s(collection.status().name()),
-                "baseAmountPerParent", n(collection.baseAmountPerParent()),
+                "baseAmountPerStudent", n(collection.baseAmountPerStudent()),
                 "createdAt", instant(collection.createdAt()))).build());
         return collection;
     }
@@ -104,7 +104,7 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
         return new Collection(
                 str(item, "id"), str(item, "title"), str(item, "description"),
                 CollectionStatus.valueOf(str(item, "status")),
-                decimal(item, "baseAmountPerParent"),
+                decimal(item, "baseAmountPerStudent"),
                 instant(item, "createdAt"));
     }
 
@@ -114,10 +114,10 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
     public ContributionRequirement saveRequirement(ContributionRequirement requirement) {
         dynamoDbClient.putItem(PutItemRequest.builder().tableName(tableName).item(Map.of(
                 "pk", s(collectionPk(requirement.collectionId())),
-                "sk", s(REQUIREMENT_SK_PREFIX + requirement.parentId()),
+                "sk", s(REQUIREMENT_SK_PREFIX + requirement.studentId()),
                 "id", s(requirement.id()),
                 "collectionId", s(requirement.collectionId()),
-                "parentId", s(requirement.parentId()),
+                "studentId", s(requirement.studentId()),
                 "requiredAmount", n(requirement.requiredAmount()),
                 "paidAmount", n(requirement.paidAmount()),
                 "status", s(requirement.status().name()))).build());
@@ -132,17 +132,17 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
     }
 
     @Override
-    public Optional<ContributionRequirement> findRequirement(String collectionId, String parentId) {
+    public Optional<ContributionRequirement> findRequirement(String collectionId, String studentId) {
         Map<String, AttributeValue> item = dynamoDbClient.getItem(GetItemRequest.builder()
                         .tableName(tableName)
-                        .key(Map.of("pk", s(collectionPk(collectionId)), "sk", s(REQUIREMENT_SK_PREFIX + parentId)))
+                        .key(Map.of("pk", s(collectionPk(collectionId)), "sk", s(REQUIREMENT_SK_PREFIX + studentId)))
                         .build())
                 .item();
         return item == null || item.isEmpty() ? Optional.empty() : Optional.of(requirementFromItem(item));
     }
 
     @Override
-    public List<ContributionRequirement> findActivePendingRequirementsForParent(String parentId) {
+    public List<ContributionRequirement> findActivePendingRequirementsForStudent(String studentId) {
         // See class javadoc: a table scan, filtered by sk suffix and status, then
         // re-checked per-collection for ACTIVE status and sorted oldest-collection-first
         // (what ContributionAllocationPolicy expects).
@@ -151,7 +151,7 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
                         .filterExpression("sk = :sk and #status = :pending")
                         .expressionAttributeNames(Map.of("#status", "status"))
                         .expressionAttributeValues(Map.of(
-                                ":sk", s(REQUIREMENT_SK_PREFIX + parentId),
+                                ":sk", s(REQUIREMENT_SK_PREFIX + studentId),
                                 ":pending", s(ContributionRequirementStatus.PENDING.name())))
                         .build())
                 .items().stream()
@@ -171,7 +171,7 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
 
     private static ContributionRequirement requirementFromItem(Map<String, AttributeValue> item) {
         return new ContributionRequirement(
-                str(item, "id"), str(item, "collectionId"), str(item, "parentId"),
+                str(item, "id"), str(item, "collectionId"), str(item, "studentId"),
                 decimal(item, "requiredAmount"), decimal(item, "paidAmount"),
                 ContributionRequirementStatus.valueOf(str(item, "status")));
     }
@@ -185,7 +185,7 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
                 "sk", s(CONTRIBUTION_SK_PREFIX + contribution.id()),
                 "id", s(contribution.id()),
                 "collectionId", s(contribution.collectionId()),
-                "parentId", s(contribution.parentId()),
+                "studentId", s(contribution.studentId()),
                 "amount", n(contribution.amount()),
                 "source", s(contribution.source().name()),
                 "bankTransactionReference", s(contribution.bankTransactionReference() == null ? "" : contribution.bankTransactionReference()),
@@ -203,7 +203,7 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
     private static Contribution contributionFromItem(Map<String, AttributeValue> item) {
         String bankReference = str(item, "bankTransactionReference");
         return new Contribution(
-                str(item, "id"), str(item, "collectionId"), str(item, "parentId"),
+                str(item, "id"), str(item, "collectionId"), str(item, "studentId"),
                 decimal(item, "amount"), ContributionSource.valueOf(str(item, "source")),
                 bankReference == null || bankReference.isEmpty() ? null : bankReference,
                 instant(item, "receivedAt"));

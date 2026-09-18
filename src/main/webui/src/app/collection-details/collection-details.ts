@@ -21,7 +21,7 @@ import {
 /**
  * Renders one of two shapes depending on the caller's role, as returned by the backend
  * (see CollectionResource.get / CollectionProgressResponse): a treasurer sees the full
- * per-parent requirement/contribution breakdown and the settle form, a regular parent sees
+ * per-student requirement/contribution breakdown and the settle form, a regular parent sees
  * aggregate progress only.
  */
 @Component({
@@ -49,7 +49,7 @@ export class CollectionDetails {
   readonly view = signal<CollectionDetailsModel | CollectionProgress | null>(null);
   readonly settlementPreview = signal<SettlementResult | null>(null);
   readonly actualCostSpent = signal<number>(0);
-  readonly requirementColumns = ['parentId', 'requiredAmount', 'paidAmount', 'status'];
+  readonly requirementColumns = ['studentName', 'requiredAmount', 'paidAmount', 'status'];
   readonly isCollectionDetails = isCollectionDetails;
 
   private readonly collectionId: string;
@@ -68,5 +68,19 @@ export class CollectionDetails {
       this.settlementPreview.set(result);
       this.reload();
     });
+  }
+
+  /** SettlementResult only carries studentId (see backend SettlementResultResponse) - name
+   *  it against whatever the last-loaded requirements breakdown knows, so the settlement
+   *  card can show a name instead of a raw id. */
+  nameForStudent(studentId: string): string {
+    const current = this.view();
+    if (current && isCollectionDetails(current)) {
+      const match = current.requirements.find((r) => r.studentId === studentId);
+      if (match) {
+        return match.studentName;
+      }
+    }
+    return studentId;
   }
 }

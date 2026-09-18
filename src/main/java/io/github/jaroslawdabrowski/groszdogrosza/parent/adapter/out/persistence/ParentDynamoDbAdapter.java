@@ -1,7 +1,5 @@
 package io.github.jaroslawdabrowski.groszdogrosza.parent.adapter.out.persistence;
 
-import static io.github.jaroslawdabrowski.groszdogrosza.platform.persistence.Attr.decimal;
-import static io.github.jaroslawdabrowski.groszdogrosza.platform.persistence.Attr.n;
 import static io.github.jaroslawdabrowski.groszdogrosza.platform.persistence.Attr.s;
 import static io.github.jaroslawdabrowski.groszdogrosza.platform.persistence.Attr.sOrNull;
 import static io.github.jaroslawdabrowski.groszdogrosza.platform.persistence.Attr.str;
@@ -26,10 +24,9 @@ import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
 /**
  * Key layout: {@code pk = "PARENT#<id>"}, {@code sk = "PARENT"} - one item per parent, no
- * related sub-items (unlike collection/ledger), so a sort key isn't strictly needed here,
- * but keeping the same pk/sk shape as every other item in the table simplifies
- * {@link DynamoDbTableInitializer} and any future admin tooling that just wants to scan
- * "everything".
+ * related sub-items, so a sort key isn't strictly needed here, but keeping the same pk/sk
+ * shape as every other item in the table simplifies {@code DynamoDbTableInitializer} and any
+ * future admin tooling that just wants to scan "everything".
  */
 @ApplicationScoped
 public class ParentDynamoDbAdapter implements ParentRepositoryPort {
@@ -67,19 +64,32 @@ public class ParentDynamoDbAdapter implements ParentRepositoryPort {
         // comparison is done case-insensitively in application code (DynamoDB filter
         // expressions have no case-insensitive equality), which is fine given the low
         // parent count this app is scoped for.
-        return dynamoDbClient.scan(ScanRequest.builder()
-                        .tableName(tableName)
-                        .filterExpression("sk = :sk")
-                        .expressionAttributeValues(Map.of(":sk", s(SK)))
-                        .build())
-                .items().stream()
-                .map(ParentDynamoDbAdapter::fromItem)
+        return allParents().stream()
                 .filter(parent -> parent.email().equalsIgnoreCase(email))
                 .findFirst();
     }
 
     @Override
     public List<Parent> findAll() {
+        return allParents();
+    }
+
+    @Override
+    public List<Parent> findByStudentId(String studentId) {
+        return allParents().stream()
+                .filter(parent -> studentId.equals(parent.studentId()))
+                .toList();
+    }
+
+    @Override
+    public void deleteById(String parentId) {
+        dynamoDbClient.deleteItem(DeleteItemRequest.builder()
+                .tableName(tableName)
+                .key(Map.of("pk", s(pk(parentId)), "sk", s(SK)))
+                .build());
+    }
+
+    private List<Parent> allParents() {
         // A full scan is fine at this scale (a single class's worth of parents, a handful
         // of reads a day) - see DynamoDbTableInitializer javadoc on the single-table layout.
         return dynamoDbClient.scan(ScanRequest.builder()
@@ -92,14 +102,6 @@ public class ParentDynamoDbAdapter implements ParentRepositoryPort {
                 .toList();
     }
 
-    @Override
-    public void deleteById(String parentId) {
-        dynamoDbClient.deleteItem(DeleteItemRequest.builder()
-                .tableName(tableName)
-                .key(Map.of("pk", s(pk(parentId)), "sk", s(SK)))
-                .build());
-    }
-
     private static String pk(String parentId) {
         return "PARENT#" + parentId;
     }
@@ -109,13 +111,13 @@ public class ParentDynamoDbAdapter implements ParentRepositoryPort {
                 Map.entry("pk", s(pk(parent.id()))),
                 Map.entry("sk", s(SK)),
                 Map.entry("id", s(parent.id())),
+                Map.entry("studentId", sOrNull(parent.studentId())),
                 Map.entry("firstName", s(parent.firstName())),
                 Map.entry("lastName", s(parent.lastName())),
                 Map.entry("email", s(parent.email())),
                 Map.entry("expectedSenderName", s(parent.expectedSenderName())),
                 Map.entry("cognitoSubjectId", sOrNull(parent.cognitoSubjectId())),
                 Map.entry("role", s(parent.role().name())),
-                Map.entry("piggyBankBalance", n(parent.piggyBankBalance())),
                 Map.entry("bankAccountNumber", sOrNull(parent.paymentInfo() == null ? null : parent.paymentInfo().bankAccountNumber())),
                 Map.entry("blikPhoneNumber", sOrNull(parent.paymentInfo() == null ? null : parent.paymentInfo().blikPhoneNumber())));
     }
@@ -128,13 +130,13 @@ public class ParentDynamoDbAdapter implements ParentRepositoryPort {
                 : new PaymentInfo(bankAccountNumber, blikPhoneNumber);
         return new Parent(
                 str(item, "id"),
+                strOrNull(item, "studentId"),
                 str(item, "firstName"),
                 str(item, "lastName"),
                 str(item, "email"),
                 str(item, "expectedSenderName"),
                 strOrNull(item, "cognitoSubjectId"),
                 ParentRole.valueOf(str(item, "role")),
-                decimal(item, "piggyBankBalance"),
                 paymentInfo);
     }
 }

@@ -3,19 +3,19 @@ package io.github.jaroslawdabrowski.groszdogrosza.collection.domain;
 import java.math.BigDecimal;
 
 /**
- * How much one specific parent actually owes for one specific collection, and how much of
- * that they've paid so far. {@code requiredAmount} is {@code Collection.baseAmountPerParent}
- * minus whatever piggy bank balance that parent had available at the moment the
- * collection was activated (floored at zero - a parent's piggy bank can cover a
- * collection entirely, but a requirement is never negative). Fixed at creation time on
- * purpose: if the parent's piggy bank balance changes later (e.g. from an unrelated
- * transfer), it does not retroactively change what THIS collection asks of them - it
- * simply gets applied via {@code ContributionAllocationPolicy} the next time money comes in.
+ * How much one specific student's family actually owes for one specific collection, and how
+ * much of that they've paid so far. {@code requiredAmount} is
+ * {@code Collection.baseAmountPerStudent} minus whatever piggy bank balance that student had
+ * available at the moment the collection was activated (floored at zero - a student's piggy
+ * bank can cover a collection entirely, but a requirement is never negative). Fixed at
+ * creation time on purpose: if the student's piggy bank balance changes later (e.g. from an
+ * unrelated transfer), it does not retroactively change what THIS collection asks of them -
+ * it simply gets applied via {@code ContributionAllocationPolicy} the next time money comes in.
  */
 public record ContributionRequirement(
         String id,
         String collectionId,
-        String parentId,
+        String studentId,
         BigDecimal requiredAmount,
         BigDecimal paidAmount,
         ContributionRequirementStatus status) {
@@ -45,6 +45,6 @@ public record ContributionRequirement(
         } else {
             newStatus = ContributionRequirementStatus.OVERPAID;
         }
-        return new ContributionRequirement(id, collectionId, parentId, requiredAmount, newPaidAmount, newStatus);
+        return new ContributionRequirement(id, collectionId, studentId, requiredAmount, newPaidAmount, newStatus);
     }
 }

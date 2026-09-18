@@ -45,6 +45,10 @@ nb-configuration.xml
 /.claude/
 # Playwright MCP output
 /.playwright-mcp/
+# Playwright test runner output (src/main/webui/e2e - see its README)
+src/main/webui/test-results/
+src/main/webui/playwright-report/
+src/main/webui/blob-report/
 # TLS Certificates
 .certs/
 

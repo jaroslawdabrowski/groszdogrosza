@@ -34,4 +34,11 @@ export class CurrentUserService {
   isTreasurer(): boolean {
     return this.parent()?.role === 'TREASURER';
   }
+
+  /** The student this account's own Parent record is linked to - what "Moja skarbonka"
+   *  points at. Null until loaded, or if the treasurer hasn't created a matching Parent
+   *  record for this account yet. */
+  studentId(): string | null {
+    return this.parent()?.studentId ?? null;
+  }
 }

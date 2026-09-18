@@ -23,13 +23,13 @@
   "publicOverview": {
     "eyebrow": "Class treasurer",
     "title": "Class collection",
-    "loginHint": "Want to see your own piggy bank?",
+    "loginHint": "Want to see your child's own piggy bank?",
     "howToPay": "How to pay",
     "titleHint": "Please put your child's surname in the transfer title — this is what lets the payment be recognized and booked automatically.",
     "bankAccountNumber": "Account number",
     "blikPhoneNumber": "BLIK phone number",
     "noActiveCollections": "There is no active collection right now.",
-    "parentsPaid": "Parents paid",
+    "parentsPaid": "Students paid for",
     "totalPaid": "Collected"
   },
   "globalLedger": {
@@ -56,7 +56,7 @@
   },
   "collectionDetails": {
     "requirements": "Who owes what",
-    "parent": "Parent",
+    "student": "Student",
     "required": "Required",
     "paid": "Paid",
     "requirementStatus": "Status",
@@ -70,17 +70,25 @@
     "totalShortfall": "Shortfall",
     "toPiggyBank": "to piggy bank",
     "progress": "Collection progress",
-    "parentsPaid": "Parents paid",
+    "studentsPaid": "Students paid for",
     "totalPaid": "Collected"
   },
-  "parentView": {
+  "studentView": {
     "piggyBank": "Piggy bank",
+    "parents": "Parents",
     "ledger": "Event journal",
     "noEntries": "No entries yet."
   },
   "treasurer": {
     "title": "Treasurer panel",
-    "parents": "Parents",
+    "students": "Students",
+    "addStudent": "Add a student",
+    "addStudentButton": "Add student",
+    "studentCreated": "Student added.",
+    "editStudentTooltip": "Edit student details",
+    "deleteStudentTooltip": "Delete student",
+    "deleteStudentConfirm": "Delete {{name}}? This will also delete their linked parents' records. This can't be undone.",
+    "tooManyParents": "This student already has two parents.",
     "createAccountTooltip": "Create a login account",
     "resendInvitationTooltip": "Resend the invitation",
     "accountCreated": "Account created - an invitation with a temporary password has been emailed.",
@@ -104,7 +112,7 @@
     "newCollection": "New collection",
     "collectionTitle": "Collection title",
     "collectionDescription": "Description",
-    "baseAmount": "Base amount per parent (PLN)",
+    "baseAmount": "Base amount per student (PLN)",
     "createCollectionButton": "Create collection",
     "collectionCreated": "Collection created.",
     "paymentInfo": "Payment info",

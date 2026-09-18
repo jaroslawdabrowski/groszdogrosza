@@ -5,11 +5,11 @@ import java.util.List;
 
 /**
  * Internal port used by {@code bankstatement.application.BankStatementProcessingService}
- * to find out what a parent still owes across every currently ACTIVE collection, so
- * {@code ContributionAllocationPolicy} can decide how much of an incoming payment (or
+ * to find out what a student's family still owes across every currently ACTIVE collection,
+ * so {@code ContributionAllocationPolicy} can decide how much of an incoming payment (or
  * existing piggy bank balance) to sweep towards them automatically.
  */
-public interface GetActiveRequirementsForParentUseCase {
+public interface GetActiveRequirementsForStudentUseCase {
 
-    List<ContributionRequirement> getActivePendingRequirements(String parentId);
+    List<ContributionRequirement> getActivePendingRequirements(String studentId);
 }

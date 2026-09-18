@@ -17,7 +17,7 @@ public interface ApplyAutomaticContributionUseCase {
 
     Contribution applyContribution(
             String collectionId,
-            String parentId,
+            String studentId,
             BigDecimal amount,
             ContributionSource source,
             String bankTransactionReference);

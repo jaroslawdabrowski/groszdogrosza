@@ -40,12 +40,12 @@ import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
  * point of Terraform owning the table's lifecycle).
  *
  * <p>Single-table design: partition key {@code pk}, sort key {@code sk}. See each
- * adapter's class javadoc for its own key layout (e.g. {@code PARENT#<id>} /
- * {@code PARENT}, {@code COLLECTION#<id>} / {@code REQUIREMENT#<parentId>}, ...). This
- * diverges from the sibling "turboorders" project's single-hash-key table - groszdogrosza
- * has several related entity types per aggregate (a collection's requirements and
- * contributions), which a sort key models naturally; turboorders' one entity type didn't
- * need one.
+ * adapter's class javadoc for its own key layout (e.g. {@code STUDENT#<id>} /
+ * {@code STUDENT}, {@code PARENT#<id>} / {@code PARENT}, {@code COLLECTION#<id>} /
+ * {@code REQUIREMENT#<studentId>}, ...). This diverges from the sibling "turboorders"
+ * project's single-hash-key table - groszdogrosza has several related entity types per
+ * aggregate (a collection's requirements and contributions), which a sort key models
+ * naturally; turboorders' one entity type didn't need one.
  */
 @ApplicationScoped
 @IfBuildProfile("dev")

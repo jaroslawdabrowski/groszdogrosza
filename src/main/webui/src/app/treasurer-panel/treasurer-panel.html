@@ -6,114 +6,200 @@
 
 <mat-card class="gg-card gg-fade-up">
   <mat-card-header>
-    <mat-card-title class="title-with-icon"><mat-icon class="section-icon">group</mat-icon>{{ 'treasurer.parents' | translate }}</mat-card-title>
+    <mat-card-title class="title-with-icon"><mat-icon class="section-icon">school</mat-icon>{{ 'treasurer.students' | translate }}</mat-card-title>
   </mat-card-header>
   <mat-card-content>
-    @if (parents().length === 0) {
+    @if (students().length === 0) {
       <p class="empty-state">{{ 'dashboard.empty' | translate }}</p>
     } @else {
-      <ul class="parent-list">
-        @for (parent of parents(); track parent.id) {
-          <li>
-            @if (isEditing(parent.id)) {
+      <ul class="student-list">
+        @for (student of students(); track student.id) {
+          <li class="student-item">
+            @if (isEditingStudent(student.id)) {
               <div class="edit-form">
                 <div class="form-grid">
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'treasurer.firstName' | translate }}</mat-label>
-                    <input matInput [ngModel]="editFirstName()" (ngModelChange)="editFirstName.set($event)">
+                    <input matInput [ngModel]="editStudentFirstName()" (ngModelChange)="editStudentFirstName.set($event)">
                   </mat-form-field>
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'treasurer.lastName' | translate }}</mat-label>
-                    <input matInput [ngModel]="editLastName()" (ngModelChange)="editLastName.set($event)">
-                  </mat-form-field>
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'treasurer.email' | translate }}</mat-label>
-                    <input matInput [ngModel]="editEmail()" (ngModelChange)="editEmail.set($event)">
-                  </mat-form-field>
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'treasurer.expectedSenderName' | translate }}</mat-label>
-                    <input matInput [ngModel]="editExpectedSenderName()" (ngModelChange)="editExpectedSenderName.set($event)">
+                    <input matInput [ngModel]="editStudentLastName()" (ngModelChange)="editStudentLastName.set($event)">
                   </mat-form-field>
                 </div>
                 <div class="edit-form-actions">
-                  <button mat-flat-button color="primary" (click)="saveEdit(parent.id)">
+                  <button mat-flat-button color="primary" (click)="saveEditStudent(student.id)">
                     <mat-icon>save</mat-icon>{{ 'treasurer.saveEditButton' | translate }}
                   </button>
-                  <button mat-button (click)="cancelEdit()">{{ 'treasurer.cancelEditButton' | translate }}</button>
+                  <button mat-button (click)="cancelEditStudent()">{{ 'treasurer.cancelEditButton' | translate }}</button>
                 </div>
               </div>
             } @else {
-              <div class="parent-row">
-                <a class="parent-link" [routerLink]="['/parents', parent.id]">
-                  <span class="avatar">{{ initialsFor(parent) }}</span>
-                  <span class="parent-name">{{ parent.firstName }} {{ parent.lastName }}</span>
-                  <span class="parent-balance">{{ parent.piggyBankBalance }} zł</span>
+              <div class="student-row">
+                <a class="student-link" [routerLink]="['/students', student.id]">
+                  <span class="avatar avatar--student">{{ initialsFor(student) }}</span>
+                  <span class="student-name">{{ student.firstName }} {{ student.lastName }}</span>
+                  <span class="student-balance">{{ student.piggyBankBalance }} zł</span>
                 </a>
-                <div class="parent-actions">
-                  <button
-                    mat-icon-button
-                    [disabled]="isAccountActionInFlight(parent.id)"
-                    [matTooltip]="'treasurer.createAccountTooltip' | translate"
-                    (click)="createAccount(parent)"
-                  >
-                    <mat-icon>person_add</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    [disabled]="isAccountActionInFlight(parent.id)"
-                    [matTooltip]="'treasurer.resendInvitationTooltip' | translate"
-                    (click)="resendInvitation(parent)"
-                  >
-                    <mat-icon>forward_to_inbox</mat-icon>
-                  </button>
-                  <button mat-icon-button [matTooltip]="'treasurer.editTooltip' | translate" (click)="startEdit(parent)">
+                <div class="student-actions">
+                  <button mat-icon-button [matTooltip]="'treasurer.editStudentTooltip' | translate" (click)="startEditStudent(student)">
                     <mat-icon>edit</mat-icon>
                   </button>
                   <button
                     mat-icon-button
                     class="delete-button"
-                    [disabled]="parent.id === me()?.id"
-                    [matTooltip]="(parent.id === me()?.id ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteTooltip') | translate"
-                    (click)="deleteParent(parent)"
+                    [disabled]="isOwnStudent(student)"
+                    [matTooltip]="(isOwnStudent(student) ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteStudentTooltip') | translate"
+                    (click)="deleteStudent(student)"
                   >
                     <mat-icon>delete_outline</mat-icon>
                   </button>
                 </div>
               </div>
-              @if (accountStatusFor(parent.id); as status) {
+              @if (accountStatusFor(student.id); as status) {
                 <p class="account-status" [class.account-status--error]="status.kind === 'error'">
                   {{ status.key | translate }}
                 </p>
               }
             }
+
+            <ul class="parent-sublist">
+              @for (parent of student.parents; track parent.id) {
+                <li>
+                  @if (isEditing(parent.id)) {
+                    <div class="edit-form">
+                      <div class="form-grid">
+                        <mat-form-field appearance="outline">
+                          <mat-label>{{ 'treasurer.firstName' | translate }}</mat-label>
+                          <input matInput [ngModel]="editFirstName()" (ngModelChange)="editFirstName.set($event)">
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>{{ 'treasurer.lastName' | translate }}</mat-label>
+                          <input matInput [ngModel]="editLastName()" (ngModelChange)="editLastName.set($event)">
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>{{ 'treasurer.email' | translate }}</mat-label>
+                          <input matInput [ngModel]="editEmail()" (ngModelChange)="editEmail.set($event)">
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>{{ 'treasurer.expectedSenderName' | translate }}</mat-label>
+                          <input matInput [ngModel]="editExpectedSenderName()" (ngModelChange)="editExpectedSenderName.set($event)">
+                        </mat-form-field>
+                      </div>
+                      <div class="edit-form-actions">
+                        <button mat-flat-button color="primary" (click)="saveEdit(parent.id)">
+                          <mat-icon>save</mat-icon>{{ 'treasurer.saveEditButton' | translate }}
+                        </button>
+                        <button mat-button (click)="cancelEdit()">{{ 'treasurer.cancelEditButton' | translate }}</button>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="parent-row">
+                      <span class="avatar">{{ initialsFor(parent) }}</span>
+                      <span class="parent-name">{{ parent.firstName }} {{ parent.lastName }}</span>
+                      <span class="parent-email">{{ parent.email }}</span>
+                      <div class="parent-actions">
+                        <button
+                          mat-icon-button
+                          [disabled]="isAccountActionInFlight(parent.id)"
+                          [matTooltip]="'treasurer.createAccountTooltip' | translate"
+                          (click)="createAccount(parent)"
+                        >
+                          <mat-icon>person_add</mat-icon>
+                        </button>
+                        <button
+                          mat-icon-button
+                          [disabled]="isAccountActionInFlight(parent.id)"
+                          [matTooltip]="'treasurer.resendInvitationTooltip' | translate"
+                          (click)="resendInvitation(parent)"
+                        >
+                          <mat-icon>forward_to_inbox</mat-icon>
+                        </button>
+                        <button mat-icon-button [matTooltip]="'treasurer.editTooltip' | translate" (click)="startEdit(parent)">
+                          <mat-icon>edit</mat-icon>
+                        </button>
+                        <button
+                          mat-icon-button
+                          class="delete-button"
+                          [disabled]="parent.id === me()?.id"
+                          [matTooltip]="(parent.id === me()?.id ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteTooltip') | translate"
+                          (click)="deleteParent(parent)"
+                        >
+                          <mat-icon>delete_outline</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                    @if (accountStatusFor(parent.id); as status) {
+                      <p class="account-status" [class.account-status--error]="status.kind === 'error'">
+                        {{ status.key | translate }}
+                      </p>
+                    }
+                  }
+                </li>
+              }
+
+              @if (student.parents.length < 2) {
+                @if (isAddingParentTo(student.id)) {
+                  <li>
+                    <div class="edit-form">
+                      <div class="form-grid">
+                        <mat-form-field appearance="outline">
+                          <mat-label>{{ 'treasurer.firstName' | translate }}</mat-label>
+                          <input matInput [ngModel]="newParentFirstName()" (ngModelChange)="newParentFirstName.set($event)">
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>{{ 'treasurer.lastName' | translate }}</mat-label>
+                          <input matInput [ngModel]="newParentLastName()" (ngModelChange)="newParentLastName.set($event)">
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>{{ 'treasurer.email' | translate }}</mat-label>
+                          <input matInput [ngModel]="newParentEmail()" (ngModelChange)="newParentEmail.set($event)">
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>{{ 'treasurer.expectedSenderName' | translate }}</mat-label>
+                          <input matInput [ngModel]="newParentExpectedSenderName()" (ngModelChange)="newParentExpectedSenderName.set($event)">
+                        </mat-form-field>
+                      </div>
+                      <div class="edit-form-actions">
+                        <button mat-flat-button color="primary" (click)="addParent(student.id)">
+                          <mat-icon>person_add</mat-icon>{{ 'treasurer.addParentButton' | translate }}
+                        </button>
+                        <button mat-button (click)="cancelAddParent()">{{ 'treasurer.cancelEditButton' | translate }}</button>
+                      </div>
+                    </div>
+                  </li>
+                } @else {
+                  <li>
+                    <button mat-button class="add-parent-button" (click)="startAddParent(student.id)">
+                      <mat-icon>person_add</mat-icon>{{ 'treasurer.addParent' | translate }}
+                    </button>
+                  </li>
+                }
+              }
+            </ul>
           </li>
         }
       </ul>
     }
 
-    <h3 class="section-title">{{ 'treasurer.addParent' | translate }}</h3>
+    <h3 class="section-title">{{ 'treasurer.addStudent' | translate }}</h3>
     <div class="form-grid">
       <mat-form-field appearance="outline">
         <mat-label>{{ 'treasurer.firstName' | translate }}</mat-label>
-        <input matInput [ngModel]="newParentFirstName()" (ngModelChange)="newParentFirstName.set($event)">
+        <input matInput [ngModel]="newStudentFirstName()" (ngModelChange)="newStudentFirstName.set($event)">
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>{{ 'treasurer.lastName' | translate }}</mat-label>
-        <input matInput [ngModel]="newParentLastName()" (ngModelChange)="newParentLastName.set($event)">
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'treasurer.email' | translate }}</mat-label>
-        <input matInput [ngModel]="newParentEmail()" (ngModelChange)="newParentEmail.set($event)">
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'treasurer.expectedSenderName' | translate }}</mat-label>
-        <input matInput [ngModel]="newParentExpectedSenderName()" (ngModelChange)="newParentExpectedSenderName.set($event)">
+        <input matInput [ngModel]="newStudentLastName()" (ngModelChange)="newStudentLastName.set($event)">
       </mat-form-field>
     </div>
-    <button mat-flat-button color="primary" (click)="createParent()">
+    <button mat-flat-button color="primary" (click)="createStudent()">
       <mat-icon>person_add</mat-icon>
-      {{ 'treasurer.addParentButton' | translate }}
+      {{ 'treasurer.addStudentButton' | translate }}
     </button>
+    @if (studentCreated()) {
+      <p class="success"><mat-icon>check_circle</mat-icon>{{ 'treasurer.studentCreated' | translate }}</p>
+    }
   </mat-card-content>
 </mat-card>
 

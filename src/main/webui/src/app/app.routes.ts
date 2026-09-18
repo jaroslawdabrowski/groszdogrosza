@@ -18,8 +18,8 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
-    path: 'parents/:id',
-    loadComponent: () => import('./parent-view/parent-view').then((m) => m.ParentView),
+    path: 'students/:id',
+    loadComponent: () => import('./student-view/student-view').then((m) => m.StudentView),
     canActivate: [authGuard],
   },
   {

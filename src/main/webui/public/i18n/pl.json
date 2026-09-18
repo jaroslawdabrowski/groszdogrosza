@@ -23,13 +23,13 @@
   "publicOverview": {
     "eyebrow": "Skarbnik klasowy",
     "title": "Zbiórka klasowa",
-    "loginHint": "Chcesz zobaczyć swoją skarbonkę?",
+    "loginHint": "Chcesz zobaczyć skarbonkę swojego dziecka?",
     "howToPay": "Jak zapłacić",
     "titleHint": "W tytule przelewu prosimy wpisać nazwisko dziecka — dzięki temu wpłata zostanie rozpoznana i zaksięgowana automatycznie.",
     "bankAccountNumber": "Numer konta",
     "blikPhoneNumber": "BLIK na telefon",
     "noActiveCollections": "Obecnie nie ma żadnej aktywnej zbiórki.",
-    "parentsPaid": "Wpłaciło rodziców",
+    "parentsPaid": "Wpłacono za uczniów",
     "totalPaid": "Zebrano"
   },
   "globalLedger": {
@@ -56,7 +56,7 @@
   },
   "collectionDetails": {
     "requirements": "Ile kto powinien wpłacić",
-    "parent": "Rodzic",
+    "student": "Uczeń",
     "required": "Wymagane",
     "paid": "Wpłacone",
     "requirementStatus": "Status",
@@ -70,17 +70,25 @@
     "totalShortfall": "Brakująca kwota",
     "toPiggyBank": "do skarbonki",
     "progress": "Postęp zbiórki",
-    "parentsPaid": "Wpłaciło rodziców",
+    "studentsPaid": "Wpłacono za uczniów",
     "totalPaid": "Zebrano"
   },
-  "parentView": {
+  "studentView": {
     "piggyBank": "Skarbonka",
+    "parents": "Rodzice",
     "ledger": "Dziennik zdarzeń",
     "noEntries": "Brak wpisów."
   },
   "treasurer": {
     "title": "Panel skarbnika",
-    "parents": "Rodzice",
+    "students": "Uczniowie",
+    "addStudent": "Dodaj ucznia",
+    "addStudentButton": "Dodaj ucznia",
+    "studentCreated": "Uczeń został dodany.",
+    "editStudentTooltip": "Edytuj dane ucznia",
+    "deleteStudentTooltip": "Usuń ucznia",
+    "deleteStudentConfirm": "Na pewno usunąć ucznia {{name}}? Usunie to też dane powiązanych rodziców. Tej operacji nie można cofnąć.",
+    "tooManyParents": "Ten uczeń ma już dwoje rodziców.",
     "createAccountTooltip": "Utwórz konto do logowania",
     "resendInvitationTooltip": "Wyślij ponownie zaproszenie",
     "accountCreated": "Konto utworzone — zaproszenie z hasłem tymczasowym zostało wysłane e-mailem.",
@@ -104,7 +112,7 @@
     "newCollection": "Nowa zbiórka",
     "collectionTitle": "Tytuł zbiórki",
     "collectionDescription": "Opis",
-    "baseAmount": "Kwota bazowa od osoby (zł)",
+    "baseAmount": "Kwota bazowa od ucznia (zł)",
     "createCollectionButton": "Utwórz zbiórkę",
     "collectionCreated": "Zbiórka została utworzona.",
     "paymentInfo": "Dane do wpłat",

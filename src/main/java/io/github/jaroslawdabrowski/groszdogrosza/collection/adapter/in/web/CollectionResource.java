@@ -7,6 +7,8 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListCollecti
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RecordManualContributionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
+import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
+import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
@@ -18,15 +20,16 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
+import java.util.Map;
 
 /**
  * {@code list}/{@code get} are available to any authenticated parent, but {@code get}
  * returns a different, smaller shape for a non-treasurer caller - see
  * {@link CollectionProgressResponse}: a regular parent gets aggregate progress only (how
- * many parents paid, how much is still owed in total, a percentage), never the per-parent
- * breakdown {@link CollectionDetailsResponse} carries, since that would expose every other
- * family's payment status and amounts. Creating, recording a manual contribution and
- * settling are real money-moving/administrative actions and are treasurer-only - see
+ * many students' families paid, how much is still owed in total, a percentage), never the
+ * per-student breakdown {@link CollectionDetailsResponse} carries, since that would expose
+ * every other family's payment status and amounts. Creating, recording a manual contribution
+ * and settling are real money-moving/administrative actions and are treasurer-only - see
  * {@code AuthorizationSupport}. Roles are checked explicitly (not {@code @RolesAllowed})
  * because the source of truth is {@code Parent.role()}, not an identity-provider claim.
  */
@@ -51,6 +54,9 @@ public class CollectionResource {
     SettleCollectionUseCase settleCollectionUseCase;
 
     @Inject
+    ListStudentsUseCase listStudentsUseCase;
+
+    @Inject
     AuthorizationSupport authorizationSupport;
 
     @Inject
@@ -65,7 +71,7 @@ public class CollectionResource {
     public CollectionResponse create(CreateCollectionRequest request) {
         authorizationSupport.requireTreasurer(identity);
         return CollectionResponse.from(createCollectionUseCase.createCollection(
-                request.title(), request.description(), request.baseAmountPerParent()));
+                request.title(), request.description(), request.baseAmountPerStudent()));
     }
 
     @GET
@@ -74,7 +80,7 @@ public class CollectionResource {
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
         return authorizationSupport.isTreasurer(identity)
-                ? CollectionDetailsResponse.from(details)
+                ? CollectionDetailsResponse.from(details, studentNamesById())
                 : CollectionProgressResponse.from(details);
     }
 
@@ -82,10 +88,10 @@ public class CollectionResource {
     @Path("/{id}/contributions")
     public CollectionDetailsResponse recordContribution(@PathParam("id") String id, RecordContributionRequest request) {
         authorizationSupport.requireTreasurer(identity);
-        recordManualContributionUseCase.recordManualContribution(id, request.parentId(), request.amount());
+        recordManualContributionUseCase.recordManualContribution(id, request.studentId(), request.amount());
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
-        return CollectionDetailsResponse.from(details);
+        return CollectionDetailsResponse.from(details, studentNamesById());
     }
 
     @POST
@@ -93,5 +99,10 @@ public class CollectionResource {
     public SettlementResultResponse settle(@PathParam("id") String id, SettleCollectionRequest request) {
         authorizationSupport.requireTreasurer(identity);
         return SettlementResultResponse.from(settleCollectionUseCase.settleCollection(id, request.actualCostSpent()));
+    }
+
+    private Map<String, String> studentNamesById() {
+        return listStudentsUseCase.listStudents().stream()
+                .collect(java.util.stream.Collectors.toMap(Student::id, Student::fullName, (a, b) -> a));
     }
 }

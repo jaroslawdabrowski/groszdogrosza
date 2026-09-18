@@ -16,7 +16,10 @@ public interface ParentRepositoryPort {
 
     List<Parent> findAll();
 
-    /** No-op if the id doesn't exist - callers that need "was there really something to
-     *  delete" should check {@link #findById} first (see {@code ParentService.deleteParent}). */
+    /** At most 2 in practice (see {@code Parent}'s javadoc) - never enforced by this port
+     *  itself, callers (e.g. {@code ParentService.createParent}) check the count. */
+    List<Parent> findByStudentId(String studentId);
+
+    /** No-op if the id doesn't exist. */
     void deleteById(String parentId);
 }

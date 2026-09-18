@@ -1,4 +1,4 @@
 package io.github.jaroslawdabrowski.groszdogrosza.bankstatement.domain;
 
-public record MatchResult(String parentId, double confidence) {
+public record MatchResult(String studentId, double confidence) {
 }

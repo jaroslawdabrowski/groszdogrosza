@@ -4,17 +4,81 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Grosz do Grosza: a money-tracking tool for a class treasurer (2nd-grade parent, one primary school class) to run collections (e.g. an end-of-year teacher gift), track each parent's payments, and carry overpayments forward as a per-parent "piggy bank" balance applied automatically to future collections. Currently in an early scaffolding phase: the full toolchain (Quarkus/hexagonal backend, DynamoDB persistence, Angular frontend, OIDC auth, Terraform-provisioned serverless AWS infra, i18n) is wired up end-to-end, the domain model and its decision policies are real and tested, but nothing has been deployed or run against live data yet - see "TODO for the next session" at the bottom.
+Grosz do Grosza: a money-tracking tool for a class treasurer (2nd-grade parent, one primary school class) to run collections (e.g. an end-of-year teacher gift), track payments **per student**, and carry overpayments forward as a per-student "piggy bank" balance applied automatically to future collections. Deployed and in real use (see "First production deployment" below) - not a scaffolding-phase project anymore.
+
+**The money-tracking unit is `Student`, not `Parent`** - this was a deliberate mid-project redesign (see "Student replaces Parent as the money-tracking unit" right after this section for the full reasoning and what changed). If something below still reads as if a `Parent` owns a piggy bank/ledger/collection requirement directly, that's the pre-redesign model - the section below it is the current one.
 
 Single Maven module at the repo root (not a `backend/`/`frontend/` split, mirroring the sibling "turboorders" project): Java under `src/main/java`, config under `src/main/resources`, Angular app at Quinoa's default `src/main/webui`. Quinoa builds the Angular app and serves it from the same Quarkus artifact.
 
 Code and comments are in English. The UI is bilingual (Polish/English) via `@ngx-translate`, **default language Polish** - this is a real Polish primary school context, Polish is the primary audience.
 
+### Student replaces Parent as the money-tracking unit (mid-project redesign)
+
+The original model had `Parent` own the piggy bank balance, the ledger, and each
+collection's `ContributionRequirement`/`Contribution`. The user later realized that was
+wrong: money should be tracked **per child**, not per paying adult - a family with one kid
+in the class should have exactly one requirement per collection regardless of which parent
+(or grandparent) actually sends the transfer, and a 18-student class collection should
+produce exactly 18 requirements. So a new `student` bounded context was introduced as the
+real aggregate root for money, and `Parent` was demoted to "a login/contact record attached
+to a student":
+
+- **`Student`** (`student.domain.Student`): `id`, `firstName`, `lastName`,
+  `piggyBankBalance`. Owns everything that used to live on `Parent` money-wise:
+  `ContributionRequirement`/`Contribution` (both now keyed by `studentId`, not `parentId`)
+  and `LedgerEntry` (partitioned `STUDENT#<id>` in DynamoDB, was `PARENT#<id>`). Students
+  never log in - no email, no Cognito account, nothing auth-related.
+- **`Parent`** (`parent.domain.Parent`): unchanged in spirit (login/contact/matching-fallback
+  record) except it **lost `piggyBankBalance`** and **gained `studentId`**. A student has 0,
+  1, or 2 parents; a parent belongs to **exactly one** student - the relationship is
+  deliberately owned by the student side (a parent with two children in the class needs two
+  separate `Parent` records, one per student - an accepted simplification at this app's
+  one-class scale, confirmed with the user rather than assumed). A `Parent` is now only ever
+  created via `POST /api/students/{id}/parents`, never standalone - see
+  `student.adapter.in.web.StudentResource`. `ParentResource` no longer has a `POST` at all.
+- **Bank-transaction matching** (`bankstatement.domain.PaymentMatchingPolicy`, renamed from
+  `ParentMatchingPolicy`) now resolves to a **student**, not a parent, in three ordered
+  steps - see that class's own javadoc for the full detail, this is the short version:
+  1. **Step 0 - treasurer exclusion, unchanged in spirit but now separated out**: does the
+     sender fuzzy-match a `Parent` with `role=TREASURER`? If so, ignore the transaction
+     entirely, *before* anything below runs. This has to run first, not after (as it used
+     to, implicitly, by checking the matched parent's role): the treasurer's own child is
+     also a `Student` now, almost always sharing the treasurer's own surname, so without
+     this ordering a treasurer's own outgoing transfer could get wrongly caught by tier 1
+     below (matching their kid's surname) and booked as a contribution instead of ignored.
+     Added specifically because of this new model - didn't exist as a separate concern
+     before.
+  2. **Tier 1 (new) - a student's own surname**: a whole word (exact, not fuzzy - see the
+     class javadoc for why) in either the sender name or the transfer title, matching a
+     `Student.lastName`. This is *why* the public payment-info page now tells parents to put
+     their child's surname in the transfer title (`publicOverview.titleHint`) - that
+     instruction only became meaningful once this tier existed.
+  3. **Tier 2 - the original parent-fallback logic, unchanged**: fuzzy sender-name match
+     against `Parent.expectedSenderName`, or an exact title-surname match against
+     `Parent.lastName`, then resolved to that parent's `studentId`. Covers a transfer from an
+     account not printed under the paying family's own surname (grandparent, spouse).
+- **Frontend**: `ParentView`/`/parents/:id` was replaced by `StudentView`/`/students/:id` -
+  "Moja skarbonka" for a logged-in parent now resolves through `parent.studentId` to show
+  *their child's* balance and ledger, not their own. `TreasurerPanel`'s flat parent list
+  became a "Uczniowie" (Students) section - each student is a card with up to two inline
+  parent slots (add/edit/delete-parent, create/resend Cognito account - all the same actions
+  as before, just nested under the student they belong to instead of listed flat).
+  `CollectionDetails`/`GlobalLedger` show `studentName` instead of a raw id now (the backend
+  resolves and includes it) - a pre-existing "TODO: show names, not UUIDs" cosmetic gap this
+  redesign closed as a side effect.
+- **Production data was NOT migrated** - the user confirmed nothing on production yet was
+  worth preserving (see "First production deployment" below for what that data actually
+  was), so the redesign shipped as a clean cutover: new code deployed, old-shape items in
+  the prod DynamoDB table wiped, the treasurer's own `Student`+`Parent`+payment-info
+  re-seeded from scratch. If you're reading this after that cutover and something looks like
+  it's missing data that "should" be there from before this redesign, it isn't a bug - it
+  was deliberately not carried over.
+
 ## Commands
 
 Backend (run from the repo root):
 - `./mvnw quarkus:dev` - dev mode; Quinoa also runs `ng serve` and proxies frontend requests; `quarkus-amazon-dynamodb`'s Dev Services auto-starts a local DynamoDB (via a Localstack testcontainer) - no manual docker-compose needed, and `DynamoDbTableInitializer` creates the table on startup if missing. **Do not add `-Plambda` here** - see "Dev mode vs. the Lambda extension" below.
-- `./mvnw test` - full backend test suite. The domain policy tests (`SettlementPolicyTest`, `ParentMatchingPolicyTest`, `ContributionAllocationPolicyTest`, `MBankStatementHtmlParserTest`) are plain JUnit, no `@QuarkusTest`, no Dev Services needed - they're the fast, primary safety net for this app's actual business rules.
+- `./mvnw test` - full backend test suite. The domain policy tests (`SettlementPolicyTest`, `PaymentMatchingPolicyTest`, `ContributionAllocationPolicyTest`, `MBankStatementHtmlParserTest`) are plain JUnit, no `@QuarkusTest`, no Dev Services needed - they're the fast, primary safety net for this app's actual business rules.
 - `./mvnw test -Dtest=SettlementPolicyTest` - single test class; `-Dtest=ClassName#methodName` for a single method.
 - `./mvnw package -Plambda` - builds the deployable app (`target/function.zip` etc. - see "AWS Lambda packaging" below). `./mvnw package` (no profile) also works and is what `./mvnw package -DskipTests` was verified with during scaffolding - it additionally runs Quinoa's `ng build`, so it needs `npm install` to have been run once in `src/main/webui/` (or let Quinoa do it - `quarkus.quinoa.package-manager-install=false` means it uses the system npm, already verified to work with Node 24).
 
@@ -26,6 +90,16 @@ Frontend (run from `src/main/webui/`, only needed standalone - normally Quinoa d
 
 Java 21; Node must satisfy Angular 20's engine check (`^20.19.0 || ^22.12.0 || >=24.0.0`) - Node 24.14.0 was used during scaffolding and works.
 
+**End-to-end test** (`src/main/webui/e2e/main-flow.spec.ts`, Playwright): the main money
+flow against a real running app - treasurer creates a collection, a payment is recorded, it
+settles, a parent's own login sees their child's piggy bank. Requires `./mvnw quarkus:dev`
+already running in another terminal; run with `npm run e2e` from `src/main/webui/`. See
+`e2e/README.md` for why it seeds one thing directly into DynamoDB (the bootstrap-gap
+treasurer) but does everything else through the real UI/API, and why it cleans up after
+itself in `afterEach` (a real, confirmed flakiness source otherwise - see that file's own
+top-of-file comment). This is the closest thing this project has to a regression test for
+"does the whole thing actually still work", not a substitute for the unit tests above.
+
 ## Architecture
 
 ### Hexagonal, package-by-feature
@@ -33,12 +107,14 @@ Java 21; Node must satisfy Angular 20's engine check (`^20.19.0 || ^22.12.0 || >
 Everything lives under `io.github.jaroslawdabrowski.groszdogrosza`, structured domain → port → application → adapter per bounded context, exactly the pattern established in the sibling "turboorders" and "pvopt" projects:
 
 ```
+student/           Student (identity + piggy bank balance) - the money-tracking unit, see
+                   "Student replaces Parent" above
 collection/       Collection, ContributionRequirement, Contribution, SettlementPolicy (the
-                   settlement decision engine - see below)
-parent/            Parent (identity + piggy bank balance)
-ledger/             LedgerEntry / LedgerEventType - the auditable per-parent event journal
-bankstatement/      BankTransaction, ParentMatchingPolicy, ContributionAllocationPolicy -
-                    the automatic mBank-statement-to-parent-to-collection pipeline
+                   settlement decision engine - see below) - keyed by studentId
+parent/            Parent (login/contact record, belongs to exactly one Student)
+ledger/             LedgerEntry / LedgerEventType - the auditable per-student event journal
+bankstatement/      BankTransaction, PaymentMatchingPolicy, ContributionAllocationPolicy -
+                    the automatic mBank-statement-to-student-to-collection pipeline
 platform/security/  OIDC, cross-cutting - identical pattern to turboorders (see there for
                     the OIDC/Cognito/Keycloak reasoning, not repeated here)
 platform/persistence/ Attr (AttributeValue conversion helpers) + DynamoDbTableInitializer,
@@ -54,11 +130,12 @@ in other contexts' `port.in` interfaces rather than their internals), `adapter/i
 
 **Cross-context calls always go through `port.in`, never through another context's
 internals or repository.** E.g. `collection.application.CollectionService` depends on
-`parent.port.in.CreditPiggyBankUseCase`/`ListParentsUseCase` and
-`ledger.port.in.RecordLedgerEntryUseCase`, not on `ParentRepositoryPort` or
+`student.port.in.CreditStudentPiggyBankUseCase`/`ListStudentsUseCase` and
+`ledger.port.in.RecordLedgerEntryUseCase`, not on `StudentRepositoryPort` or
 `LedgerRepositoryPort` directly. `bankstatement.application.BankStatementProcessingService`
-is the most cross-context-heavy piece (it touches parent, collection and ledger) for exactly
-this reason - it's the orchestrator for the one fully-automatic money-moving path in the app.
+is the most cross-context-heavy piece (it touches student, parent, collection and ledger)
+for exactly this reason - it's the orchestrator for the one fully-automatic money-moving
+path in the app.
 
 ### `collection`: the settlement decision - the core of this app
 

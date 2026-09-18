@@ -1,0 +1,57 @@
+@if (student(); as s) {
+  <a class="back-link" [routerLink]="isTreasurer() ? '/treasurer' : '/dashboard'">
+    <mat-icon>arrow_back</mat-icon>{{ (isTreasurer() ? 'common.backToTreasurerPanel' : 'common.backToDashboard') | translate }}
+  </a>
+
+  <header class="detail-header">
+    <h1 class="gg-heading">{{ s.firstName }} {{ s.lastName }}</h1>
+  </header>
+
+  <mat-card class="gg-card gg-card--mint gg-fade-up piggy-card">
+    <mat-card-content>
+      <div class="piggy-icon"><mat-icon>savings</mat-icon></div>
+      <div>
+        <p class="piggy-label">{{ 'studentView.piggyBank' | translate }}</p>
+        <p class="piggy-balance">{{ s.piggyBankBalance }} zł</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  @if (s.parents.length > 0) {
+    <mat-card class="gg-card gg-card--blush gg-fade-up" style="--gg-stagger: 40ms">
+      <mat-card-header>
+        <mat-card-title>{{ 'studentView.parents' | translate }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <ul class="parent-contact-list">
+          @for (parent of s.parents; track parent.id) {
+            <li>
+              <span class="parent-contact-name">{{ parent.firstName }} {{ parent.lastName }}</span>
+              <span class="parent-contact-email">{{ parent.email }}</span>
+            </li>
+          }
+        </ul>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <mat-card class="gg-card gg-card--sky gg-fade-up" style="--gg-stagger: 70ms">
+    <mat-card-header>
+      <mat-card-title>{{ 'studentView.ledger' | translate }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (ledger().length === 0) {
+        <p class="empty-state">{{ 'studentView.noEntries' | translate }}</p>
+      } @else {
+        <ul class="timeline">
+          @for (entry of ledger(); track entry.id) {
+            <li>
+              <span class="timeline-icon"><mat-icon>{{ iconFor(entry) }}</mat-icon></span>
+              <span class="timeline-text">{{ translationKeyFor(entry) | translate: entry.params }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </mat-card-content>
+  </mat-card>
+}

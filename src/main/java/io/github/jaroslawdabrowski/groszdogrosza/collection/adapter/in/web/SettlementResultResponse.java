@@ -6,16 +6,16 @@ import java.util.List;
 
 public record SettlementResultResponse(
         BigDecimal totalContributed, BigDecimal actualCostSpent, BigDecimal totalSurplus,
-        BigDecimal totalShortfall, List<ParentSettlementResponse> parentSettlements) {
+        BigDecimal totalShortfall, List<StudentSettlementResponse> studentSettlements) {
 
     static SettlementResultResponse from(SettlementResult result) {
         return new SettlementResultResponse(
                 result.totalContributed(), result.actualCostSpent(), result.totalSurplus(), result.totalShortfall(),
-                result.parentSettlements().stream()
-                        .map(s -> new ParentSettlementResponse(s.parentId(), s.amountPaid(), s.leftoverToCredit()))
+                result.studentSettlements().stream()
+                        .map(s -> new StudentSettlementResponse(s.studentId(), s.amountPaid(), s.leftoverToCredit()))
                         .toList());
     }
 
-    public record ParentSettlementResponse(String parentId, BigDecimal amountPaid, BigDecimal leftoverToCredit) {
+    public record StudentSettlementResponse(String studentId, BigDecimal amountPaid, BigDecimal leftoverToCredit) {
     }
 }

@@ -6,12 +6,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Pure decision logic for what happens to money once it's been matched to a parent: it
- * lands in the piggy bank first, then as much as needed sweeps out of the piggy bank to
- * cover that parent's outstanding requirements on currently ACTIVE collections, in the
+ * Pure decision logic for what happens to money once it's been matched to a student: it
+ * lands in their piggy bank first, then as much as needed sweeps out of the piggy bank to
+ * cover that student's outstanding requirements on currently ACTIVE collections, in the
  * order given (the caller - {@code bankstatement.application.BankStatementProcessingService}
- * - is expected to pass requirements ordered oldest-collection-first, so a parent's money
- * covers what they owe on the collection that's been open longest before a newer one).
+ * - is expected to pass requirements ordered oldest-collection-first, so a payment covers
+ * what's owed on the collection that's been open longest before a newer one).
  *
  * <p>No framework dependency, no I/O - testable with plain JUnit. This is the same "landing
  * spot" idea for both an actual incoming bank transfer AND, conceptually, the moment a

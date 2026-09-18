@@ -7,8 +7,8 @@ import java.time.LocalDate;
  * One incoming transfer parsed out of an mBank "Powiadomienie e-mail" notification.
  *
  * @param senderName    exactly as printed in the notification (e.g. "Jan Kowalski") -
- *                      {@code ParentMatchingPolicy} is responsible for normalizing this
- *                      before comparing it to a parent's expected name.
+ *                      {@code PaymentMatchingPolicy} is responsible for normalizing this
+ *                      before comparing it to a student's surname or a parent's expected name.
  * @param title         the trailing reference code from the notification sentence (e.g.
  *                      {@code "/OPF/AN/PL11..."}) - NOT confirmed to be a human-typed
  *                      transfer title (it may be a structured payment reference or a masked

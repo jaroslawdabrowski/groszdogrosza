@@ -35,10 +35,10 @@ export class App implements OnInit {
   }
 
   /** Null until GET /api/parents/me resolves, or if the treasurer hasn't created a matching
-   *  Parent record for this account yet - the "my piggy bank" nav link only makes sense
-   *  once there's actually a Parent record to link to. */
-  myParentId(): string | null {
-    return this.currentUser.parent()?.id ?? null;
+   *  Parent (and its linked Student) record for this account yet - the "Moja skarbonka" nav
+   *  link only makes sense once there's actually a student to link to. */
+  myStudentId(): string | null {
+    return this.currentUser.studentId();
   }
 
   currentLanguage(): Language {

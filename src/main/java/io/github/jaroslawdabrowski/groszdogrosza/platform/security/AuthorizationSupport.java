@@ -65,4 +65,20 @@ public class AuthorizationSupport {
             throw new ForbiddenException("Not authorized to access this parent's data");
         }
     }
+
+    /**
+     * Same self-or-treasurer rule as {@link #requireSelfOrTreasurer}, but for a student's
+     * piggy bank/ledger - "self" here means the caller's own {@code Parent} record is linked
+     * to this student ({@code Parent.studentId}), not that the caller *is* the student
+     * (students never log in at all).
+     */
+    public void requireSelfOrTreasurerForStudent(SecurityIdentity identity, String studentId) {
+        if (isTreasurer(identity)) {
+            return;
+        }
+        boolean isOwnStudent = currentParent(identity).map(parent -> studentId.equals(parent.studentId())).orElse(false);
+        if (!isOwnStudent) {
+            throw new ForbiddenException("Not authorized to access this student's data");
+        }
+    }
 }

@@ -18,12 +18,12 @@ export class CollectionApiService {
     return this.http.get<CollectionDetails | CollectionProgress>(`/api/collections/${id}`);
   }
 
-  create(title: string, description: string, baseAmountPerParent: number): Observable<CollectionSummary> {
-    return this.http.post<CollectionSummary>('/api/collections', { title, description, baseAmountPerParent });
+  create(title: string, description: string, baseAmountPerStudent: number): Observable<CollectionSummary> {
+    return this.http.post<CollectionSummary>('/api/collections', { title, description, baseAmountPerStudent });
   }
 
-  recordContribution(collectionId: string, parentId: string, amount: number): Observable<CollectionDetails> {
-    return this.http.post<CollectionDetails>(`/api/collections/${collectionId}/contributions`, { parentId, amount });
+  recordContribution(collectionId: string, studentId: string, amount: number): Observable<CollectionDetails> {
+    return this.http.post<CollectionDetails>(`/api/collections/${collectionId}/contributions`, { studentId, amount });
   }
 
   settle(collectionId: string, actualCostSpent: number): Observable<SettlementResult> {

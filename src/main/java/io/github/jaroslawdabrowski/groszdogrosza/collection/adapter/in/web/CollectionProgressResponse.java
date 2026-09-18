@@ -8,7 +8,7 @@ import java.math.RoundingMode;
 
 /**
  * What a regular (non-treasurer) parent is allowed to see about a collection: aggregate
- * progress only - never the per-parent requirement/contribution breakdown that
+ * progress only - never the per-student requirement/contribution breakdown that
  * {@link CollectionDetailsResponse} carries, since that would expose every other family's
  * payment status and amounts. See {@code CollectionResource.get} for the role check that
  * picks between the two. Also reused (public {@link #from}) by
@@ -17,8 +17,8 @@ import java.math.RoundingMode;
  */
 public record CollectionProgressResponse(
         CollectionResponse collection,
-        int parentsCount,
-        int parentsPaidCount,
+        int studentsCount,
+        int studentsPaidCount,
         BigDecimal totalRequired,
         BigDecimal totalPaid,
         int percentComplete) {

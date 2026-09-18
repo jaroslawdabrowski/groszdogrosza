@@ -18,10 +18,10 @@ public interface CollectionRepositoryPort {
 
     List<ContributionRequirement> findRequirementsByCollectionId(String collectionId);
 
-    Optional<ContributionRequirement> findRequirement(String collectionId, String parentId);
+    Optional<ContributionRequirement> findRequirement(String collectionId, String studentId);
 
-    /** Across every ACTIVE collection, requirements for this parent that are not yet PAID/OVERPAID. */
-    List<ContributionRequirement> findActivePendingRequirementsForParent(String parentId);
+    /** Across every ACTIVE collection, requirements for this student that are not yet PAID/OVERPAID. */
+    List<ContributionRequirement> findActivePendingRequirementsForStudent(String studentId);
 
     Contribution saveContribution(Contribution contribution);
 

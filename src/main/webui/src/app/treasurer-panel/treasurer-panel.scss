@@ -11,30 +11,29 @@ mat-card-header {
   color: var(--gg-coin-deep);
 }
 
-.parent-list {
+.student-list {
   list-style: none;
   margin: 0 0 0.5rem;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.75rem;
 }
 
-.parent-row {
+.student-item {
+  padding: 0.6rem;
+  border-radius: var(--gg-radius-md);
+  background: var(--gg-cream);
+}
+
+.student-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.4rem 0.4rem 0.7rem;
-  border-radius: var(--gg-radius-sm);
-  background: var(--gg-cream);
-  transition: background 0.15s var(--gg-ease);
+  padding: 0.1rem 0.1rem 0.1rem 0.2rem;
 }
 
-.parent-row:hover {
-  background: var(--gg-coin-soft);
-}
-
-.parent-link {
+.student-link {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -45,11 +44,61 @@ mat-card-header {
   color: inherit;
 }
 
+.student-name {
+  flex: 1 1 auto;
+  font-weight: 700;
+}
+
+.student-balance {
+  color: var(--gg-ink-soft);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.student-actions,
 .parent-actions {
   display: flex;
   align-items: center;
   gap: 0.1rem;
   flex: none;
+  color: var(--gg-ink-soft);
+}
+
+.parent-sublist {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0 0 0 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-left: 2px solid var(--gg-coin-soft);
+}
+
+.parent-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.4rem 0.4rem 0.6rem;
+  border-radius: var(--gg-radius-sm);
+  background: var(--gg-cream-elevated);
+}
+
+.parent-name {
+  font-weight: 600;
+  flex: none;
+}
+
+.parent-email {
+  color: var(--gg-ink-soft);
+  font-size: 0.85rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-parent-button {
   color: var(--gg-ink-soft);
 }
 
@@ -75,7 +124,7 @@ mat-card-header {
 .edit-form {
   padding: 0.6rem 0.7rem;
   border-radius: var(--gg-radius-sm);
-  background: var(--gg-cream);
+  background: var(--gg-cream-elevated);
 }
 
 .edit-form .form-grid {
@@ -90,28 +139,25 @@ mat-card-header {
 
 .avatar {
   flex: none;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gg-gradient-warm);
-  color: var(--gg-ink);
+  background: var(--gg-blush-soft);
+  color: var(--gg-blush);
   font-weight: 800;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-family: "Nunito", sans-serif;
 }
 
-.parent-name {
-  flex: 1 1 auto;
-  font-weight: 600;
-}
-
-.parent-balance {
-  color: var(--gg-ink-soft);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+.avatar--student {
+  width: 34px;
+  height: 34px;
+  font-size: 0.8rem;
+  background: var(--gg-gradient-warm);
+  color: var(--gg-ink);
 }
 
 .section-title {

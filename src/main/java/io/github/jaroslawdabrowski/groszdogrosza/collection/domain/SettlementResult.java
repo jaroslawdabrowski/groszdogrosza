@@ -9,17 +9,17 @@ import java.util.List;
  *                       paid. {@code CollectionService} surfaces this back to the caller
  *                       rather than silently ignoring it; nothing here decides how to
  *                       cover a shortfall, that's a manual, human decision.
- * @param parentSettlements one entry per parent who contributed something, in the order
- *                          they first paid - see {@link SettlementPolicy} for the
- *                          rounding/ordering rule.
+ * @param studentSettlements one entry per student who contributed something, in the order
+ *                           they first paid - see {@link SettlementPolicy} for the
+ *                           rounding/ordering rule.
  */
 public record SettlementResult(
         BigDecimal totalContributed,
         BigDecimal actualCostSpent,
         BigDecimal totalSurplus,
         BigDecimal totalShortfall,
-        List<ParentSettlement> parentSettlements) {
+        List<StudentSettlement> studentSettlements) {
 
-    public record ParentSettlement(String parentId, BigDecimal amountPaid, BigDecimal leftoverToCredit) {
+    public record StudentSettlement(String studentId, BigDecimal amountPaid, BigDecimal leftoverToCredit) {
     }
 }

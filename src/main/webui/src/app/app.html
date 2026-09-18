@@ -8,8 +8,8 @@
   @if (isAuthenticated()) {
     <nav class="nav-links">
       <a mat-button class="nav-link" routerLink="/dashboard">{{ 'nav.dashboard' | translate }}</a>
-      @if (myParentId(); as parentId) {
-        <a mat-button class="nav-link" [routerLink]="['/parents', parentId]">{{ 'nav.myWallet' | translate }}</a>
+      @if (myStudentId(); as studentId) {
+        <a mat-button class="nav-link" [routerLink]="['/students', studentId]">{{ 'nav.myWallet' | translate }}</a>
       }
       @if (isTreasurer()) {
         <a mat-button class="nav-link" routerLink="/ledger">{{ 'nav.ledger' | translate }}</a>
@@ -22,8 +22,8 @@
     </button>
     <mat-menu #navMenu="matMenu">
       <a mat-menu-item routerLink="/dashboard">{{ 'nav.dashboard' | translate }}</a>
-      @if (myParentId(); as parentId) {
-        <a mat-menu-item [routerLink]="['/parents', parentId]">{{ 'nav.myWallet' | translate }}</a>
+      @if (myStudentId(); as studentId) {
+        <a mat-menu-item [routerLink]="['/students', studentId]">{{ 'nav.myWallet' | translate }}</a>
       }
       @if (isTreasurer()) {
         <a mat-menu-item routerLink="/ledger">{{ 'nav.ledger' | translate }}</a>

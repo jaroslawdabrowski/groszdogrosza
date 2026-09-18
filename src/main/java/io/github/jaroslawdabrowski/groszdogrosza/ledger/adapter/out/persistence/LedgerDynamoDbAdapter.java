@@ -22,12 +22,12 @@ import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
 /**
- * Key layout: {@code pk = "PARENT#<parentId>"}, {@code sk = "LEDGER#<occurredAt ISO-8601>#<id>"}.
+ * Key layout: {@code pk = "STUDENT#<studentId>"}, {@code sk = "LEDGER#<occurredAt ISO-8601>#<id>"}.
  * The ISO-8601 instant sorts lexicographically the same as chronologically, so a Query
- * with {@code ScanIndexForward = false} returns a parent's journal newest-first with no
+ * with {@code ScanIndexForward = false} returns a student's journal newest-first with no
  * separate index needed. The entry id is appended to the sort key only to guarantee
  * uniqueness if two entries ever land in the same millisecond (e.g. a settlement crediting
- * several parents back-to-back).
+ * several students back-to-back).
  */
 @ApplicationScoped
 public class LedgerDynamoDbAdapter implements LedgerRepositoryPort {
@@ -50,12 +50,12 @@ public class LedgerDynamoDbAdapter implements LedgerRepositoryPort {
     }
 
     @Override
-    public List<LedgerEntry> findByParentId(String parentId) {
+    public List<LedgerEntry> findByStudentId(String studentId) {
         return dynamoDbClient.query(QueryRequest.builder()
                         .tableName(tableName)
                         .keyConditionExpression("pk = :pk and begins_with(sk, :skPrefix)")
                         .expressionAttributeValues(Map.of(
-                                ":pk", s(pk(parentId)),
+                                ":pk", s(pk(studentId)),
                                 ":skPrefix", s(SK_PREFIX)))
                         .scanIndexForward(false)
                         .build())
@@ -66,9 +66,9 @@ public class LedgerDynamoDbAdapter implements LedgerRepositoryPort {
 
     @Override
     public List<LedgerEntry> findAll() {
-        // Full table scan filtered by sk prefix - entries are partitioned per-parent
-        // (pk = "PARENT#<id>"), so there is no single partition a Query could target for
-        // "every entry across every parent". Fine at this app's scale (see
+        // Full table scan filtered by sk prefix - entries are partitioned per-student
+        // (pk = "STUDENT#<id>"), so there is no single partition a Query could target for
+        // "every entry across every student". Fine at this app's scale (see
         // ParentDynamoDbAdapter.findAll's javadoc for the same accepted tradeoff); sorted
         // in application code since Scan gives no ordering guarantee.
         return dynamoDbClient.scan(ScanRequest.builder()
@@ -82,16 +82,16 @@ public class LedgerDynamoDbAdapter implements LedgerRepositoryPort {
                 .toList();
     }
 
-    private static String pk(String parentId) {
-        return "PARENT#" + parentId;
+    private static String pk(String studentId) {
+        return "STUDENT#" + studentId;
     }
 
     private static Map<String, AttributeValue> toItem(LedgerEntry entry) {
         return Map.of(
-                "pk", s(pk(entry.parentId())),
+                "pk", s(pk(entry.studentId())),
                 "sk", s(SK_PREFIX + entry.occurredAt() + "#" + entry.id()),
                 "id", s(entry.id()),
-                "parentId", s(entry.parentId()),
+                "studentId", s(entry.studentId()),
                 "eventType", s(entry.eventType().name()),
                 "occurredAt", instant(entry.occurredAt()),
                 "params", map(entry.params()));
@@ -100,7 +100,7 @@ public class LedgerDynamoDbAdapter implements LedgerRepositoryPort {
     private static LedgerEntry fromItem(Map<String, AttributeValue> item) {
         return new LedgerEntry(
                 str(item, "id"),
-                str(item, "parentId"),
+                str(item, "studentId"),
                 LedgerEventType.valueOf(str(item, "eventType")),
                 instant(item, "occurredAt"),
                 stringMap(item, "params"));

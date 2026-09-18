@@ -14,7 +14,7 @@ import java.time.Instant;
 public record Contribution(
         String id,
         String collectionId,
-        String parentId,
+        String studentId,
         BigDecimal amount,
         ContributionSource source,
         String bankTransactionReference,

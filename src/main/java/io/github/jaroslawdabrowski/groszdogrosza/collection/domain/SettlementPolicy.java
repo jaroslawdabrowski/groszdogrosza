@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * Pure decision logic for settling a collection: given what everyone actually paid in and
- * what the thing being bought actually cost, work out each contributing parent's leftover
+ * what the thing being bought actually cost, work out each contributing student's leftover
  * share to credit back to their piggy bank.
  *
  * <p>Deliberately a plain function with no framework dependency, no repository access, no
@@ -21,15 +21,16 @@ import java.util.Map;
  * <h2>The rule</h2>
  * Surplus = total contributed − actual cost (floored at zero - an underpaid collection
  * produces a {@link SettlementResult#totalShortfall()} instead, never a negative leftover).
- * The surplus is split <b>equally among parents who actually contributed something</b> to
- * this collection - a parent who paid nothing gets no share of the leftover, even if the
- * requirement said they owed 0 (fully covered by piggy bank) or they simply never paid.
+ * The surplus is split <b>equally among students whose family actually contributed
+ * something</b> to this collection - a student who nobody paid for gets no share of the
+ * leftover, even if the requirement said they owed 0 (fully covered by piggy bank) or nobody
+ * simply ever paid.
  *
  * <h2>Rounding rule</h2>
  * All money math here is done in integer grosz (1/100 zł) to avoid floating/decimal
- * rounding ambiguity. {@code totalSurplusGrosz / contributingParents} is integer division
+ * rounding ambiguity. {@code totalSurplusGrosz / contributingStudents} is integer division
  * (floored); whatever doesn't divide evenly (0 to n-1 grosz) is handed out one grosz at a
- * time to the parents who contributed <b>first</b>, in the order their first contribution
+ * time to the students who were paid for <b>first</b>, in the order their first contribution
  * to this collection appears in the input list. This is an arbitrary but deterministic and
  * auditable tie-break - "first payer(s) get the odd grosz" - and is exercised explicitly by
  * {@code SettlementPolicyTest#unevenSurplusGivesOddGroszToEarliestPayers}.
@@ -44,13 +45,13 @@ public final class SettlementPolicy {
             throw new IllegalArgumentException("actualCostSpent cannot be negative: " + actualCostSpent);
         }
 
-        // Sum per parent, preserving the order each parent FIRST appears in the list -
+        // Sum per student, preserving the order each student FIRST appears in the list -
         // that order is what "earliest payer" means for the remainder tie-break below.
-        Map<String, Long> paidGroszByParent = new LinkedHashMap<>();
+        Map<String, Long> paidGroszByStudent = new LinkedHashMap<>();
         long totalContributedGrosz = 0L;
         for (Contribution contribution : contributions) {
             long amountGrosz = toGrosz(contribution.amount());
-            paidGroszByParent.merge(contribution.parentId(), amountGrosz, Long::sum);
+            paidGroszByStudent.merge(contribution.studentId(), amountGrosz, Long::sum);
             totalContributedGrosz += amountGrosz;
         }
 
@@ -58,24 +59,24 @@ public final class SettlementPolicy {
         long surplusGrosz = Math.max(0L, totalContributedGrosz - actualCostGrosz);
         long shortfallGrosz = Math.max(0L, actualCostGrosz - totalContributedGrosz);
 
-        List<String> contributingParentIdsInOrder = new ArrayList<>();
-        for (Map.Entry<String, Long> entry : paidGroszByParent.entrySet()) {
+        List<String> contributingStudentIdsInOrder = new ArrayList<>();
+        for (Map.Entry<String, Long> entry : paidGroszByStudent.entrySet()) {
             if (entry.getValue() > 0) {
-                contributingParentIdsInOrder.add(entry.getKey());
+                contributingStudentIdsInOrder.add(entry.getKey());
             }
         }
 
-        int contributorCount = contributingParentIdsInOrder.size();
+        int contributorCount = contributingStudentIdsInOrder.size();
         long baseShareGrosz = contributorCount == 0 ? 0L : surplusGrosz / contributorCount;
         long remainderGrosz = contributorCount == 0 ? 0L : surplusGrosz % contributorCount;
 
-        List<SettlementResult.ParentSettlement> parentSettlements = new ArrayList<>();
+        List<SettlementResult.StudentSettlement> studentSettlements = new ArrayList<>();
         for (int i = 0; i < contributorCount; i++) {
-            String parentId = contributingParentIdsInOrder.get(i);
+            String studentId = contributingStudentIdsInOrder.get(i);
             long leftoverGrosz = baseShareGrosz + (i < remainderGrosz ? 1L : 0L);
-            parentSettlements.add(new SettlementResult.ParentSettlement(
-                    parentId,
-                    fromGrosz(paidGroszByParent.get(parentId)),
+            studentSettlements.add(new SettlementResult.StudentSettlement(
+                    studentId,
+                    fromGrosz(paidGroszByStudent.get(studentId)),
                     fromGrosz(leftoverGrosz)));
         }
 
@@ -84,7 +85,7 @@ public final class SettlementPolicy {
                 actualCostSpent,
                 fromGrosz(surplusGrosz),
                 fromGrosz(shortfallGrosz),
-                List.copyOf(parentSettlements));
+                List.copyOf(studentSettlements));
     }
 
     private static long toGrosz(BigDecimal amount) {

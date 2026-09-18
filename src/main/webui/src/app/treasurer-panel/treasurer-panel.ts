@@ -11,8 +11,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ParentApiService } from '../core/parent-api.service';
+import { StudentApiService } from '../core/student-api.service';
 import { CollectionApiService } from '../core/collection-api.service';
-import { Parent } from '../core/models';
+import { Parent, Student } from '../core/models';
 
 @Component({
   selector: 'app-treasurer-panel',
@@ -33,17 +34,19 @@ import { Parent } from '../core/models';
 })
 export class TreasurerPanel {
   private readonly parentApi = inject(ParentApiService);
+  private readonly studentApi = inject(StudentApiService);
   private readonly collectionApi = inject(CollectionApiService);
   private readonly translate = inject(TranslateService);
 
-  readonly parents = signal<Parent[]>([]);
+  readonly students = signal<Student[]>([]);
   readonly me = signal<Parent | null>(null);
   readonly bankAccountNumber = signal('');
   readonly blikPhoneNumber = signal('');
   readonly paymentInfoSaved = signal(false);
 
-  /** Per-parent feedback for the account-creation/resend buttons, keyed by parent id - a
-   *  translation key plus whether it's a success or error, rendered next to that row only. */
+  /** Per-parent feedback for the account-creation/resend/edit/delete actions, keyed by
+   *  parent id - a translation key plus whether it's a success or error, rendered next to
+   *  that row only. */
   readonly accountStatus = signal<Record<string, { kind: 'success' | 'error'; key: string } | undefined>>({});
   readonly accountActionInFlight = signal<Record<string, boolean>>({});
 
@@ -54,10 +57,22 @@ export class TreasurerPanel {
   readonly editEmail = signal('');
   readonly editExpectedSenderName = signal('');
 
+  /** Which student's card is showing the inline "edit name" form. */
+  readonly editingStudentId = signal<string | null>(null);
+  readonly editStudentFirstName = signal('');
+  readonly editStudentLastName = signal('');
+
+  /** Which student's card currently has its "add parent" mini-form open (a student has at
+   *  most 2 parent slots - see the backend Parent.studentId javadoc). */
+  readonly addingParentToStudentId = signal<string | null>(null);
   readonly newParentFirstName = signal('');
   readonly newParentLastName = signal('');
   readonly newParentEmail = signal('');
   readonly newParentExpectedSenderName = signal('');
+
+  readonly newStudentFirstName = signal('');
+  readonly newStudentLastName = signal('');
+  readonly studentCreated = signal(false);
 
   readonly newCollectionTitle = signal('');
   readonly newCollectionDescription = signal('');
@@ -65,7 +80,7 @@ export class TreasurerPanel {
   readonly collectionCreated = signal(false);
 
   constructor() {
-    this.reloadParents();
+    this.reloadStudents();
     this.parentApi.me().subscribe((me) => {
       this.me.set(me);
       this.bankAccountNumber.set(me.bankAccountNumber ?? '');
@@ -73,8 +88,8 @@ export class TreasurerPanel {
     });
   }
 
-  reloadParents(): void {
-    this.parentApi.list().subscribe((parents) => this.parents.set(parents));
+  reloadStudents(): void {
+    this.studentApi.list().subscribe((students) => this.students.set(students));
   }
 
   savePaymentInfo(): void {
@@ -88,16 +103,13 @@ export class TreasurerPanel {
     });
   }
 
-  createParent(): void {
-    this.parentApi
-      .create(this.newParentFirstName(), this.newParentLastName(), this.newParentEmail(), this.newParentExpectedSenderName())
-      .subscribe(() => {
-        this.newParentFirstName.set('');
-        this.newParentLastName.set('');
-        this.newParentEmail.set('');
-        this.newParentExpectedSenderName.set('');
-        this.reloadParents();
-      });
+  createStudent(): void {
+    this.studentApi.create(this.newStudentFirstName(), this.newStudentLastName()).subscribe(() => {
+      this.newStudentFirstName.set('');
+      this.newStudentLastName.set('');
+      this.studentCreated.set(true);
+      this.reloadStudents();
+    });
   }
 
   createCollection(): void {
@@ -110,6 +122,85 @@ export class TreasurerPanel {
         this.collectionCreated.set(true);
       });
   }
+
+  // --- student name edit ---
+
+  startEditStudent(student: Student): void {
+    this.editingStudentId.set(student.id);
+    this.editStudentFirstName.set(student.firstName);
+    this.editStudentLastName.set(student.lastName);
+  }
+
+  cancelEditStudent(): void {
+    this.editingStudentId.set(null);
+  }
+
+  isEditingStudent(studentId: string): boolean {
+    return this.editingStudentId() === studentId;
+  }
+
+  saveEditStudent(studentId: string): void {
+    this.studentApi.update(studentId, this.editStudentFirstName(), this.editStudentLastName()).subscribe({
+      next: () => {
+        this.editingStudentId.set(null);
+        this.reloadStudents();
+      },
+      error: () => this.setAccountStatus(studentId, 'error', 'treasurer.editFailed'),
+    });
+  }
+
+  /** A student whose parent list includes the currently logged-in treasurer - deleting it
+   *  would delete the treasurer's own account, so the delete button is disabled for it. */
+  isOwnStudent(student: Student): boolean {
+    const myId = this.me()?.id;
+    return myId != null && student.parents.some((p) => p.id === myId);
+  }
+
+  deleteStudent(student: Student): void {
+    const confirmed = window.confirm(
+      this.translate.instant('treasurer.deleteStudentConfirm', { name: `${student.firstName} ${student.lastName}` }),
+    );
+    if (!confirmed) {
+      return;
+    }
+    this.studentApi.delete(student.id).subscribe({
+      next: () => this.reloadStudents(),
+      error: () => this.setAccountStatus(student.id, 'error', 'treasurer.deleteFailed'),
+    });
+  }
+
+  // --- add parent to a student ---
+
+  startAddParent(studentId: string): void {
+    this.addingParentToStudentId.set(studentId);
+    this.newParentFirstName.set('');
+    this.newParentLastName.set('');
+    this.newParentEmail.set('');
+    this.newParentExpectedSenderName.set('');
+  }
+
+  cancelAddParent(): void {
+    this.addingParentToStudentId.set(null);
+  }
+
+  isAddingParentTo(studentId: string): boolean {
+    return this.addingParentToStudentId() === studentId;
+  }
+
+  addParent(studentId: string): void {
+    this.studentApi
+      .addParent(studentId, this.newParentFirstName(), this.newParentLastName(), this.newParentEmail(), this.newParentExpectedSenderName())
+      .subscribe({
+        next: () => {
+          this.addingParentToStudentId.set(null);
+          this.reloadStudents();
+        },
+        error: (err) =>
+          this.setAccountStatus(studentId, 'error', err.status === 409 ? 'treasurer.tooManyParents' : 'treasurer.editFailed'),
+      });
+  }
+
+  // --- parent edit/delete ---
 
   startEdit(parent: Parent): void {
     this.editingParentId.set(parent.id);
@@ -132,11 +223,9 @@ export class TreasurerPanel {
     this.parentApi.update(parentId, this.editFirstName(), this.editLastName(), this.editEmail(), this.editExpectedSenderName()).subscribe({
       next: () => {
         this.editingParentId.set(null);
-        this.reloadParents();
+        this.reloadStudents();
       },
-      error: () => {
-        this.accountStatus.update((s) => ({ ...s, [parentId]: { kind: 'error', key: 'treasurer.editFailed' } }));
-      },
+      error: () => this.setAccountStatus(parentId, 'error', 'treasurer.editFailed'),
     });
   }
 
@@ -148,23 +237,21 @@ export class TreasurerPanel {
       return;
     }
     this.parentApi.delete(parent.id).subscribe({
-      next: () => this.reloadParents(),
-      error: () => {
-        this.accountStatus.update((s) => ({ ...s, [parent.id]: { kind: 'error', key: 'treasurer.deleteFailed' } }));
-      },
+      next: () => this.reloadStudents(),
+      error: () => this.setAccountStatus(parent.id, 'error', 'treasurer.deleteFailed'),
     });
   }
 
-  initialsFor(parent: Parent): string {
-    return `${parent.firstName.charAt(0)}${parent.lastName.charAt(0)}`.toUpperCase();
+  initialsFor(person: { firstName: string; lastName: string }): string {
+    return `${person.firstName.charAt(0)}${person.lastName.charAt(0)}`.toUpperCase();
   }
 
   isAccountActionInFlight(parentId: string): boolean {
     return this.accountActionInFlight()[parentId] === true;
   }
 
-  accountStatusFor(parentId: string): { kind: 'success' | 'error'; key: string } | undefined {
-    return this.accountStatus()[parentId];
+  accountStatusFor(id: string): { kind: 'success' | 'error'; key: string } | undefined {
+    return this.accountStatus()[id];
   }
 
   createAccount(parent: Parent): void {
@@ -197,5 +284,9 @@ export class TreasurerPanel {
         this.accountStatus.update((s) => ({ ...s, [parentId]: { kind: 'error', key: errorKeyFor(err) } }));
       },
     });
+  }
+
+  private setAccountStatus(id: string, kind: 'success' | 'error', key: string): void {
+    this.accountStatus.update((s) => ({ ...s, [id]: { kind, key } }));
   }
 }

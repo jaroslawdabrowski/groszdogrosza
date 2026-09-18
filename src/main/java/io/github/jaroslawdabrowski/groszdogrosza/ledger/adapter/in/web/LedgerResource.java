@@ -1,9 +1,8 @@
 package io.github.jaroslawdabrowski.groszdogrosza.ledger.adapter.in.web;
 
-import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.GetLedgerForParentUseCase;
-import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
-import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetParentUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.GetLedgerForStudentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
+import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.GetStudentUseCase;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
@@ -16,20 +15,21 @@ import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 
 /**
- * A parent's ledger is exactly as sensitive as their balance itself - see
- * {@code ParentResource.get} and {@code AuthorizationSupport} for the same self-or-treasurer
- * rule applied here.
+ * A student's ledger is exactly as sensitive as their piggy bank balance itself - see
+ * {@code StudentResource.get} and {@code AuthorizationSupport.requireSelfOrTreasurerForStudent}
+ * for the same self-or-treasurer rule applied here ("self" = the caller's own Parent record
+ * is linked to this student).
  */
-@Path("/api/parents/{parentId}/ledger")
+@Path("/api/students/{studentId}/ledger")
 @Authenticated
 @Produces(MediaType.APPLICATION_JSON)
 public class LedgerResource {
 
     @Inject
-    GetLedgerForParentUseCase getLedgerForParentUseCase;
+    GetLedgerForStudentUseCase getLedgerForStudentUseCase;
 
     @Inject
-    GetParentUseCase getParentUseCase;
+    GetStudentUseCase getStudentUseCase;
 
     @Inject
     AuthorizationSupport authorizationSupport;
@@ -38,10 +38,9 @@ public class LedgerResource {
     SecurityIdentity identity;
 
     @GET
-    public List<LedgerEntryResponse> get(@PathParam("parentId") String parentId) {
-        Parent parent = getParentUseCase.getParent(parentId)
-                .orElseThrow(() -> new NotFoundException("No such parent: " + parentId));
-        authorizationSupport.requireSelfOrTreasurer(identity, parent.email());
-        return getLedgerForParentUseCase.getLedgerFor(parentId).stream().map(LedgerEntryResponse::from).toList();
+    public List<LedgerEntryResponse> get(@PathParam("studentId") String studentId) {
+        getStudentUseCase.getStudent(studentId).orElseThrow(() -> new NotFoundException("No such student: " + studentId));
+        authorizationSupport.requireSelfOrTreasurerForStudent(identity, studentId);
+        return getLedgerForStudentUseCase.getLedgerFor(studentId).stream().map(LedgerEntryResponse::from).toList();
     }
 }

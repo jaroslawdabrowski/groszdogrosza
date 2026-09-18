@@ -5,8 +5,8 @@ import java.util.List;
 
 /**
  * Backs the treasurer-only global activity feed ("log wszystkich transakcji") - every
- * parent's ledger entries in one place, newest first. A regular parent only ever sees their
- * own entries via {@link GetLedgerForParentUseCase} - see {@code AuthorizationSupport}.
+ * student's ledger entries in one place, newest first. A regular parent only ever sees their
+ * own child's entries via {@link GetLedgerForStudentUseCase} - see {@code AuthorizationSupport}.
  */
 public interface GetFullLedgerUseCase {
 

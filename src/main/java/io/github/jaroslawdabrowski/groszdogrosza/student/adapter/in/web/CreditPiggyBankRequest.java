@@ -1,4 +1,4 @@
-package io.github.jaroslawdabrowski.groszdogrosza.parent.adapter.in.web;
+package io.github.jaroslawdabrowski.groszdogrosza.student.adapter.in.web;
 
 import java.math.BigDecimal;
 

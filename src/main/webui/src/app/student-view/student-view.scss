@@ -1,8 +1,3 @@
-.email {
-  color: var(--gg-ink-soft);
-  margin: 0;
-}
-
 mat-card {
   margin-top: 1rem;
 }
@@ -43,4 +38,31 @@ mat-card {
   font-weight: 800;
   font-family: "Nunito", sans-serif;
   color: var(--gg-ink);
+}
+
+.parent-contact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.parent-contact-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--gg-blush-soft);
+  border-radius: var(--gg-radius-sm);
+}
+
+.parent-contact-name {
+  font-weight: 600;
+}
+
+.parent-contact-email {
+  color: var(--gg-ink-soft);
+  font-size: 0.9rem;
 }

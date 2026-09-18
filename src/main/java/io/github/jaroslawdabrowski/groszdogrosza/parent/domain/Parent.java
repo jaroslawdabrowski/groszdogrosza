@@ -1,14 +1,21 @@
 package io.github.jaroslawdabrowski.groszdogrosza.parent.domain;
 
-import java.math.BigDecimal;
-
 /**
- * A parent of a child in the class - the unit the treasurer tracks money against.
+ * A parent (or guardian) of a {@code student.domain.Student} - the login/contact record, not
+ * the money-tracking unit anymore (that moved to {@code Student.piggyBankBalance} - see its
+ * javadoc for why). A student has 0, 1 or 2 parents; a parent belongs to exactly one student
+ * ({@link #studentId()}) - the relationship is deliberately owned by the student side (a
+ * parent with two children in the class needs two separate {@code Parent} records, one per
+ * student - an accepted simplification at this app's one-class scale).
  *
- * @param expectedSenderName how the parent's name is expected to appear as the sender on
- *                           a bank transfer (e.g. "Jan Kowalski") - used by
- *                           {@code bankstatement.domain.ParentMatchingPolicy} to match
- *                           incoming transactions. Kept separate from first/last name so a
+ * @param studentId          the student this parent belongs to. Always set in practice - a
+ *                           {@code Parent} is only ever created via
+ *                           {@code POST /api/students/{id}/parents}, never standalone.
+ * @param expectedSenderName how the parent's name is expected to appear as the sender on a
+ *                           bank transfer (e.g. "Jan Kowalski") - used by
+ *                           {@code bankstatement.domain.PaymentMatchingPolicy} as the
+ *                           fallback match when the transfer doesn't already carry the
+ *                           student's own surname. Kept separate from first/last name so a
  *                           parent whose transfers arrive under a different name (spouse's
  *                           account, maiden name, etc.) can still be matched correctly.
  * @param cognitoSubjectId   null until the parent has actually logged in once and been
@@ -17,30 +24,22 @@ import java.math.BigDecimal;
  * @param role               {@link ParentRole#TREASURER} or {@link ParentRole#PARENT} - see
  *                           {@code platform.security.AuthorizationSupport} for how this
  *                           drives every authorization decision in the app.
- * @param piggyBankBalance   money this parent has overpaid on past collections, available to
- *                           be applied automatically to future ones. Never negative.
  * @param paymentInfo        null unless the treasurer has configured it - see
  *                           {@link PaymentInfo}. Shown on the public, unauthenticated
  *                           collection overview page so anyone can pay in.
  */
 public record Parent(
         String id,
+        String studentId,
         String firstName,
         String lastName,
         String email,
         String expectedSenderName,
         String cognitoSubjectId,
         ParentRole role,
-        BigDecimal piggyBankBalance,
         PaymentInfo paymentInfo) {
 
     public Parent {
-        if (piggyBankBalance == null) {
-            piggyBankBalance = BigDecimal.ZERO;
-        }
-        if (piggyBankBalance.signum() < 0) {
-            throw new IllegalArgumentException("piggyBankBalance cannot be negative: " + piggyBankBalance);
-        }
         if (role == null) {
             role = ParentRole.PARENT;
         }

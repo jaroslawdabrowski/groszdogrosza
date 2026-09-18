@@ -4,7 +4,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.domain.BankTransa
 import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.domain.ContributionAllocationPolicy;
 import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.domain.ContributionAllocationPolicy.AllocationResult;
 import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.domain.MatchResult;
-import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.domain.ParentMatchingPolicy;
+import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.domain.PaymentMatchingPolicy;
 import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.port.in.PollBankStatementsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.port.out.BankStatementFetchPort;
 import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.port.out.BankStatementFetchPort.RawStatementAttachment;
@@ -13,14 +13,15 @@ import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.port.out.Statemen
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.ContributionRequirement;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.ContributionSource;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ApplyAutomaticContributionUseCase;
-import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetActiveRequirementsForParentUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetActiveRequirementsForStudentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.RecordLedgerEntryUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
-import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.ParentRole;
-import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreditPiggyBankUseCase;
-import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.DebitPiggyBankUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ListParentsUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
+import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.CreditStudentPiggyBankUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.DebitStudentPiggyBankUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
@@ -60,19 +61,22 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
     ProcessedTransactionRepositoryPort processedTransactionRepository;
 
     @Inject
+    ListStudentsUseCase listStudentsUseCase;
+
+    @Inject
     ListParentsUseCase listParentsUseCase;
 
     @Inject
-    GetActiveRequirementsForParentUseCase getActiveRequirementsForParentUseCase;
+    GetActiveRequirementsForStudentUseCase getActiveRequirementsForStudentUseCase;
 
     @Inject
     ApplyAutomaticContributionUseCase applyAutomaticContributionUseCase;
 
     @Inject
-    CreditPiggyBankUseCase creditPiggyBankUseCase;
+    CreditStudentPiggyBankUseCase creditStudentPiggyBankUseCase;
 
     @Inject
-    DebitPiggyBankUseCase debitPiggyBankUseCase;
+    DebitStudentPiggyBankUseCase debitStudentPiggyBankUseCase;
 
     @Inject
     RecordLedgerEntryUseCase recordLedgerEntryUseCase;
@@ -87,6 +91,7 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
     public PollResult pollAndProcess() {
         Instant since = Instant.now().minus(lookbackDays, ChronoUnit.DAYS);
         List<RawStatementAttachment> attachments = fetchPort.fetchNewStatementsSince(since);
+        List<Student> students = listStudentsUseCase.listStudents();
         List<Parent> parents = listParentsUseCase.listParents();
 
         int seen = 0;
@@ -112,30 +117,34 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
             for (BankTransaction transaction : transactions) {
                 seen++;
 
-                Optional<MatchResult> match = ParentMatchingPolicy.match(transaction, parents, minConfidence);
+                // Step 0 - must run before any matching below, not after: the treasurer's
+                // own child is also a Student in this model, and their surname is very
+                // likely the same as the treasurer's own, so a student-surname match could
+                // otherwise wrongly catch the treasurer's own outgoing transfer - see
+                // PaymentMatchingPolicy's class javadoc.
+                if (PaymentMatchingPolicy.matchesTreasurerOwnAccount(transaction.senderName(), parents, minConfidence)) {
+                    // The mailbox being polled belongs to the treasurer, so the statement
+                    // naturally contains the treasurer's own account activity too - not just
+                    // other families paying in. Crediting this would let the treasurer
+                    // accidentally double count their own money. The treasurer's own child's
+                    // piggy bank is topped up manually instead (see
+                    // CreditStudentPiggyBankManuallyUseCase) and swept into collections
+                    // exactly like every other student's, via the same
+                    // createCollection/settle logic.
+                    ignoredTreasurerOwnAccount++;
+                    LOG.debugf("Ignoring bank transaction matched to the treasurer's own account, ref %s",
+                            transaction.bankReference());
+                    continue;
+                }
+
+                Optional<MatchResult> match = PaymentMatchingPolicy.match(transaction, students, parents, minConfidence);
                 if (match.isEmpty()) {
                     unmatched++;
                     LOG.warnf("Unmatched bank transaction from '%s', amount %s, ref %s - needs manual booking",
                             transaction.senderName(), transaction.amount(), transaction.bankReference());
                     // Deliberately NOT claimed - an unmatched transaction should be retried
-                    // on the next poll in case a parent is added/corrected before then, and
-                    // it must remain visible for the treasurer to book manually.
-                    continue;
-                }
-
-                if (isTreasurer(match.get().parentId(), parents)) {
-                    // The mailbox being polled belongs to the treasurer, so the statement
-                    // naturally contains the treasurer's own account activity too - not just
-                    // other parents paying in. A transaction that matches the treasurer's own
-                    // name is noise (their own outgoing spending, an internal transfer, etc.),
-                    // never a "parent contribution" event - crediting it here would let the
-                    // treasurer accidentally double count their own money. The treasurer's
-                    // piggy bank is topped up manually instead (see
-                    // CreditPiggyBankManuallyUseCase) and swept into collections exactly like
-                    // every other parent's, via the same createCollection/settle logic.
-                    ignoredTreasurerOwnAccount++;
-                    LOG.debugf("Ignoring bank transaction matched to the treasurer's own account, ref %s",
-                            transaction.bankReference());
+                    // on the next poll in case a student/parent is added/corrected before
+                    // then, and it must remain visible for the treasurer to book manually.
                     continue;
                 }
 
@@ -148,20 +157,20 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
                 }
 
                 try {
-                    bookMatchedTransaction(transaction, match.get(), parents);
+                    bookMatchedTransaction(transaction, match.get(), students);
                     matched++;
                 } catch (RuntimeException e) {
                     // The reference is already claimed at this point, so this transaction
                     // will NOT be retried automatically - it needs manual reconciliation
-                    // (check the parent's ledger for a PIGGY_BANK_CREDITED entry with this
+                    // (check the student's ledger for a PIGGY_BANK_CREDITED entry with this
                     // bankReference to see how far booking got before it failed). Trading a
                     // silent miss for the double-credit this replaces is the deliberate
                     // choice - see ProcessedTransactionDynamoDbAdapter's javadoc. One failed
                     // transaction must not abort the rest of the poll.
                     failed++;
-                    LOG.errorf(e, "Failed to book matched bank transaction ref=%s, parentId=%s, amount=%s - "
+                    LOG.errorf(e, "Failed to book matched bank transaction ref=%s, studentId=%s, amount=%s - "
                                     + "already claimed, will NOT retry automatically, needs manual reconciliation",
-                            transaction.bankReference(), match.get().parentId(), transaction.amount());
+                            transaction.bankReference(), match.get().studentId(), transaction.amount());
                 }
             }
         }
@@ -169,45 +178,37 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
         return new PollResult(seen, matched, unmatched, alreadyProcessed, failed, ignoredTreasurerOwnAccount);
     }
 
-    private static boolean isTreasurer(String parentId, List<Parent> parents) {
-        return parents.stream()
-                .filter(p -> p.id().equals(parentId))
+    private void bookMatchedTransaction(BankTransaction transaction, MatchResult match, List<Student> students) {
+        String studentId = match.studentId();
+        BigDecimal balanceBeforeThisTransaction = students.stream()
+                .filter(s -> s.id().equals(studentId))
                 .findFirst()
-                .map(p -> p.role() == ParentRole.TREASURER)
-                .orElse(false);
-    }
-
-    private void bookMatchedTransaction(BankTransaction transaction, MatchResult match, List<Parent> parents) {
-        String parentId = match.parentId();
-        BigDecimal balanceBeforeThisTransaction = parents.stream()
-                .filter(p -> p.id().equals(parentId))
-                .findFirst()
-                .map(Parent::piggyBankBalance)
+                .map(Student::piggyBankBalance)
                 .orElse(BigDecimal.ZERO);
 
         // Step 1: land the money in the piggy bank and leave an audit trail - this happens
         // unconditionally, even if it's immediately swept back out in step 2.
-        creditPiggyBankUseCase.creditPiggyBank(parentId, transaction.amount());
-        recordLedgerEntryUseCase.record(parentId, LedgerEventType.PIGGY_BANK_CREDITED, Map.of(
+        creditStudentPiggyBankUseCase.creditPiggyBank(studentId, transaction.amount());
+        recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_CREDITED, Map.of(
                 "amount", transaction.amount().toPlainString(),
                 "bankReference", transaction.bankReference()));
 
         // Step 2: sweep as much of the (pre-existing balance + this payment) as needed
-        // towards whatever this parent currently owes on active collections, oldest
+        // towards whatever this student currently owes on active collections, oldest
         // collection first - not just this one transaction's amount, since an earlier
         // overpayment sitting in the piggy bank is just as spendable here.
-        List<ContributionRequirement> activeRequirements = getActiveRequirementsForParentUseCase
-                .getActivePendingRequirements(parentId);
+        List<ContributionRequirement> activeRequirements = getActiveRequirementsForStudentUseCase
+                .getActivePendingRequirements(studentId);
         AllocationResult allocation = ContributionAllocationPolicy.allocate(
                 transaction.amount(), balanceBeforeThisTransaction, activeRequirements);
 
         for (ContributionAllocationPolicy.RequirementAllocation requirementAllocation : allocation.allocations()) {
-            debitPiggyBankUseCase.debitPiggyBank(parentId, requirementAllocation.amountApplied());
-            recordLedgerEntryUseCase.record(parentId, LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION, Map.of(
+            debitStudentPiggyBankUseCase.debitPiggyBank(studentId, requirementAllocation.amountApplied());
+            recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION, Map.of(
                     "collectionId", requirementAllocation.collectionId(),
                     "amount", requirementAllocation.amountApplied().toPlainString()));
             applyAutomaticContributionUseCase.applyContribution(
-                    requirementAllocation.collectionId(), parentId, requirementAllocation.amountApplied(),
+                    requirementAllocation.collectionId(), studentId, requirementAllocation.amountApplied(),
                     ContributionSource.PIGGY_BANK_APPLIED, transaction.bankReference());
         }
     }

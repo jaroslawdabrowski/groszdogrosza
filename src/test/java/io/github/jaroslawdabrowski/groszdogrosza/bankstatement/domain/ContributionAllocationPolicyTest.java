@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 class ContributionAllocationPolicyTest {
 
     private static ContributionRequirement requirement(String collectionId, BigDecimal required, BigDecimal paid) {
-        return new ContributionRequirement("req-" + collectionId, collectionId, "parent-1", required, paid,
+        return new ContributionRequirement("req-" + collectionId, collectionId, "student-1", required, paid,
                 ContributionRequirementStatus.PENDING);
     }
 

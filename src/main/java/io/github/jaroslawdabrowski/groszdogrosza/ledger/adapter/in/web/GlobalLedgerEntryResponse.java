@@ -5,17 +5,17 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Same shape as {@link LedgerEntryResponse} plus {@code parentName} - the global feed spans
- * every parent, so (unlike a single parent's own ledger page, which already knows whose
+ * Same shape as {@link LedgerEntryResponse} plus {@code studentName} - the global feed spans
+ * every student, so (unlike a single student's own ledger page, which already knows whose
  * entries they're looking at) each entry needs to say whose it is. Rendering still goes
- * through the same {@code ledger.<eventType>} i18n keys, with {@code parentName} as an
+ * through the same {@code ledger.<eventType>} i18n keys, with {@code studentName} as an
  * additional placeholder alongside {@code params}.
  */
 public record GlobalLedgerEntryResponse(
-        String id, String parentId, String parentName, String eventType, Instant occurredAt, Map<String, String> params) {
+        String id, String studentId, String studentName, String eventType, Instant occurredAt, Map<String, String> params) {
 
-    static GlobalLedgerEntryResponse from(LedgerEntry entry, String parentName) {
-        return new GlobalLedgerEntryResponse(entry.id(), entry.parentId(), parentName, entry.eventType().name(),
+    static GlobalLedgerEntryResponse from(LedgerEntry entry, String studentName) {
+        return new GlobalLedgerEntryResponse(entry.id(), entry.studentId(), studentName, entry.eventType().name(),
                 entry.occurredAt(), entry.params());
     }
 }
