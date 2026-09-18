@@ -18,7 +18,7 @@ output "lambda_function_name" {
 
 output "eventbridge_schedule_name" {
   description = "The cron rule that polls the daily mBank statement - see CLAUDE.md for why this exists instead of an in-app @Scheduled job"
-  value       = aws_scheduler_schedule.bankstatement_poll.name
+  value       = aws_cloudwatch_event_rule.bankstatement_poll.name
 }
 
 output "cognito_hosted_ui_domain" {

@@ -2,7 +2,7 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "TerraformStateBucketMeta",
+      "Sid": "TFStateBucket",
       "Effect": "Allow",
       "Action": [
         "s3:CreateBucket",
@@ -33,7 +33,7 @@
       "Resource": "arn:aws:s3:::groszdogrosza-terraform-state"
     },
     {
-      "Sid": "TerraformStateObjects",
+      "Sid": "TFStateObj",
       "Effect": "Allow",
       "Action": [
         "s3:GetObject",
@@ -43,7 +43,7 @@
       "Resource": "arn:aws:s3:::groszdogrosza-terraform-state/*"
     },
     {
-      "Sid": "TerraformLockTable",
+      "Sid": "TFLock",
       "Effect": "Allow",
       "Action": [
         "dynamodb:CreateTable",
@@ -61,7 +61,7 @@
       "Resource": "arn:aws:dynamodb:eu-central-1:814478897174:table/groszdogrosza-terraform-lock"
     },
     {
-      "Sid": "AppDynamoDbTable",
+      "Sid": "AppTable",
       "Effect": "Allow",
       "Action": [
         "dynamodb:CreateTable",
@@ -77,7 +77,7 @@
       "Resource": "arn:aws:dynamodb:eu-central-1:814478897174:table/groszdogrosza-*"
     },
     {
-      "Sid": "EcrRepositoryManagement",
+      "Sid": "EcrRepo",
       "Effect": "Allow",
       "Action": [
         "ecr:CreateRepository",
@@ -103,7 +103,7 @@
       "Resource": "*"
     },
     {
-      "Sid": "EcrPushPull",
+      "Sid": "EcrPush",
       "Effect": "Allow",
       "Action": [
         "ecr:BatchCheckLayerAvailability",
@@ -118,7 +118,7 @@
       "Resource": "arn:aws:ecr:eu-central-1:814478897174:repository/groszdogrosza-*"
     },
     {
-      "Sid": "LambdaFunction",
+      "Sid": "Lambda",
       "Effect": "Allow",
       "Action": [
         "lambda:CreateFunction",
@@ -143,12 +143,13 @@
       "Resource": "arn:aws:lambda:eu-central-1:814478897174:function:groszdogrosza-*"
     },
     {
-      "Sid": "IamRolesForLambdaAndScheduler",
+      "Sid": "Iam",
       "Effect": "Allow",
       "Action": [
         "iam:CreateRole",
         "iam:DeleteRole",
         "iam:GetRole",
+        "iam:UpdateAssumeRolePolicy",
         "iam:PutRolePolicy",
         "iam:GetRolePolicy",
         "iam:DeleteRolePolicy",
@@ -163,18 +164,21 @@
       "Resource": "arn:aws:iam::814478897174:role/groszdogrosza-*"
     },
     {
-      "Sid": "PassRoleToLambdaAndScheduler",
+      "Sid": "PassRole",
       "Effect": "Allow",
       "Action": "iam:PassRole",
       "Resource": "arn:aws:iam::814478897174:role/groszdogrosza-*",
       "Condition": {
         "StringEquals": {
-          "iam:PassedToService": ["lambda.amazonaws.com", "scheduler.amazonaws.com"]
+          "iam:PassedToService": [
+            "lambda.amazonaws.com",
+            "events.amazonaws.com"
+          ]
         }
       }
     },
     {
-      "Sid": "CloudWatchLogsForLambda",
+      "Sid": "CWLogs",
       "Effect": "Allow",
       "Action": [
         "logs:CreateLogGroup",
@@ -184,18 +188,24 @@
         "logs:TagResource",
         "logs:UntagResource",
         "logs:ListTagsLogGroup",
-        "logs:ListTagsForResource"
+        "logs:ListTagsForResource",
+        "logs:DescribeLogStreams",
+        "logs:GetLogEvents",
+        "logs:FilterLogEvents"
       ],
-      "Resource": "arn:aws:logs:eu-central-1:814478897174:log-group:/aws/lambda/groszdogrosza-*"
+      "Resource": [
+        "arn:aws:logs:eu-central-1:814478897174:log-group:/aws/lambda/groszdogrosza-*",
+        "arn:aws:logs:eu-central-1:814478897174:log-group:/aws/lambda/groszdogrosza-*:*"
+      ]
     },
     {
-      "Sid": "CloudWatchLogsDescribe",
+      "Sid": "LogsDesc",
       "Effect": "Allow",
       "Action": "logs:DescribeLogGroups",
       "Resource": "*"
     },
     {
-      "Sid": "CognitoUserPoolManagementNoResourceScopingPossible",
+      "Sid": "Cognito",
       "Effect": "Allow",
       "Action": [
         "cognito-idp:CreateUserPool",
@@ -223,7 +233,7 @@
       "Resource": "*"
     },
     {
-      "Sid": "EventBridgeApiDestinationForBankstatementPoll",
+      "Sid": "EBConn",
       "Effect": "Allow",
       "Action": [
         "events:CreateConnection",
@@ -241,18 +251,37 @@
       "Resource": "*"
     },
     {
-      "Sid": "SchedulerForBankstatementPoll",
+      "Sid": "SLR",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "*"
+    },
+    {
+      "Sid": "EBSec",
       "Effect": "Allow",
       "Action": [
-        "scheduler:CreateSchedule",
-        "scheduler:DeleteSchedule",
-        "scheduler:GetSchedule",
-        "scheduler:UpdateSchedule",
-        "scheduler:TagResource",
-        "scheduler:UntagResource",
-        "scheduler:ListTagsForResource"
+        "secretsmanager:CreateSecret",
+        "secretsmanager:UpdateSecret",
+        "secretsmanager:DeleteSecret",
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:PutSecretValue",
+        "secretsmanager:TagResource"
       ],
-      "Resource": "arn:aws:scheduler:eu-central-1:814478897174:schedule/default/groszdogrosza-*"
+      "Resource": "arn:aws:secretsmanager:eu-central-1:814478897174:secret:events!connection/groszdogrosza-*"
+    },
+    {
+      "Sid": "EBRule",
+      "Effect": "Allow",
+      "Action": [
+        "events:PutRule",
+        "events:DeleteRule",
+        "events:DescribeRule",
+        "events:PutTargets",
+        "events:RemoveTargets",
+        "events:ListTargetsByRule"
+      ],
+      "Resource": "arn:aws:events:eu-central-1:814478897174:rule/groszdogrosza-*"
     }
   ]
 }

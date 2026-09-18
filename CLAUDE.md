@@ -556,6 +556,81 @@ automated yet - there is no `@QuarkusTest` covering any of it):
   `From: kontakt@mbank.pl`, then `curl -X POST localhost:8080/internal/bankstatement/poll
   -H "X-Poll-Secret: <groszdogrosza.bankstatement.poll-secret>"`.
 
+## First production deployment (confirmed against real AWS, not just planned)
+
+The full stack is live: `infra/bootstrap` and `infra/main` have both actually been applied
+against the real AWS account (814478897174, eu-central-1) - Function URL
+`https://ju3aa5pkvfu7vemof5xr55xpyq0ilifs.lambda-url.eu-central-1.on.aws/`, Cognito user
+pool `eu-central-1_JG96wYzao` / SPA client `5f3ajvquknpm62j076gsampbf4`. None of this was
+exercised end-to-end before this session - four more real, previously-undetected bugs
+surfaced, on top of the two from local `quarkus:dev` testing (see "Verified end-to-end
+locally" above). **Every one of these would have been caught by actually deploying once,
+and none of them were catchable by `mvn test`/`mvn package` alone or even by `quarkus:dev`
+against Dev Services, which papers over exactly these problems** (Dev Services' Localstack
+DynamoDB has no IAM at all, and dev mode's `DynamoDbTableInitializer` creates the table
+under whatever name the app itself expects, so a table-name mismatch can't happen there).
+
+1. **`DynamoDbTableInitializer` crashed the Lambda's cold start outright** - not just wasted
+   latency as originally assessed (see the "known non-blocking issues" list further down,
+   now stale on this point): the prod Lambda role deliberately has no `dynamodb:CreateTable`
+   (see below), so the unconditional `CreateTable` call threw an uncaught `DynamoDbException`
+   from a `@Observes StartupEvent` method, which crashes Quarkus's entire boot - every single
+   request 502'd. Fixed with `@IfBuildProfile("dev")`.
+   **The gotcha within the gotcha**: putting `@IfBuildProfile("dev")` on just the `onStart`
+   method (not the class) compiled fine and looked correct, but did NOT actually exclude the
+   bean from the prod build - the observer still fired in the deployed Lambda, confirmed by
+   re-deploying and hitting the exact same crash again. Moving the annotation to the class
+   level (matching `BankStatementDevPoller`'s already-correct pattern) is what actually
+   worked. If you ever add another dev-only bean, put `@IfBuildProfile` on the class, not an
+   individual method - method-level placement was tried here and silently didn't work.
+2. **EventBridge *Scheduler* (`aws_scheduler_schedule`) cannot target an API destination at
+   all** - `CreateSchedule` rejected the API destination's own ARN with "Provided Arn is not
+   in correct format". This was a wrong assumption baked into the original design (and into
+   CLAUDE.md's own "Why EventBridge Scheduler" explanation, now corrected below): Scheduler's
+   target types are Lambda/SQS/SNS/StepFunctions/ECS/an event bus/a fixed list of "universal"
+   aws-sdk targets - a raw API destination ARN isn't one of them. Scheduling a call to an API
+   destination is specifically a **classic EventBridge Rule** feature
+   (`aws_cloudwatch_event_rule` with a `schedule_expression`, plus `aws_cloudwatch_event_target`
+   pointing at the API destination) - a different, older service under the same "EventBridge"
+   product umbrella. Switched to that; the IAM role's assumed principal changed from
+   `scheduler.amazonaws.com` to `events.amazonaws.com` accordingly (the resource is still
+   named `aws_iam_role.scheduler_exec` in `main.tf` to avoid a bigger rename - it's really
+   the event rule's role now).
+3. **`GROSZDOGROSZA_DYNAMODB_TABLE_NAME` was never actually wired into the Lambda's
+   environment** - the app silently fell back to `application.properties`' literal
+   `groszdogrosza` default (correct for local dev, where `DynamoDbTableInitializer` creates
+   a table by that exact name), while Terraform creates the real table as
+   `groszdogrosza-prod` (`local.name`). Every DynamoDB call 403'd with "no identity-based
+   policy allows ... on resource ... table/groszdogrosza" - a deeply misleading error, since
+   the IAM policy was actually fine; it was correctly scoped to a table name the app just
+   never asked for. Added the missing environment variable in `main.tf`.
+4. **The EventBridge Connection (for the API-key-authenticated call to the poll endpoint)
+   needed three IAM permissions nobody would think to grant upfront**: `iam:CreateServiceLinkedRole`
+   (EventBridge API destinations auto-provision `AWSServiceRoleForAmazonEventBridgeApiDestinations`
+   on first use - discovered only by hitting "Failed to create service linked role because
+   the caller does not have sufficient permissions" on `terraform apply`), permissions on a
+   Secrets Manager secret under the `events!connection/*` prefix (the connection's API key is
+   stored there, not inline - discovered via "Failed to create the secret because the user is
+   not authorized"), and `iam:UpdateAssumeRolePolicy` (needed once the Scheduler→Rule switch
+   above required changing an existing role's trust policy, not just its permissions).
+   `infra/iam/terraform-user-policy.json` now includes all of these - see that file for the
+   exact scoped statements (`SLR`, `EBSec`, and the `UpdateAssumeRolePolicy` action in `Iam`).
+
+**A real, previously-unmentioned AWS IAM constraint**: a customer-managed policy's JSON is
+capped at 6144 *non-whitespace* characters. `infra/iam/terraform-user-policy.json` hit this
+repeatedly while accumulating the fixes above - `Sid` values were shortened (e.g.
+`EventBridgeServiceLinkedRole` → `SLR`, `TerraformStateBucketMeta` → `TFStateBucket`) purely
+to fit under the limit; they carry no other significance, don't rename them back without
+checking the character count (`python3 -c "import json; print(len(''.join(json.dumps(json.load(open('infra/iam/terraform-user-policy.json')),separators=(',',':')).split())))"`
+against the *current* file before pasting a new version into the IAM console).
+
+This is deployed but **not yet in daily real use**: the treasurer's own `Parent` record
+(role=TREASURER) still needs seeding (see "Bootstrap gap" above - same manual
+`aws dynamodb put-item` recipe used for local testing, just against the real table and a
+real Cognito user created via `admin-create-user`), and the bank-statement pipeline still
+needs a real Gmail App Password (TODO #2 below) before the daily EventBridge-triggered poll
+does anything beyond finding zero configured credentials and skipping gracefully.
+
 ## TODO for the next session
 
 Roughly in the order they'd block real usage:

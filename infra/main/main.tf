@@ -147,6 +147,11 @@ resource "aws_iam_role_policy" "dynamodb_access" {
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
+      # NOT CreateTable/DescribeTable - DynamoDbTableInitializer (the class that would
+      # want it) is @IfBuildProfile("dev") only and doesn't exist in the packaged Lambda
+      # at all; Terraform (aws_dynamodb_table.app above) is the only thing that manages
+      # this table's lifecycle in prod. Granting CreateTable here would just be an unused
+      # privilege.
       Action = [
         "dynamodb:GetItem",
         "dynamodb:PutItem",
@@ -154,8 +159,6 @@ resource "aws_iam_role_policy" "dynamodb_access" {
         "dynamodb:DeleteItem",
         "dynamodb:Query",
         "dynamodb:Scan",
-        "dynamodb:CreateTable", # DynamoDbTableInitializer creates the table on first boot if missing
-        "dynamodb:DescribeTable",
       ]
       Resource = [
         aws_dynamodb_table.app.arn,
@@ -188,6 +191,15 @@ resource "aws_lambda_function" "app" {
       QUARKUS_OIDC_CLIENT_ID       = aws_cognito_user_pool_client.spa.id
       QUARKUS_DYNAMODB_AWS_REGION  = var.region
 
+      # Without this, the app falls back to application.properties' literal
+      # "groszdogrosza" default (correct for local dev, where DynamoDbTableInitializer
+      # creates a table by that exact name) - but the real table Terraform creates is
+      # named "${local.name}" (e.g. "groszdogrosza-prod"), so every DynamoDB call would
+      # 403 with "no identity-based policy allows ... on resource ... table/groszdogrosza"
+      # (the IAM policy correctly scopes access to the REAL table name, which just never
+      # gets requested). Confirmed the hard way against the real deployment.
+      GROSZDOGROSZA_DYNAMODB_TABLE_NAME = aws_dynamodb_table.app.name
+
       # Bank statement automation - see CLAUDE.md for why IMAP+App Password and why
       # EventBridge Scheduler (not @Scheduled) drives the poll in Lambda.
       GROSZDOGROSZA_BANKSTATEMENT_POLL_SECRET       = var.bankstatement_poll_secret
@@ -208,7 +220,7 @@ resource "aws_lambda_permission" "public_url" {
   statement_id           = "AllowPublicFunctionUrlInvoke"
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.app.function_name
-  principal               = "*"
+  principal              = "*"
   function_url_auth_type = "NONE"
 }
 
@@ -245,20 +257,30 @@ resource "aws_cloudwatch_event_connection" "bankstatement_poll" {
 
 resource "aws_cloudwatch_event_api_destination" "bankstatement_poll" {
   name                             = "${local.name}-bankstatement-poll"
-  invocation_endpoint               = aws_lambda_function_url.app.function_url
+  invocation_endpoint              = aws_lambda_function_url.app.function_url
   http_method                      = "POST"
   invocation_rate_limit_per_second = 1
-  connection_arn                    = aws_cloudwatch_event_connection.bankstatement_poll.arn
+  connection_arn                   = aws_cloudwatch_event_connection.bankstatement_poll.arn
 }
 
 resource "aws_iam_role" "scheduler_exec" {
   name = "${local.name}-scheduler-exec"
 
+  # Confirmed against real AWS (not a guess): EventBridge *Scheduler* (aws_scheduler_schedule)
+  # does NOT support an API destination as a target - CreateSchedule rejects the API
+  # destination's ARN with "Provided Arn is not in correct format" (Scheduler's target
+  # types are Lambda/SQS/SNS/StepFunctions/ECS/an event bus/a fixed set of "universal"
+  # aws-sdk targets, and a raw "arn:...:api-destination/..." isn't one of them). API
+  # destinations as a scheduled target is specifically a classic EventBridge *Rule* feature
+  # (aws_cloudwatch_event_rule + aws_cloudwatch_event_target's http_target), a different,
+  # older service under the same "EventBridge" umbrella name - hence the assumed principal
+  # here is events.amazonaws.com, not scheduler.amazonaws.com, despite the resource's name
+  # (kept as "scheduler_exec" to avoid a bigger rename; it's really the event rule's role).
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Service = "scheduler.amazonaws.com" }
+      Principal = { Service = "events.amazonaws.com" }
       Action    = "sts:AssumeRole"
     }]
   })
@@ -281,19 +303,14 @@ resource "aws_iam_role_policy" "scheduler_invoke_api_destination" {
 # Fires once a day, a bit after the mBank statement mail typically arrives ("rano" per the
 # user - 6:00 UTC = 7:00/8:00 Warsaw local time depending on DST). Adjust to taste once
 # real mail delivery timing is confirmed.
-resource "aws_scheduler_schedule" "bankstatement_poll" {
-  name       = "${local.name}-bankstatement-poll"
-  group_name = "default"
+resource "aws_cloudwatch_event_rule" "bankstatement_poll" {
+  name                = "${local.name}-bankstatement-poll"
+  schedule_expression = "cron(0 6 * * ? *)"
+}
 
-  flexible_time_window {
-    mode = "OFF"
-  }
-
-  schedule_expression          = "cron(0 6 * * ? *)"
-  schedule_expression_timezone = "UTC"
-
-  target {
-    arn      = aws_cloudwatch_event_api_destination.bankstatement_poll.arn
-    role_arn = aws_iam_role.scheduler_exec.arn
-  }
+resource "aws_cloudwatch_event_target" "bankstatement_poll" {
+  rule      = aws_cloudwatch_event_rule.bankstatement_poll.name
+  target_id = "bankstatement-poll"
+  arn       = aws_cloudwatch_event_api_destination.bankstatement_poll.arn
+  role_arn  = aws_iam_role.scheduler_exec.arn
 }
