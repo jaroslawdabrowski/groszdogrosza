@@ -20,8 +20,17 @@ class ParentMatchingPolicyTest {
                 BigDecimal.ZERO, null);
     }
 
+    private static Parent parent(String id, String lastName, String expectedSenderName) {
+        return new Parent(id, "First", lastName, "x@example.com", expectedSenderName, null, ParentRole.PARENT,
+                BigDecimal.ZERO, null);
+    }
+
     private static BankTransaction transaction(String senderName) {
         return new BankTransaction(senderName, "wplata", new BigDecimal("50.00"), LocalDate.now(), "ref-1");
+    }
+
+    private static BankTransaction transaction(String senderName, String title) {
+        return new BankTransaction(senderName, title, new BigDecimal("50.00"), LocalDate.now(), "ref-1");
     }
 
     @Test
@@ -79,6 +88,62 @@ class ParentMatchingPolicyTest {
     @Test
     void emptyParentListNeverMatches() {
         Optional<MatchResult> result = ParentMatchingPolicy.match(transaction("Jan Kowalski"), List.of(), THRESHOLD);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void fallsBackToTitleSurnameWhenSenderNameDoesNotMatch() {
+        // A grandparent (or any account not printed under the parent's own name) pays in -
+        // the sender name can't match anyone, but the transfer title carries the surname.
+        List<Parent> parents = List.of(parent("p1", "Kowalski", "Jan Kowalski"));
+
+        Optional<MatchResult> result = ParentMatchingPolicy.match(
+                transaction("Babcia Jana Kowalskiego", "wplata za Kowalski klasa 2b"), parents, THRESHOLD);
+
+        assertTrue(result.isPresent());
+        assertEquals("p1", result.get().parentId());
+    }
+
+    @Test
+    void titleFallbackIsNotUsedWhenSenderNameAlreadyMatches() {
+        // The primary (fuzzy, sender-name) match wins outright - the title fallback should
+        // never even be consulted when it isn't needed.
+        List<Parent> parents = List.of(parent("p1", "Kowalski", "Jan Kowalski"));
+
+        Optional<MatchResult> result = ParentMatchingPolicy.match(transaction("Jan Kowalski", "przelew"), parents, THRESHOLD);
+
+        assertTrue(result.isPresent());
+        assertEquals(1.0, result.get().confidence());
+    }
+
+    @Test
+    void titleFallbackRequiresAWholeWordMatchNotASubstring() {
+        // "Kowalczyk" must not match on a "Kowal" prefix, and a reference-code-looking
+        // title shouldn't accidentally contain a real surname as a substring either.
+        List<Parent> parents = List.of(parent("p1", "Kowal", "Jan Kowal"));
+
+        Optional<MatchResult> result = ParentMatchingPolicy.match(
+                transaction("Nieznana Osoba", "Kowalczyk platnosc"), parents, THRESHOLD);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void titleFallbackIsAmbiguousWhenTwoParentsSurnamesAppearInTitle() {
+        List<Parent> parents = List.of(parent("p1", "Kowalski", "Jan Kowalski"), parent("p2", "Nowak", "Anna Nowak"));
+
+        Optional<MatchResult> result = ParentMatchingPolicy.match(
+                transaction("Nieznana Osoba", "za Kowalski i Nowak"), parents, THRESHOLD);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void titleFallbackDoesNothingWithoutATitle() {
+        List<Parent> parents = List.of(parent("p1", "Kowalski", "Jan Kowalski"));
+
+        Optional<MatchResult> result = ParentMatchingPolicy.match(transaction("Nieznana Osoba", ""), parents, THRESHOLD);
 
         assertTrue(result.isEmpty());
     }

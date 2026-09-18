@@ -25,6 +25,19 @@ import java.util.Optional;
  *       left unmatched for the treasurer to book manually - see
  *       {@code bankstatement.application.BankStatementProcessingService}.</li>
  * </ul>
+ *
+ * <p><b>Title fallback</b>: the primary signal is always the sender name (who actually owns
+ * the paying bank account); but that's often a grandparent, a spouse's separate account, or
+ * a joint account printed under only one name, so it can legitimately fail to resemble any
+ * parent's {@code expectedSenderName}. When the sender-name pass finds no unambiguous match,
+ * this falls back to searching the transaction's free-text {@code title} (the public
+ * overview page asks parents to put their child's surname there for exactly this reason) for
+ * a parent's {@code lastName} as a whole word. The same "never guess between two candidates"
+ * rule applies: if more than one parent's surname appears as a word in the title, or none
+ * do, the transaction stays unmatched. This is an exact whole-word check, not fuzzy - a
+ * title is short and often noisy (payment reference codes, "wpłata za"), so a typo-tolerant
+ * search over it risks far more false positives than it's worth; sender-name matching stays
+ * the only fuzzy path.
  */
 public final class ParentMatchingPolicy {
 
@@ -32,6 +45,11 @@ public final class ParentMatchingPolicy {
     }
 
     public static Optional<MatchResult> match(BankTransaction transaction, List<Parent> parents, double minConfidence) {
+        Optional<MatchResult> bySender = matchBySenderName(transaction, parents, minConfidence);
+        return bySender.isPresent() ? bySender : matchByTitleSurname(transaction, parents);
+    }
+
+    private static Optional<MatchResult> matchBySenderName(BankTransaction transaction, List<Parent> parents, double minConfidence) {
         String normalizedSender = normalize(transaction.senderName());
 
         MatchResult best = null;
@@ -53,6 +71,29 @@ public final class ParentMatchingPolicy {
             return Optional.empty();
         }
         return Optional.of(best);
+    }
+
+    private static Optional<MatchResult> matchByTitleSurname(BankTransaction transaction, List<Parent> parents) {
+        if (transaction.title() == null || transaction.title().isBlank()) {
+            return Optional.empty();
+        }
+        // Split on anything that isn't a letter, not just spaces - a title can carry
+        // attached punctuation or a reference code ("Kowalski/OPF/AN/PL11...") that would
+        // otherwise never equal a bare surname in a whole-word comparison.
+        List<String> titleWords = List.of(normalize(transaction.title()).split("[^\\p{L}]+"));
+
+        MatchResult found = null;
+        int candidatesFound = 0;
+
+        for (Parent parent : parents) {
+            String normalizedLastName = normalize(parent.lastName());
+            if (!normalizedLastName.isBlank() && titleWords.contains(normalizedLastName)) {
+                candidatesFound++;
+                found = new MatchResult(parent.id(), 1.0);
+            }
+        }
+
+        return candidatesFound == 1 ? Optional.of(found) : Optional.empty();
     }
 
     /** Lowercase, strip Polish diacritics, collapse whitespace - keeps comparisons robust

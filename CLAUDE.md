@@ -148,6 +148,20 @@ manually via `RecordManualContributionUseCase` - it is deliberately **not** mark
 processed, so it's retried (and logged again) on every subsequent poll until either a
 matching parent is added/corrected or it's booked by hand.
 
+**Title fallback, added after the user asked "what if the sender name doesn't match - do we
+also try the transfer title?"** (it didn't, until this was added): when the sender-name pass
+finds no unambiguous match, `ParentMatchingPolicy.match` falls back to searching the
+transaction's `title` for a parent's `lastName` as a **whole word** (not fuzzy - a title is
+short and often noisy with reference codes, so typo-tolerance there risks more false
+positives than it's worth; only the sender-name pass is fuzzy). Same ambiguity rule applies:
+if more than one parent's surname appears as a word in the title, it's rejected, not
+guessed. This is why `PublicOverviewResource`'s payment info now tells parents to put their
+child's surname in the transfer title (`publicOverview.titleHint` in both i18n files) -
+without that instruction the title field is just whatever free text a bank UI defaults to,
+which is often nothing useful. Covers the case where the paying account isn't printed under
+the parent's own name (a grandparent's account, a spouse's separate account) but the title
+still says who it's for.
+
 **`ContributionAllocationPolicy`** decides, for one matched transaction, how the money
 splits between "stays in piggy bank" and "sweeps into active collections": the *entire*
 pre-existing piggy bank balance plus the new payment are pooled and applied to that

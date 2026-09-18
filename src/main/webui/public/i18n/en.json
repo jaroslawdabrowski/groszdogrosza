@@ -24,6 +24,7 @@
     "title": "Class collection",
     "loginHint": "Want to see your own piggy bank?",
     "howToPay": "How to pay",
+    "titleHint": "Please put your child's surname in the transfer title — this is what lets the payment be recognized and booked automatically.",
     "bankAccountNumber": "Account number",
     "blikPhoneNumber": "BLIK phone number",
     "noActiveCollections": "There is no active collection right now.",

@@ -24,6 +24,7 @@
     "title": "Zbiórka klasowa",
     "loginHint": "Chcesz zobaczyć swoją skarbonkę?",
     "howToPay": "Jak zapłacić",
+    "titleHint": "W tytule przelewu prosimy wpisać nazwisko dziecka — dzięki temu wpłata zostanie rozpoznana i zaksięgowana automatycznie.",
     "bankAccountNumber": "Numer konta",
     "blikPhoneNumber": "BLIK na telefon",
     "noActiveCollections": "Obecnie nie ma żadnej aktywnej zbiórki.",
