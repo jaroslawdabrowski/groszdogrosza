@@ -4,8 +4,17 @@
   gap: 0.5rem;
 }
 
+mat-card {
+  margin-top: 1rem;
+}
+
 .collection-list {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  margin-top: 1rem;
+}
+
+.collection-list mat-card {
+  margin-top: 0;
 }

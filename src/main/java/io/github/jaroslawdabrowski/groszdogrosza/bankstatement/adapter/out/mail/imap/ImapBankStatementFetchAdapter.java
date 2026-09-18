@@ -19,6 +19,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -33,6 +34,14 @@ import org.jboss.logging.Logger;
  *
  * <p>Credentials come from config (groszdogrosza.bankstatement.imap.*), deliberately left
  * empty in the repo - see application.properties. Never commit a real App Password.
+ *
+ * <p>{@code username}/{@code appPassword} are {@code Optional<String>}, not plain
+ * {@code String} - SmallRye Config treats a property with an empty value (as opposed to one
+ * that's absent entirely) as "not set" by default, so a required (non-Optional)
+ * {@code @ConfigProperty String} with no default value fails Quarkus startup outright when
+ * the property is present-but-empty, exactly the deliberately-blank-until-configured state
+ * this field is in. This is NOT hypothetical - it broke `quarkus:dev` entirely the first
+ * time this was actually run locally.
  */
 @ApplicationScoped
 public class ImapBankStatementFetchAdapter implements BankStatementFetchPort {
@@ -46,10 +55,10 @@ public class ImapBankStatementFetchAdapter implements BankStatementFetchPort {
     int port;
 
     @ConfigProperty(name = "groszdogrosza.bankstatement.imap.username")
-    String username;
+    Optional<String> username;
 
     @ConfigProperty(name = "groszdogrosza.bankstatement.imap.app-password")
-    String appPassword;
+    Optional<String> appPassword;
 
     @ConfigProperty(name = "groszdogrosza.bankstatement.imap.mailbox")
     String mailbox;
@@ -59,7 +68,7 @@ public class ImapBankStatementFetchAdapter implements BankStatementFetchPort {
 
     @Override
     public List<RawStatementAttachment> fetchNewStatementsSince(Instant since) {
-        if (username == null || username.isBlank() || appPassword == null || appPassword.isBlank()) {
+        if (username.isEmpty() || username.get().isBlank() || appPassword.isEmpty() || appPassword.get().isBlank()) {
             LOG.warn("IMAP credentials not configured (groszdogrosza.bankstatement.imap.username/app-password) - "
                     + "skipping bank statement fetch. This is expected until Gmail App Password setup is done "
                     + "(see CLAUDE.md TODOs).");
@@ -75,7 +84,7 @@ public class ImapBankStatementFetchAdapter implements BankStatementFetchPort {
 
         Session session = Session.getInstance(props);
         try (Store store = session.getStore("imaps")) {
-            store.connect(host, port, username, appPassword);
+            store.connect(host, port, username.get(), appPassword.get());
             Folder inbox = store.getFolder(mailbox);
             inbox.open(Folder.READ_ONLY);
 

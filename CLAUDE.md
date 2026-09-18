@@ -477,6 +477,85 @@ card-based page rather than inventing a new visual language.
 (initial bundle ~546kB against a 500kB soft budget in `angular.json`) - not addressed yet,
 see TODO.
 
+## Verified end-to-end locally (real browser + a mock mailbox)
+
+`quarkus:dev` was actually run for the first time this session, driven by a real headless
+browser (Playwright, scripted - no MCP server wired into this repo yet, see `.mcp.json`) and
+a mock mail server (GreenMail, Docker), rather than just `mvn test`. This surfaced two real
+bugs that all the unit/compile-level checks so far had missed entirely:
+
+1. **The app failed to boot at all in `quarkus:dev`** - `groszdogrosza.bankstatement.imap.username`/
+   `app-password` and `groszdogrosza.bankstatement.poll-secret` were plain (non-`Optional`)
+   `@ConfigProperty String` fields with no default, deliberately left as empty values in
+   `application.properties` until configured. SmallRye Config treats a property with an
+   *empty* value (as opposed to one that's absent) as "not set" by default, so a required
+   `@ConfigProperty` with no default fails Quarkus startup outright the moment anything
+   actually tries to start (not at compile time - `mvn test`/`mvn package` never exercises
+   CDI injection of these fields the way a running app does). Fixed by making all three
+   `Optional<String>` (`ImapBankStatementFetchAdapter`, `BankStatementPollResource`) - the
+   existing blank-checks (`username.isBlank()` etc.) already treated "not configured" as a
+   normal, expected state, so the fix was purely about not crashing the whole app over it.
+   **This class of bug - `@ConfigProperty` fields deliberately left blank in the repo - will
+   never be caught by `mvn test`/`mvn package` alone; only actually running `quarkus:dev` (or
+   deploying) exercises it.**
+2. **The settlement result card disappeared the instant it appeared** -
+   `CollectionDetails`'s settle-result block (`@if (settlementPreview(); as result)`) was
+   nested inside `@if (v.collection.status === 'ACTIVE')`. `settle()` flips the collection to
+   `SETTLED` and reloads, so the moment the result was computed, the reload made the whole
+   surrounding block (including the result the treasurer needed to actually see, e.g. "+10 zł
+   do skarbonki" per parent) vanish. Moved the result card outside the `ACTIVE`-only block so
+   it survives the reload - see `collection-details.html`.
+
+Also fixed while testing (smaller, found by inspection, not by a crash): a minor CSS layout
+bug on the public overview page (payment-info card overlapping the collection cards below it
+- `public-overview.scss` was missing the `mat-card { margin-top: 1rem; }` convention every
+other page already has).
+
+**What was confirmed working, end-to-end, with real HTTP requests and real (local) data**:
+public overview page with no auth; unauthenticated rejection (401) of every `/api/*` and
+`/api/ledger` endpoint except `/api/public/*`; treasurer creating parents, a collection, and
+payment info via the actual UI; a regular parent (logged in via real Keycloak login flow)
+getting the aggregate-only collection view, being rejected (403) from every treasurer-only
+endpoint (create/settle/manual-contribution/global-ledger/piggy-bank-credit/payment-info),
+and reading their own ledger; one parent being unable to read another parent's record or
+ledger by id (the BOLA fix from the previous session, re-verified against a live server, not
+just the domain logic); a full mock mBank email → `POST /internal/bankstatement/poll` →
+piggy-bank-credited → swept-into-collection → `CONTRIBUTION_RECEIVED` pipeline, including the
+treasurer's own transfer being correctly ignored (`transactionsIgnoredTreasurerOwnAccount`)
+and a re-run of the same poll being a no-op (`transactionsSkippedAlreadyProcessed`, not a
+double-credit); settling a collection and the surplus correctly landing in each contributing
+parent's piggy bank, then correctly reducing their *next* collection's requirement; and a
+second `settle` call on an already-`SETTLED` collection being rejected with `409`.
+
+**How to reproduce this locally** (useful for the next session, since none of this is
+automated yet - there is no `@QuarkusTest` covering any of it):
+- `./mvnw quarkus:dev` boots Dev Services (local Keycloak + DynamoDB via Localstack) but the
+  very first treasurer `Parent` still has the bootstrap-gap problem (see above) - seed one
+  directly: `aws dynamodb put-item --endpoint-url <Dev Services DynamoDB URL, logged at
+  startup> --region eu-central-1 --table-name groszdogrosza --item '{"pk":{"S":"PARENT#<uuid>"},
+  "sk":{"S":"PARENT"},"id":{"S":"<uuid>"},"firstName":{"S":"..."},"lastName":{"S":"..."},
+  "email":{"S":"skarbnik@example.com"},"expectedSenderName":{"S":"..."},"cognitoSubjectId":
+  {"NULL":true},"role":{"S":"TREASURER"},"piggyBankBalance":{"N":"0"},"bankAccountNumber":
+  {"NULL":true},"blikPhoneNumber":{"NULL":true}}'` (dummy AWS creds, e.g.
+  `AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test`, work fine against Localstack).
+- `keycloak-realm.json` now seeds three dev users: `skarbnik`/`skarbnik` (matches the
+  treasurer seeded above), `rodzic1`/`rodzic1` (anna.testowa@example.com), `rodzic2`/`rodzic2`
+  (piotr.testowy@example.com) - deliberately kept in the repo so the next session doesn't
+  have to recreate them.
+- For the bank-statement pipeline, a GreenMail container stands in for Gmail:
+  `docker run -d --name gg-greenmail -e GREENMAIL_OPTS='-Dgreenmail.setup.test.smtp
+  -Dgreenmail.setup.test.imaps -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=skarbnik:skarbnik@example.com'
+  -p 3025:3025 -p 3993:3993 greenmail/standalone:2.1.6` - note **`-Dgreenmail.hostname=0.0.0.0`
+  is required** (GreenMail defaults to binding `127.0.0.1` *inside* the container, which
+  Docker's port mapping can't forward into), and GreenMail's IMAP `LOGIN` wants the bare
+  username (`skarbnik`), not the full email address, unlike real Gmail which wants the full
+  address - set `GROSZDOGROSZA_BANKSTATEMENT_IMAP_USERNAME=skarbnik` (not
+  `skarbnik@example.com`) when pointing at GreenMail specifically. Send a test email with
+  Python's `smtplib`/`email.mime.multipart` (see the shape in
+  `MBankStatementHtmlParser`'s class javadoc / the anonymized fixture) to `localhost:3025`,
+  `From: kontakt@mbank.pl`, then `curl -X POST localhost:8080/internal/bankstatement/poll
+  -H "X-Poll-Secret: <groszdogrosza.bankstatement.poll-secret>"`.
+
 ## TODO for the next session
 
 Roughly in the order they'd block real usage:
@@ -506,7 +585,11 @@ Roughly in the order they'd block real usage:
 2. **Create a Gmail App Password** for jaros.dabrowski@gmail.com (Google Account → Security
    → 2-Step Verification → App passwords - requires 2FA already enabled) and set
    `groszdogrosza.bankstatement.imap.username`/`app-password` locally (env vars, never
-   committed) to test `ImapBankStatementFetchAdapter` against the real inbox.
+   committed) to test `ImapBankStatementFetchAdapter` against the real inbox. The pipeline
+   itself (IMAP fetch → parse → match → book → ledger) is now verified end-to-end against a
+   mock IMAP/SMTP server (GreenMail) with a synthetic mBank-shaped email - see "Verified
+   end-to-end locally" below - so this step is specifically about the real Gmail connection
+   (TLS handshake against imap.gmail.com, real credentials), not the business logic.
 3. **Decide the settle-preview UX** - right now `POST /collections/{id}/settle` commits
    immediately with no dry-run; the user's spec asked for a preview-then-confirm flow. Add
    either a `dryRun` param to `SettleCollectionUseCase` or a separate preview endpoint, and

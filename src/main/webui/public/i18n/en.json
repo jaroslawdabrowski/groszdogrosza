@@ -60,6 +60,7 @@
     "contributions": "Contributions",
     "noContributions": "Nobody has contributed yet.",
     "settle": "Settle collection",
+    "settlementResult": "Settlement result",
     "actualCost": "Actual cost (PLN)",
     "settleButton": "Settle collection",
     "totalSurplus": "Surplus to refund",

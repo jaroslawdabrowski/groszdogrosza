@@ -20,6 +20,20 @@
       "email": "skarbnik@example.com",
       "emailVerified": true,
       "credentials": [{ "type": "password", "value": "skarbnik", "temporary": false }]
+    },
+    {
+      "username": "rodzic1",
+      "enabled": true,
+      "email": "anna.testowa@example.com",
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "rodzic1", "temporary": false }]
+    },
+    {
+      "username": "rodzic2",
+      "enabled": true,
+      "email": "piotr.testowy@example.com",
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "rodzic2", "temporary": false }]
     }
   ]
 }

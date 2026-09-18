@@ -64,20 +64,30 @@
           <div>
             <button mat-flat-button color="primary" (click)="settle()">{{ 'collectionDetails.settleButton' | translate }}</button>
           </div>
+        </mat-card-content>
+      </mat-card>
+    }
 
-          @if (settlementPreview(); as result) {
-            <div class="settlement-result">
-              <p>{{ 'collectionDetails.totalSurplus' | translate }}: {{ result.totalSurplus }} zł</p>
-              @if (result.totalShortfall > 0) {
-                <p>{{ 'collectionDetails.totalShortfall' | translate }}: {{ result.totalShortfall }} zł</p>
+    <!-- Deliberately OUTSIDE the ACTIVE-only block above: settle() flips the collection to
+         SETTLED and reloads, so gating this on ACTIVE too would hide the just-computed
+         result the instant it appears - the treasurer would never actually see it. -->
+    @if (settlementPreview(); as result) {
+      <mat-card class="gg-card gg-card--blush">
+        <mat-card-header>
+          <mat-card-title>{{ 'collectionDetails.settlementResult' | translate }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="settlement-result">
+            <p>{{ 'collectionDetails.totalSurplus' | translate }}: {{ result.totalSurplus }} zł</p>
+            @if (result.totalShortfall > 0) {
+              <p>{{ 'collectionDetails.totalShortfall' | translate }}: {{ result.totalShortfall }} zł</p>
+            }
+            <ul>
+              @for (s of result.parentSettlements; track s.parentId) {
+                <li>{{ s.parentId }}: +{{ s.leftoverToCredit }} zł {{ 'collectionDetails.toPiggyBank' | translate }}</li>
               }
-              <ul>
-                @for (s of result.parentSettlements; track s.parentId) {
-                  <li>{{ s.parentId }}: +{{ s.leftoverToCredit }} zł {{ 'collectionDetails.toPiggyBank' | translate }}</li>
-                }
-              </ul>
-            </div>
-          }
+            </ul>
+          </div>
         </mat-card-content>
       </mat-card>
     }
