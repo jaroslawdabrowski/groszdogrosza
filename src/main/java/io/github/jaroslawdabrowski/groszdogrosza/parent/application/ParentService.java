@@ -10,11 +10,13 @@ import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreateParentUseC
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreditPiggyBankManuallyUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreditPiggyBankUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.DebitPiggyBankUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.DeleteParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetParentByEmailUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetTreasurerPaymentInfoUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ListParentsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ResendCognitoInvitationUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.UpdateParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.UpdatePaymentInfoUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.out.CognitoAccountManagementPort;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.out.ParentRepositoryPort;
@@ -31,7 +33,7 @@ import java.util.UUID;
 public class ParentService implements CreateParentUseCase, GetParentUseCase, GetParentByEmailUseCase,
         ListParentsUseCase, CreditPiggyBankUseCase, DebitPiggyBankUseCase, CreditPiggyBankManuallyUseCase,
         UpdatePaymentInfoUseCase, GetTreasurerPaymentInfoUseCase, CreateCognitoAccountUseCase,
-        ResendCognitoInvitationUseCase {
+        ResendCognitoInvitationUseCase, UpdateParentUseCase, DeleteParentUseCase {
 
     @Inject
     ParentRepositoryPort parentRepository;
@@ -115,6 +117,20 @@ public class ParentService implements CreateParentUseCase, GetParentUseCase, Get
                 .map(Parent::paymentInfo)
                 .filter(java.util.Objects::nonNull)
                 .findFirst();
+    }
+
+    @Override
+    public Parent updateParent(String parentId, String firstName, String lastName, String email, String expectedSenderName) {
+        Parent parent = requireParent(parentId);
+        Parent updated = new Parent(parent.id(), firstName, lastName, email, expectedSenderName,
+                parent.cognitoSubjectId(), parent.role(), parent.piggyBankBalance(), parent.paymentInfo());
+        return parentRepository.save(updated);
+    }
+
+    @Override
+    public void deleteParent(String parentId) {
+        requireParent(parentId);
+        parentRepository.deleteById(parentId);
     }
 
     @Override

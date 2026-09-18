@@ -15,4 +15,8 @@ public interface ParentRepositoryPort {
     Optional<Parent> findByEmail(String email);
 
     List<Parent> findAll();
+
+    /** No-op if the id doesn't exist - callers that need "was there really something to
+     *  delete" should check {@link #findById} first (see {@code ParentService.deleteParent}). */
+    void deleteById(String parentId);
 }

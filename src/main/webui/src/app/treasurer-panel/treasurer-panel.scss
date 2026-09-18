@@ -64,6 +64,30 @@ mat-card-header {
   color: var(--gg-blush);
 }
 
+.delete-button {
+  color: var(--gg-blush);
+}
+
+.delete-button:disabled {
+  color: var(--gg-ink-faint);
+}
+
+.edit-form {
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--gg-radius-sm);
+  background: var(--gg-cream);
+}
+
+.edit-form .form-grid {
+  margin-bottom: 0.5rem;
+}
+
+.edit-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .avatar {
   flex: none;
   width: 34px;

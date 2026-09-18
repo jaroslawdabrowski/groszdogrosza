@@ -19,6 +19,7 @@ import java.util.Optional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
@@ -89,6 +90,14 @@ public class ParentDynamoDbAdapter implements ParentRepositoryPort {
                 .items().stream()
                 .map(ParentDynamoDbAdapter::fromItem)
                 .toList();
+    }
+
+    @Override
+    public void deleteById(String parentId) {
+        dynamoDbClient.deleteItem(DeleteItemRequest.builder()
+                .tableName(tableName)
+                .key(Map.of("pk", s(pk(parentId)), "sk", s(SK)))
+                .build());
     }
 
     private static String pk(String parentId) {

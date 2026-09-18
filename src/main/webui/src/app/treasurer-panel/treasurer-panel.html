@@ -15,35 +15,76 @@
       <ul class="parent-list">
         @for (parent of parents(); track parent.id) {
           <li>
-            <div class="parent-row">
-              <a class="parent-link" [routerLink]="['/parents', parent.id]">
-                <span class="avatar">{{ initialsFor(parent) }}</span>
-                <span class="parent-name">{{ parent.firstName }} {{ parent.lastName }}</span>
-                <span class="parent-balance">{{ parent.piggyBankBalance }} zł</span>
-              </a>
-              <div class="parent-actions">
-                <button
-                  mat-icon-button
-                  [disabled]="isAccountActionInFlight(parent.id)"
-                  [matTooltip]="'treasurer.createAccountTooltip' | translate"
-                  (click)="createAccount(parent)"
-                >
-                  <mat-icon>person_add</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  [disabled]="isAccountActionInFlight(parent.id)"
-                  [matTooltip]="'treasurer.resendInvitationTooltip' | translate"
-                  (click)="resendInvitation(parent)"
-                >
-                  <mat-icon>forward_to_inbox</mat-icon>
-                </button>
+            @if (isEditing(parent.id)) {
+              <div class="edit-form">
+                <div class="form-grid">
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'treasurer.firstName' | translate }}</mat-label>
+                    <input matInput [ngModel]="editFirstName()" (ngModelChange)="editFirstName.set($event)">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'treasurer.lastName' | translate }}</mat-label>
+                    <input matInput [ngModel]="editLastName()" (ngModelChange)="editLastName.set($event)">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'treasurer.email' | translate }}</mat-label>
+                    <input matInput [ngModel]="editEmail()" (ngModelChange)="editEmail.set($event)">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'treasurer.expectedSenderName' | translate }}</mat-label>
+                    <input matInput [ngModel]="editExpectedSenderName()" (ngModelChange)="editExpectedSenderName.set($event)">
+                  </mat-form-field>
+                </div>
+                <div class="edit-form-actions">
+                  <button mat-flat-button color="primary" (click)="saveEdit(parent.id)">
+                    <mat-icon>save</mat-icon>{{ 'treasurer.saveEditButton' | translate }}
+                  </button>
+                  <button mat-button (click)="cancelEdit()">{{ 'treasurer.cancelEditButton' | translate }}</button>
+                </div>
               </div>
-            </div>
-            @if (accountStatusFor(parent.id); as status) {
-              <p class="account-status" [class.account-status--error]="status.kind === 'error'">
-                {{ status.key | translate }}
-              </p>
+            } @else {
+              <div class="parent-row">
+                <a class="parent-link" [routerLink]="['/parents', parent.id]">
+                  <span class="avatar">{{ initialsFor(parent) }}</span>
+                  <span class="parent-name">{{ parent.firstName }} {{ parent.lastName }}</span>
+                  <span class="parent-balance">{{ parent.piggyBankBalance }} zł</span>
+                </a>
+                <div class="parent-actions">
+                  <button
+                    mat-icon-button
+                    [disabled]="isAccountActionInFlight(parent.id)"
+                    [matTooltip]="'treasurer.createAccountTooltip' | translate"
+                    (click)="createAccount(parent)"
+                  >
+                    <mat-icon>person_add</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    [disabled]="isAccountActionInFlight(parent.id)"
+                    [matTooltip]="'treasurer.resendInvitationTooltip' | translate"
+                    (click)="resendInvitation(parent)"
+                  >
+                    <mat-icon>forward_to_inbox</mat-icon>
+                  </button>
+                  <button mat-icon-button [matTooltip]="'treasurer.editTooltip' | translate" (click)="startEdit(parent)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    class="delete-button"
+                    [disabled]="parent.id === me()?.id"
+                    [matTooltip]="(parent.id === me()?.id ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteTooltip') | translate"
+                    (click)="deleteParent(parent)"
+                  >
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </div>
+              @if (accountStatusFor(parent.id); as status) {
+                <p class="account-status" [class.account-status--error]="status.kind === 'error'">
+                  {{ status.key | translate }}
+                </p>
+              }
             }
           </li>
         }

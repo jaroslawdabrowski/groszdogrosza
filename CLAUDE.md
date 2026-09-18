@@ -216,10 +216,13 @@ created. Every resource method calls `authorizationSupport.requireTreasurer(iden
 annotation only understands identity-provider role claims) - see `ParentResource`,
 `LedgerResource`, `CollectionResource`.
 
-**What this means concretely**: `GET /api/parents`, `POST /api/parents`,
-`POST /api/parents/{id}/piggy-bank/credit`, `POST /api/collections`,
-`POST /api/collections/{id}/contributions` and `POST /api/collections/{id}/settle` are all
-treasurer-only. `GET /api/parents/{id}` and `GET /api/parents/{id}/ledger` require the
+**What this means concretely**: `GET /api/parents`, `POST /api/parents`, `PUT /api/parents/{id}`
+(edit name/email/expected-sender-name - added when the treasurer needed to fill in an email
+left blank at creation; deliberately does not touch `role`/`piggyBankBalance`/`paymentInfo`,
+which stay on their own narrower endpoints), `DELETE /api/parents/{id}` (does not cascade -
+see `DeleteParentUseCase`'s javadoc), `POST /api/parents/{id}/piggy-bank/credit`,
+`POST /api/collections`, `POST /api/collections/{id}/contributions` and
+`POST /api/collections/{id}/settle` are all treasurer-only. `GET /api/parents/{id}` and `GET /api/parents/{id}/ledger` require the
 caller to either be the treasurer or that exact parent (matched by email) - without this,
 any logged-in parent could enumerate every other family's balance and payment history, which
 was the original gap this closes. `GET /api/parents/me` lets the frontend discover the

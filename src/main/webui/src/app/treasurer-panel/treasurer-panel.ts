@@ -9,7 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ParentApiService } from '../core/parent-api.service';
 import { CollectionApiService } from '../core/collection-api.service';
 import { Parent } from '../core/models';
@@ -34,6 +34,7 @@ import { Parent } from '../core/models';
 export class TreasurerPanel {
   private readonly parentApi = inject(ParentApiService);
   private readonly collectionApi = inject(CollectionApiService);
+  private readonly translate = inject(TranslateService);
 
   readonly parents = signal<Parent[]>([]);
   readonly me = signal<Parent | null>(null);
@@ -45,6 +46,13 @@ export class TreasurerPanel {
    *  translation key plus whether it's a success or error, rendered next to that row only. */
   readonly accountStatus = signal<Record<string, { kind: 'success' | 'error'; key: string } | undefined>>({});
   readonly accountActionInFlight = signal<Record<string, boolean>>({});
+
+  /** Which parent's row is currently showing the inline edit form, if any - only one at a time. */
+  readonly editingParentId = signal<string | null>(null);
+  readonly editFirstName = signal('');
+  readonly editLastName = signal('');
+  readonly editEmail = signal('');
+  readonly editExpectedSenderName = signal('');
 
   readonly newParentFirstName = signal('');
   readonly newParentLastName = signal('');
@@ -101,6 +109,50 @@ export class TreasurerPanel {
         this.newCollectionBaseAmount.set(0);
         this.collectionCreated.set(true);
       });
+  }
+
+  startEdit(parent: Parent): void {
+    this.editingParentId.set(parent.id);
+    this.editFirstName.set(parent.firstName);
+    this.editLastName.set(parent.lastName);
+    this.editEmail.set(parent.email);
+    this.editExpectedSenderName.set(parent.expectedSenderName);
+    this.accountStatus.update((s) => ({ ...s, [parent.id]: undefined }));
+  }
+
+  cancelEdit(): void {
+    this.editingParentId.set(null);
+  }
+
+  isEditing(parentId: string): boolean {
+    return this.editingParentId() === parentId;
+  }
+
+  saveEdit(parentId: string): void {
+    this.parentApi.update(parentId, this.editFirstName(), this.editLastName(), this.editEmail(), this.editExpectedSenderName()).subscribe({
+      next: () => {
+        this.editingParentId.set(null);
+        this.reloadParents();
+      },
+      error: () => {
+        this.accountStatus.update((s) => ({ ...s, [parentId]: { kind: 'error', key: 'treasurer.editFailed' } }));
+      },
+    });
+  }
+
+  deleteParent(parent: Parent): void {
+    const confirmed = window.confirm(
+      this.translate.instant('treasurer.deleteConfirm', { name: `${parent.firstName} ${parent.lastName}` }),
+    );
+    if (!confirmed) {
+      return;
+    }
+    this.parentApi.delete(parent.id).subscribe({
+      next: () => this.reloadParents(),
+      error: () => {
+        this.accountStatus.update((s) => ({ ...s, [parent.id]: { kind: 'error', key: 'treasurer.deleteFailed' } }));
+      },
+    });
   }
 
   initialsFor(parent: Parent): string {

@@ -38,6 +38,14 @@ export class ParentApiService {
     return this.http.put<Parent>(`/api/parents/${id}/payment-info`, { bankAccountNumber, blikPhoneNumber });
   }
 
+  update(id: string, firstName: string, lastName: string, email: string, expectedSenderName: string): Observable<Parent> {
+    return this.http.put<Parent>(`/api/parents/${id}`, { firstName, lastName, email, expectedSenderName });
+  }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/parents/${id}`);
+  }
+
   /** Creates this parent's Cognito login account - it auto-emails a temporary password. */
   createCognitoAccount(id: string): Observable<void> {
     return this.http.post<void>(`/api/parents/${id}/cognito-account`, {});

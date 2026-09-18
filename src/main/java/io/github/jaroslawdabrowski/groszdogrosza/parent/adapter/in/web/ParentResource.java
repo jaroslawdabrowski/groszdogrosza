@@ -5,14 +5,17 @@ import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.ParentRole;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreateCognitoAccountUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreateParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreditPiggyBankManuallyUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.DeleteParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ListParentsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ResendCognitoInvitationUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.UpdateParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.UpdatePaymentInfoUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
@@ -54,6 +57,12 @@ public class ParentResource {
 
     @Inject
     UpdatePaymentInfoUseCase updatePaymentInfoUseCase;
+
+    @Inject
+    UpdateParentUseCase updateParentUseCase;
+
+    @Inject
+    DeleteParentUseCase deleteParentUseCase;
 
     @Inject
     CreateCognitoAccountUseCase createCognitoAccountUseCase;
@@ -100,6 +109,26 @@ public class ParentResource {
         Parent parent = getParentUseCase.getParent(id).orElseThrow(() -> new NotFoundException("No such parent: " + id));
         authorizationSupport.requireSelfOrTreasurer(identity, parent.email());
         return ParentResponse.from(parent);
+    }
+
+    /** Treasurer-only edit of a parent's basic profile fields (e.g. filling in an email that
+     *  was left blank, or fixing a typo) - see {@code UpdateParentUseCase}'s javadoc for what
+     *  this deliberately does NOT touch. */
+    @PUT
+    @Path("/{id}")
+    public ParentResponse update(@PathParam("id") String id, UpdateParentRequest request) {
+        authorizationSupport.requireTreasurer(identity);
+        return ParentResponse.from(updateParentUseCase.updateParent(
+                id, request.firstName(), request.lastName(), request.email(), request.expectedSenderName()));
+    }
+
+    /** Treasurer-only, does not cascade - see {@code DeleteParentUseCase}'s javadoc. */
+    @DELETE
+    @Path("/{id}")
+    public Response delete(@PathParam("id") String id) {
+        authorizationSupport.requireTreasurer(identity);
+        deleteParentUseCase.deleteParent(id);
+        return Response.noContent().build();
     }
 
     @POST
