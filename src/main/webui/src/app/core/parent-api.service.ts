@@ -37,4 +37,14 @@ export class ParentApiService {
   updatePaymentInfo(id: string, bankAccountNumber: string, blikPhoneNumber: string): Observable<Parent> {
     return this.http.put<Parent>(`/api/parents/${id}/payment-info`, { bankAccountNumber, blikPhoneNumber });
   }
+
+  /** Creates this parent's Cognito login account - it auto-emails a temporary password. */
+  createCognitoAccount(id: string): Observable<void> {
+    return this.http.post<void>(`/api/parents/${id}/cognito-account`, {});
+  }
+
+  /** Re-sends the invitation e-mail ("I never got it") - only works before the parent has confirmed. */
+  resendCognitoInvitation(id: string): Observable<void> {
+    return this.http.post<void>(`/api/parents/${id}/cognito-account/resend`, {});
+  }
 }

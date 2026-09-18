@@ -5,6 +5,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.RecordLedgerEntr
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.ParentRole;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.PaymentInfo;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreateCognitoAccountUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreateParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreditPiggyBankManuallyUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreditPiggyBankUseCase;
@@ -13,7 +14,9 @@ import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetParentByEmail
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetTreasurerPaymentInfoUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ListParentsUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ResendCognitoInvitationUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.UpdatePaymentInfoUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.out.CognitoAccountManagementPort;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.out.ParentRepositoryPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -27,13 +30,17 @@ import java.util.UUID;
 @ApplicationScoped
 public class ParentService implements CreateParentUseCase, GetParentUseCase, GetParentByEmailUseCase,
         ListParentsUseCase, CreditPiggyBankUseCase, DebitPiggyBankUseCase, CreditPiggyBankManuallyUseCase,
-        UpdatePaymentInfoUseCase, GetTreasurerPaymentInfoUseCase {
+        UpdatePaymentInfoUseCase, GetTreasurerPaymentInfoUseCase, CreateCognitoAccountUseCase,
+        ResendCognitoInvitationUseCase {
 
     @Inject
     ParentRepositoryPort parentRepository;
 
     @Inject
     RecordLedgerEntryUseCase recordLedgerEntryUseCase;
+
+    @Inject
+    CognitoAccountManagementPort cognitoAccountManagementPort;
 
     @Override
     public Parent createParent(String firstName, String lastName, String email, String expectedSenderName,
@@ -108,6 +115,18 @@ public class ParentService implements CreateParentUseCase, GetParentUseCase, Get
                 .map(Parent::paymentInfo)
                 .filter(java.util.Objects::nonNull)
                 .findFirst();
+    }
+
+    @Override
+    public void createCognitoAccount(String parentId) {
+        Parent parent = requireParent(parentId);
+        cognitoAccountManagementPort.createAccount(parent.email());
+    }
+
+    @Override
+    public void resendCognitoInvitation(String parentId) {
+        Parent parent = requireParent(parentId);
+        cognitoAccountManagementPort.resendInvitation(parent.email());
     }
 
     private Parent requireParent(String parentId) {

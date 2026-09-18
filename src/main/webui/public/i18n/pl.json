@@ -80,6 +80,12 @@
   "treasurer": {
     "title": "Panel skarbnika",
     "parents": "Rodzice",
+    "createAccountTooltip": "Utwórz konto do logowania",
+    "resendInvitationTooltip": "Wyślij ponownie zaproszenie",
+    "accountCreated": "Konto utworzone — zaproszenie z hasłem tymczasowym zostało wysłane e-mailem.",
+    "accountAlreadyExists": "To konto już istnieje. Użyj „Wyślij ponownie zaproszenie”, jeśli rodzic twierdzi, że nie dostał maila.",
+    "invitationResent": "Zaproszenie wysłane ponownie.",
+    "accountActionFailed": "Nie udało się wykonać tej operacji. Spróbuj ponownie później.",
     "addParent": "Dodaj rodzica",
     "firstName": "Imię",
     "lastName": "Nazwisko",

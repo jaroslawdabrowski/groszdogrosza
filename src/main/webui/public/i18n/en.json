@@ -80,6 +80,12 @@
   "treasurer": {
     "title": "Treasurer panel",
     "parents": "Parents",
+    "createAccountTooltip": "Create a login account",
+    "resendInvitationTooltip": "Resend the invitation",
+    "accountCreated": "Account created - an invitation with a temporary password has been emailed.",
+    "accountAlreadyExists": "This account already exists. Use \"Resend the invitation\" if the parent says they never got the email.",
+    "invitationResent": "Invitation resent.",
+    "accountActionFailed": "Couldn't complete this action. Please try again later.",
     "addParent": "Add a parent",
     "firstName": "First name",
     "lastName": "Last name",

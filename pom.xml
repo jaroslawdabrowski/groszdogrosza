@@ -48,9 +48,20 @@
         </dependency>
         <dependency>
             <!-- Sync HTTP client for the DynamoDB SDK - quarkus-amazon-dynamodb needs an
-                 explicit HTTP client dependency, it doesn't pull one in transitively. -->
+                 explicit HTTP client dependency, it doesn't pull one in transitively. Also
+                 reused by CognitoIdentityProviderClient below, since any plain AWS SDK v2
+                 client picks up whichever sync HTTP client is on the classpath. -->
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>url-connection-client</artifactId>
+        </dependency>
+        <dependency>
+            <!-- Admin-creates/resends invitations for a parent's login account - see
+                 parent.adapter.out.cognito. Plain AWS SDK v2 client (no dedicated Quarkiverse
+                 extension for Cognito admin operations exists), version-managed by the
+                 quarkus-amazon-services-bom import above like every other software.amazon.awssdk
+                 artifact here. -->
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>cognitoidentityprovider</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>

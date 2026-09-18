@@ -15,11 +15,36 @@
       <ul class="parent-list">
         @for (parent of parents(); track parent.id) {
           <li>
-            <a [routerLink]="['/parents', parent.id]">
-              <span class="avatar">{{ initialsFor(parent) }}</span>
-              <span class="parent-name">{{ parent.firstName }} {{ parent.lastName }}</span>
-              <span class="parent-balance">{{ parent.piggyBankBalance }} zł</span>
-            </a>
+            <div class="parent-row">
+              <a class="parent-link" [routerLink]="['/parents', parent.id]">
+                <span class="avatar">{{ initialsFor(parent) }}</span>
+                <span class="parent-name">{{ parent.firstName }} {{ parent.lastName }}</span>
+                <span class="parent-balance">{{ parent.piggyBankBalance }} zł</span>
+              </a>
+              <div class="parent-actions">
+                <button
+                  mat-icon-button
+                  [disabled]="isAccountActionInFlight(parent.id)"
+                  [matTooltip]="'treasurer.createAccountTooltip' | translate"
+                  (click)="createAccount(parent)"
+                >
+                  <mat-icon>person_add</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  [disabled]="isAccountActionInFlight(parent.id)"
+                  [matTooltip]="'treasurer.resendInvitationTooltip' | translate"
+                  (click)="resendInvitation(parent)"
+                >
+                  <mat-icon>forward_to_inbox</mat-icon>
+                </button>
+              </div>
+            </div>
+            @if (accountStatusFor(parent.id); as status) {
+              <p class="account-status" [class.account-status--error]="status.kind === 'error'">
+                {{ status.key | translate }}
+              </p>
+            }
           </li>
         }
       </ul>

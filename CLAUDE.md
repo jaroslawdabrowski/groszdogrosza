@@ -239,6 +239,54 @@ problem for a brand new deployment. For now this means seeding it manually (e.g.
 DynamoDB, or temporarily relaxing the check for one call) rather than through the normal
 treasurer-only `POST /api/parents` - see "TODO for the next session".
 
+### Creating/resending a parent's login account, from inside the app
+
+Adding a `Parent` record (`POST /api/parents`) was, until this feature, **completely
+decoupled from that person ever being able to log in** - it only creates the matching
+record `ParentMatchingPolicy`/`AuthorizationSupport` use, nothing else. The actual Cognito
+account had to be created out-of-band via `aws cognito-idp admin-create-user` (see "First
+production deployment" below) - fine for the treasurer's own bootstrap account, not
+something a treasurer should need a terminal for every time a new family joins the class.
+
+Two treasurer-only endpoints close this, both on `ParentResource`, both calling the *same*
+underlying Cognito API (`AdminCreateUser`) with a different `MessageAction`:
+- `POST /api/parents/{id}/cognito-account` - creates the login account. No
+  `TemporaryPassword` is passed, so Cognito generates one itself and includes it directly in
+  the invitation email it sends (its own built-in mailer - the pool has no custom
+  `email_configuration` in Terraform, so the sender address isn't a custom domain; fine at
+  ~20-parent scale, revisit with a real SES domain if that ever matters). 409 if an account
+  for that email already exists (`CognitoAccountAlreadyExistsException`).
+- `POST /api/parents/{id}/cognito-account/resend` - the "I never got the email" case.
+  `MessageAction=RESEND` re-sends the invitation with a *freshly generated* temporary
+  password. **Only works while the account is still unconfirmed** (Cognito's own
+  constraint) - once a parent has logged in and set a real password, RESEND fails and the
+  mapped 502 says so; there's no "reset an already-active parent's password" flow, that's a
+  different, not-yet-asked-for feature.
+
+Both live in `parent.adapter.out.cognito` (`CognitoAccountManagementAdapter` +
+`CognitoIdentityProviderClientProducer`), a plain AWS SDK v2 `CognitoIdentityProviderClient`
+built by hand rather than injected by a Quarkus extension - there's no Quarkiverse extension
+for Cognito *admin* operations, unlike DynamoDB. It reuses `quarkus.dynamodb.aws.region`
+rather than adding a second region property (this app only ever deploys to one region), and
+the sync HTTP client already on the classpath for DynamoDB (`url-connection-client`) is
+picked up automatically. `groszdogrosza.cognito.user-pool-id` is - like every other
+environment-specific value in this app - `Optional<String>`, empty by default; set via
+`GROSZDOGROSZA_COGNITO_USER_POOL_ID` in `main.tf`. **Local dev has no real Cognito pool at
+all** (dev mode uses Keycloak, see `platform/security`), so clicking either button there
+always 502s with "not configured in this environment" - confirmed as the actual, working,
+by-design behavior (not a bug) by testing it end-to-end against `quarkus:dev`. The Lambda's
+own execution role needs `cognito-idp:AdminCreateUser` scoped to the pool ARN
+(`aws_iam_role_policy.cognito_admin_access` in `main.tf`) - a separate grant from the
+`groszdogrosza-terraform` deploy user's own (broader) Cognito permissions, which only cover
+*provisioning* the pool, not this app calling it at runtime.
+
+Frontend: two icon buttons (`person_add` / `forward_to_inbox`) next to each parent row in
+`TreasurerPanel`'s list, with per-row inline success/error feedback (a `Record<parentId,
+...>` signal, not a single shared status - so acting on one parent never clobbers another
+row's just-shown message). `PublicOverviewResource`'s payment-info card also tells parents
+to put their child's surname in the transfer title (`publicOverview.titleHint`) - unrelated
+feature, added the same session, see "Title fallback" above.
+
 ### Public collection overview - deliberately unauthenticated
 
 The user explicitly wants a class-wide "how's the collection going and how do I pay" page

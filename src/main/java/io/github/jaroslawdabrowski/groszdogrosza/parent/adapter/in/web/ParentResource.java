@@ -2,10 +2,12 @@ package io.github.jaroslawdabrowski.groszdogrosza.parent.adapter.in.web;
 
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.ParentRole;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreateCognitoAccountUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreateParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreditPiggyBankManuallyUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.GetParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ListParentsUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ResendCognitoInvitationUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.UpdatePaymentInfoUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
 import io.quarkus.security.Authenticated;
@@ -19,6 +21,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 
 /**
@@ -51,6 +54,12 @@ public class ParentResource {
 
     @Inject
     UpdatePaymentInfoUseCase updatePaymentInfoUseCase;
+
+    @Inject
+    CreateCognitoAccountUseCase createCognitoAccountUseCase;
+
+    @Inject
+    ResendCognitoInvitationUseCase resendCognitoInvitationUseCase;
 
     @Inject
     AuthorizationSupport authorizationSupport;
@@ -111,5 +120,27 @@ public class ParentResource {
         authorizationSupport.requireTreasurer(identity);
         return ParentResponse.from(
                 updatePaymentInfoUseCase.updatePaymentInfo(id, request.bankAccountNumber(), request.blikPhoneNumber()));
+    }
+
+    /** Creates this parent's login account - Cognito generates a temporary password and
+     *  emails it via its own built-in invitation message (see
+     *  {@code CognitoAccountManagementAdapter}). 409 if one already exists for this email -
+     *  see {@code resendCognitoInvitation} for that case. */
+    @POST
+    @Path("/{id}/cognito-account")
+    public Response createCognitoAccount(@PathParam("id") String id) {
+        authorizationSupport.requireTreasurer(identity);
+        createCognitoAccountUseCase.createCognitoAccount(id);
+        return Response.noContent().build();
+    }
+
+    /** "I didn't get the invitation e-mail" - re-sends it with a freshly generated
+     *  temporary password. Only works while the account is still unconfirmed. */
+    @POST
+    @Path("/{id}/cognito-account/resend")
+    public Response resendCognitoInvitation(@PathParam("id") String id) {
+        authorizationSupport.requireTreasurer(identity);
+        resendCognitoInvitationUseCase.resendCognitoInvitation(id);
+        return Response.noContent().build();
     }
 }

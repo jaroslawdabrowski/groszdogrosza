@@ -168,6 +168,23 @@ resource "aws_iam_role_policy" "dynamodb_access" {
   })
 }
 
+resource "aws_iam_role_policy" "cognito_admin_access" {
+  name = "${local.name}-cognito-admin-access"
+  role = aws_iam_role.lambda_exec.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      # Only AdminCreateUser is needed - both "create account" and "resend invitation" in
+      # the app are the same underlying call (MessageAction default vs RESEND). Scoped to
+      # this one user pool, not "*".
+      Action   = ["cognito-idp:AdminCreateUser"]
+      Resource = [aws_cognito_user_pool.app.arn]
+    }]
+  })
+}
+
 # --- Lambda: Quarkus app as a container image, exposed via a Function URL ---
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/aws/lambda/${local.name}"
@@ -199,6 +216,10 @@ resource "aws_lambda_function" "app" {
       # (the IAM policy correctly scopes access to the REAL table name, which just never
       # gets requested). Confirmed the hard way against the real deployment.
       GROSZDOGROSZA_DYNAMODB_TABLE_NAME = aws_dynamodb_table.app.name
+
+      # Lets the treasurer create/resend a parent's login account from the app itself - see
+      # parent.adapter.out.cognito.CognitoAccountManagementAdapter.
+      GROSZDOGROSZA_COGNITO_USER_POOL_ID = aws_cognito_user_pool.app.id
 
       # Bank statement automation - see CLAUDE.md for why IMAP+App Password and why
       # EventBridge Scheduler (not @Scheduled) drives the poll in Lambda.
