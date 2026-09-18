@@ -1,9 +1,46 @@
+.email {
+  color: var(--gg-ink-soft);
+  margin: 0;
+}
+
 mat-card {
   margin-top: 1rem;
 }
 
+.piggy-card mat-card-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.piggy-icon {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--gg-mint-soft);
+  color: var(--gg-mint);
+}
+
+.piggy-icon mat-icon {
+  font-size: 26px;
+  width: 26px;
+  height: 26px;
+}
+
+.piggy-label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--gg-ink-soft);
+}
+
 .piggy-balance {
-  font-size: 1.8rem;
+  margin: 0.1rem 0 0;
+  font-size: 1.9rem;
   font-weight: 800;
+  font-family: "Nunito", sans-serif;
   color: var(--gg-ink);
 }

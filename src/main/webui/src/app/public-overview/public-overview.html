@@ -1,46 +1,64 @@
-<h1 class="gg-heading">{{ 'publicOverview.title' | translate }}</h1>
+<section class="hero">
+  <div class="hero-mark"><app-logo [size]="34" /></div>
+  <span class="gg-eyebrow">{{ 'publicOverview.eyebrow' | translate }}</span>
+  <h1 class="gg-heading">{{ 'publicOverview.title' | translate }}</h1>
 
-@if (!authService.isAuthenticated()) {
-  <p class="login-hint">
-    {{ 'publicOverview.loginHint' | translate }}
-    <button mat-button color="primary" (click)="login()">{{ 'nav.login' | translate }}</button>
-  </p>
-}
+  @if (!authService.isAuthenticated()) {
+    <p class="login-hint">
+      {{ 'publicOverview.loginHint' | translate }}
+      <button mat-stroked-button color="primary" (click)="login()">{{ 'nav.login' | translate }}</button>
+    </p>
+  }
+</section>
 
 @if (loading()) {
-  <p>{{ 'common.loading' | translate }}</p>
+  <p class="loading-line">{{ 'common.loading' | translate }}</p>
 } @else if (overview(); as o) {
   @if (o.paymentInfo && (o.paymentInfo.bankAccountNumber || o.paymentInfo.blikPhoneNumber)) {
-    <mat-card class="gg-card gg-card--sky">
+    <mat-card class="gg-card gg-card--sky gg-fade-up payment-card">
       <mat-card-header>
-        <mat-card-title>{{ 'publicOverview.howToPay' | translate }}</mat-card-title>
+        <mat-card-title class="title-with-icon"><mat-icon class="payment-icon">payments</mat-icon>{{ 'publicOverview.howToPay' | translate }}</mat-card-title>
       </mat-card-header>
       <mat-card-content>
-        @if (o.paymentInfo.bankAccountNumber) {
-          <p>{{ 'publicOverview.bankAccountNumber' | translate }}: <strong>{{ o.paymentInfo.bankAccountNumber }}</strong></p>
-        }
-        @if (o.paymentInfo.blikPhoneNumber) {
-          <p>{{ 'publicOverview.blikPhoneNumber' | translate }}: <strong>{{ o.paymentInfo.blikPhoneNumber }}</strong></p>
-        }
+        <div class="payment-grid">
+          @if (o.paymentInfo.bankAccountNumber) {
+            <div class="payment-row">
+              <span class="payment-label">{{ 'publicOverview.bankAccountNumber' | translate }}</span>
+              <span class="payment-value">{{ o.paymentInfo.bankAccountNumber }}</span>
+            </div>
+          }
+          @if (o.paymentInfo.blikPhoneNumber) {
+            <div class="payment-row">
+              <span class="payment-label">{{ 'publicOverview.blikPhoneNumber' | translate }}</span>
+              <span class="payment-value">{{ o.paymentInfo.blikPhoneNumber }}</span>
+            </div>
+          }
+        </div>
       </mat-card-content>
     </mat-card>
   }
 
   @if (o.activeCollections.length === 0) {
-    <p>{{ 'publicOverview.noActiveCollections' | translate }}</p>
+    <p class="empty-state">{{ 'publicOverview.noActiveCollections' | translate }}</p>
   } @else {
     <div class="collection-list">
-      @for (c of o.activeCollections; track c.collection.id) {
-        <mat-card class="gg-card gg-card--blush">
+      @for (c of o.activeCollections; track c.collection.id; let i = $index) {
+        <mat-card class="gg-card gg-card--blush gg-fade-up" [style.--gg-stagger.ms]="i * 70">
           <mat-card-header>
             <mat-card-title>{{ c.collection.title }}</mat-card-title>
             <mat-card-subtitle>{{ c.collection.description }}</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content>
             <mat-progress-bar mode="determinate" [value]="c.percentComplete"></mat-progress-bar>
-            <p>{{ c.percentComplete }}%</p>
-            <p>{{ 'publicOverview.parentsPaid' | translate }}: {{ c.parentsPaidCount }} / {{ c.parentsCount }}</p>
-            <p>{{ 'publicOverview.totalPaid' | translate }}: {{ c.totalPaid }} zł / {{ c.totalRequired }} zł</p>
+            <p class="percent">{{ c.percentComplete }}%</p>
+            <div class="stat-row">
+              <span>{{ 'publicOverview.parentsPaid' | translate }}</span>
+              <strong>{{ c.parentsPaidCount }} / {{ c.parentsCount }}</strong>
+            </div>
+            <div class="stat-row">
+              <span>{{ 'publicOverview.totalPaid' | translate }}</span>
+              <strong>{{ c.totalPaid }} zł / {{ c.totalRequired }} zł</strong>
+            </div>
           </mat-card-content>
         </mat-card>
       }

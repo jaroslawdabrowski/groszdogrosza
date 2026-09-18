@@ -1,11 +1,155 @@
+.detail-header h1 {
+  margin: 0 0 0.25rem;
+}
+
+.description {
+  color: var(--gg-ink-soft);
+  margin: 0 0 0.75rem;
+}
+
+.amount-chip {
+  --mat-chip-elevated-container-color: var(--gg-coin-soft);
+  --mat-chip-label-text-color: var(--gg-coin-deep);
+}
+
 mat-card {
   margin-top: 1rem;
 }
 
 table {
   width: 100%;
+  min-width: 480px;
+}
+
+.req-status {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.req-status--PENDING {
+  background: var(--gg-blush-soft);
+  color: var(--gg-blush);
+}
+
+.req-status--PAID {
+  background: var(--gg-mint-soft);
+  color: var(--gg-mint);
+}
+
+.req-status--OVERPAID {
+  background: var(--gg-coin-soft);
+  color: var(--gg-coin-deep);
+}
+
+.empty-state {
+  color: var(--gg-ink-soft);
+}
+
+.contribution-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.contribution-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.55rem 0.75rem;
+  background: var(--gg-sky-soft);
+  border-radius: var(--gg-radius-sm);
+}
+
+.contribution-amount {
+  font-weight: 700;
+}
+
+.contribution-source {
+  margin-inline-start: auto;
+  font-size: 0.8rem;
+  color: var(--gg-ink-soft);
+}
+
+mat-form-field {
+  width: 100%;
+  max-width: 260px;
+  display: block;
+}
+
+.result-icon {
+  color: var(--gg-mint);
 }
 
 .settlement-result {
-  margin-top: 1rem;
+  margin-top: 0.25rem;
+}
+
+.settlement-summary {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 1rem;
+  background: var(--gg-mint-soft);
+  border-radius: var(--gg-radius-sm);
+  font-size: 0.85rem;
+  color: var(--gg-ink-soft);
+}
+
+.summary-stat strong {
+  font-size: 1.2rem;
+  color: var(--gg-ink);
+}
+
+.summary-stat--warn {
+  background: var(--gg-blush-soft);
+}
+
+.settlement-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settlement-list li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--gg-coin-soft);
+}
+
+.settlement-list li:last-child {
+  border-bottom: none;
+}
+
+.percent {
+  font-weight: 800;
+  font-family: "Nunito", sans-serif;
+  margin: 0.4rem 0 0.75rem;
+  color: var(--gg-blush);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--gg-ink-soft);
+  padding-block: 0.15rem;
+}
+
+.stat-row strong {
+  color: var(--gg-ink);
 }

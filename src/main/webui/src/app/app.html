@@ -1,19 +1,31 @@
 <mat-toolbar class="app-toolbar">
   <a class="brand" routerLink="/">
-    <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.25"/>
-      <circle cx="12" cy="12" r="5" fill="currentColor"/>
-    </svg>
+    <app-logo [size]="30" class="brand-mark" />
     <span class="brand-name gg-heading">Grosz do Grosza</span>
   </a>
   <span class="spacer"></span>
+
   @if (isAuthenticated()) {
-    <a mat-button class="nav-link" routerLink="/dashboard">{{ 'nav.dashboard' | translate }}</a>
-    @if (isTreasurer()) {
-      <a mat-button class="nav-link" routerLink="/ledger">{{ 'nav.ledger' | translate }}</a>
-      <a mat-button class="nav-link" routerLink="/treasurer">{{ 'nav.treasurer' | translate }}</a>
-    }
+    <nav class="nav-links">
+      <a mat-button class="nav-link" routerLink="/dashboard">{{ 'nav.dashboard' | translate }}</a>
+      @if (isTreasurer()) {
+        <a mat-button class="nav-link" routerLink="/ledger">{{ 'nav.ledger' | translate }}</a>
+        <a mat-button class="nav-link" routerLink="/treasurer">{{ 'nav.treasurer' | translate }}</a>
+      }
+    </nav>
+
+    <button mat-icon-button class="nav-menu-trigger" [matMenuTriggerFor]="navMenu" aria-label="Menu">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <mat-menu #navMenu="matMenu">
+      <a mat-menu-item routerLink="/dashboard">{{ 'nav.dashboard' | translate }}</a>
+      @if (isTreasurer()) {
+        <a mat-menu-item routerLink="/ledger">{{ 'nav.ledger' | translate }}</a>
+        <a mat-menu-item routerLink="/treasurer">{{ 'nav.treasurer' | translate }}</a>
+      }
+    </mat-menu>
   }
+
   <button mat-button class="lang-button" [matMenuTriggerFor]="languageMenu">{{ currentLanguage().toUpperCase() }}</button>
   <mat-menu #languageMenu="matMenu">
     @for (language of languages; track language) {

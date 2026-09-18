@@ -1,8 +1,10 @@
 import { Component, inject } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../core/auth.service';
+import { Logo } from '../shared/logo/logo';
 
 /**
  * Not a real credential form - login itself always happens on the IdP's own Hosted UI
@@ -12,7 +14,7 @@ import { AuthService } from '../core/auth.service';
  */
 @Component({
   selector: 'app-login',
-  imports: [MatCardModule, MatButtonModule, TranslatePipe],
+  imports: [MatCardModule, MatButtonModule, MatIconModule, TranslatePipe, Logo],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })

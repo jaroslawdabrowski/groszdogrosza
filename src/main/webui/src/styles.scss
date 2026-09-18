@@ -7,7 +7,7 @@ html {
       primary: mat.$green-palette,
       tertiary: mat.$orange-palette,
     ),
-    typography: Roboto,
+    typography: Inter,
     density: 0,
   ));
 }
@@ -20,45 +20,256 @@ html {
 // anything Material renders itself (form fields, buttons' internal states, table
 // structure) - mixing the two systems on the same element is how this breaks later.
 :root {
-  --gg-cream: #fbf6ec;
+  --gg-cream: #faf5e9;
   --gg-cream-elevated: #ffffff;
-  --gg-ink: #3a3226;
+  --gg-ink: #2b2318;
   --gg-ink-soft: #6b5f4d;
+  --gg-ink-faint: #9a8d76;
+
   --gg-coin: #e0b64f;
+  --gg-coin-deep: #c99524;
   --gg-coin-soft: #f3dfa4;
-  --gg-mint: #a8d8c9;
-  --gg-blush: #f2c6c2;
-  --gg-sky: #b7d3e8;
+
+  --gg-mint: #5fb79b;
+  --gg-mint-soft: #cbeae0;
+  --gg-blush: #e37f74;
+  --gg-blush-soft: #f6d3ce;
+  --gg-sky: #4f8fbf;
+  --gg-sky-soft: #cfe2f0;
+
+  --gg-gradient-warm: linear-gradient(135deg, #f3dfa4 0%, #e0b64f 55%, #c99524 100%);
+  --gg-gradient-ink: linear-gradient(160deg, #362b1c 0%, #2b2318 60%, #201a12 100%);
+
+  --gg-radius-lg: 20px;
+  --gg-radius-md: 14px;
+  --gg-radius-sm: 10px;
+
+  --gg-shadow-sm: 0 1px 2px rgba(43, 35, 24, 0.06), 0 1px 1px rgba(43, 35, 24, 0.04);
+  --gg-shadow-md: 0 8px 24px -8px rgba(43, 35, 24, 0.18), 0 2px 8px -2px rgba(43, 35, 24, 0.08);
+  --gg-shadow-lg: 0 20px 48px -12px rgba(43, 35, 24, 0.28), 0 4px 16px -4px rgba(43, 35, 24, 0.1);
+
+  --gg-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   color-scheme: light;
   background-color: var(--gg-cream);
+  background-image:
+    radial-gradient(circle at 8% -10%, rgba(224, 182, 79, 0.16), transparent 42%),
+    radial-gradient(circle at 100% 0%, rgba(95, 183, 155, 0.12), transparent 38%);
+  background-attachment: fixed;
   color: var(--gg-ink);
   font: var(--mat-sys-body-medium);
   margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
+  font-family: "Inter", Roboto, "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 html, body { height: 100%; }
 
+::selection {
+  background: var(--gg-coin-soft);
+  color: var(--gg-ink);
+}
+
 .gg-heading {
-  font-family: "Nunito", Roboto, sans-serif;
+  font-family: "Nunito", "Inter", sans-serif;
   font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--gg-ink);
 }
 
+.gg-eyebrow {
+  font-family: "Nunito", "Inter", sans-serif;
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--gg-coin-deep);
+}
+
+// Card system: soft elevation + a lift-on-hover animation for anything interactive
+// (link-wrapped cards). Static informational cards simply get the resting shadow.
 .gg-card {
+  border-radius: var(--gg-radius-lg) !important;
   border-top: 4px solid var(--gg-coin);
+  box-shadow: var(--gg-shadow-md) !important;
+  background: var(--gg-cream-elevated) !important;
+  overflow: hidden;
+  transition: transform 0.25s var(--gg-ease), box-shadow 0.25s var(--gg-ease);
 }
 
-.gg-card--mint {
-  border-top-color: var(--gg-mint);
+.gg-card--mint { border-top-color: var(--gg-mint); }
+.gg-card--blush { border-top-color: var(--gg-blush); }
+.gg-card--sky { border-top-color: var(--gg-sky); }
+
+a.collection-link .gg-card,
+.gg-card--interactive {
+  cursor: pointer;
 }
 
-.gg-card--blush {
-  border-top-color: var(--gg-blush);
+a.collection-link:hover .gg-card,
+.gg-card--interactive:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--gg-shadow-lg) !important;
 }
 
-.gg-card--sky {
-  border-top-color: var(--gg-sky);
+// Fade/slide-in entrance for cards appearing after an async load, staggered by
+// --gg-stagger (set per-item, e.g. via [style.--gg-stagger.ms]="i * 60").
+@keyframes gg-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gg-fade-up {
+  animation: gg-fade-up 0.5s var(--gg-ease) both;
+  animation-delay: var(--gg-stagger, 0ms);
+}
+
+// Buttons: Material's own filled/tonal buttons already carry --mat-sys-* tokens; this
+// only adds a subtle lift so primary actions feel tactile, matching the rest of the app.
+.mat-mdc-unelevated-button, .mat-mdc-raised-button, .mat-mdc-fab {
+  transition: transform 0.15s var(--gg-ease), box-shadow 0.15s var(--gg-ease) !important;
+}
+
+.mat-mdc-unelevated-button:not(:disabled):hover,
+.mat-mdc-raised-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gg-shadow-sm);
+}
+
+.mat-mdc-unelevated-button mat-icon,
+.mat-mdc-raised-button mat-icon,
+.mat-mdc-outlined-button mat-icon {
+  margin-inline-end: 0.35rem;
+  font-size: 1.15rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  vertical-align: text-bottom;
+}
+
+mat-progress-bar {
+  border-radius: 999px;
+  overflow: hidden;
+  height: 8px !important;
+}
+
+// Utility for wide/tabular content on narrow phone widths - a table scrolls sideways
+// inside its own box instead of forcing the whole page to.
+.gg-scroll-x {
+  overflow-x: auto;
+  border-radius: var(--gg-radius-md);
+}
+
+// Shared across every detail/sub-page (CollectionDetails, ParentView, GlobalLedger) rather
+// than redefined per component - these are the same "back up a level" link, loading/empty
+// placeholder text, and ledger-entry timeline list everywhere they appear.
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--gg-ink-soft);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.back-link mat-icon {
+  font-size: 1.1rem;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.back-link:hover {
+  color: var(--gg-ink);
+}
+
+.loading-line,
+.empty-state {
+  text-align: center;
+  color: var(--gg-ink-soft);
+  padding: 2rem 0;
+}
+
+.detail-header {
+  margin: 0.75rem 0 1.25rem;
+}
+
+.detail-header h1 {
+  margin: 0 0 0.15rem;
+  font-size: clamp(1.4rem, 3.5vw, 1.9rem);
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.timeline li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--gg-sky-soft);
+  border-radius: var(--gg-radius-sm);
+}
+
+.timeline-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gg-cream-elevated);
+  color: var(--gg-sky);
+}
+
+.timeline-icon mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.timeline-text {
+  font-size: 0.92rem;
+}
+
+// mat-card-header lays its content out on an internal grid keyed to mat-card-avatar;
+// a plain sibling mat-icon before mat-card-title doesn't get picked up by it and ends up
+// rendered in the wrong place. Putting the icon INSIDE mat-card-title with this class
+// sidesteps that entirely.
+.title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title-with-icon mat-icon {
+  margin-inline-end: 0.5rem;
+  flex: none;
+}
+
+.status-chip--DRAFT {
+  --mat-chip-elevated-container-color: var(--gg-sky-soft);
+  --mat-chip-label-text-color: var(--gg-sky);
+}
+
+.status-chip--ACTIVE {
+  --mat-chip-elevated-container-color: var(--gg-blush-soft);
+  --mat-chip-label-text-color: var(--gg-blush);
+}
+
+.status-chip--SETTLED {
+  --mat-chip-elevated-container-color: var(--gg-mint-soft);
+  --mat-chip-label-text-color: var(--gg-mint);
 }

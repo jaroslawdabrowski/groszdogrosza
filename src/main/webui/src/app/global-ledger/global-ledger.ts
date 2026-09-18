@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
-import { MatListModule } from '@angular/material/list';
+import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LedgerApiService } from '../core/ledger-api.service';
 import { GlobalLedgerEntry } from '../core/models';
@@ -10,7 +10,7 @@ import { GlobalLedgerEntry } from '../core/models';
  * else, which the backend enforces regardless of this page even being reachable. */
 @Component({
   selector: 'app-global-ledger',
-  imports: [RouterLink, MatCardModule, MatListModule, TranslatePipe],
+  imports: [RouterLink, MatCardModule, MatIconModule, TranslatePipe],
   templateUrl: './global-ledger.html',
   styleUrl: './global-ledger.scss',
 })
@@ -38,5 +38,20 @@ export class GlobalLedger {
 
   translationKeyFor(entry: GlobalLedgerEntry): string {
     return 'ledger.' + entry.eventType;
+  }
+
+  iconFor(entry: GlobalLedgerEntry): string {
+    switch (entry.eventType) {
+      case 'CONTRIBUTION_RECEIVED':
+        return 'south_west';
+      case 'COLLECTION_SETTLED':
+        return 'celebration';
+      case 'PIGGY_BANK_CREDITED':
+        return 'savings';
+      case 'PIGGY_BANK_APPLIED_TO_COLLECTION':
+        return 'north_east';
+      default:
+        return 'receipt_long';
+    }
   }
 }

@@ -2,10 +2,12 @@ import { Component, inject, signal } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../core/auth.service';
 import { PublicApiService } from '../core/public-api.service';
 import { PublicOverview as PublicOverviewModel } from '../core/models';
+import { Logo } from '../shared/logo/logo';
 
 /**
  * The unauthenticated landing page (route "/") - shows every currently active collection's
@@ -15,7 +17,7 @@ import { PublicOverview as PublicOverviewModel } from '../core/models';
  */
 @Component({
   selector: 'app-public-overview',
-  imports: [MatCardModule, MatProgressBarModule, MatButtonModule, TranslatePipe],
+  imports: [MatCardModule, MatProgressBarModule, MatButtonModule, MatIconModule, TranslatePipe, Logo],
   templateUrl: './public-overview.html',
   styleUrl: './public-overview.scss',
 })

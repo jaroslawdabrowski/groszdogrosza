@@ -1,32 +1,41 @@
 .app-toolbar {
-  background: var(--gg-ink);
+  background: var(--gg-gradient-ink);
   color: var(--gg-cream);
-  border-bottom: 1px solid var(--gg-coin);
-  padding-inline-end: 1rem;
+  box-shadow: var(--gg-shadow-md);
+  padding-inline: clamp(0.75rem, 3vw, 1.5rem);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   text-decoration: none;
   color: inherit;
+  padding-block: 0.25rem;
 }
 
 .brand-mark {
-  width: 24px;
-  height: 24px;
-  color: var(--gg-coin);
+  color: var(--gg-coin-soft);
   flex: none;
 }
 
 .brand-name {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   color: var(--gg-cream);
+  white-space: nowrap;
 }
 
 .spacer {
   flex: 1 1 auto;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
 }
 
 .app-toolbar .nav-link,
@@ -35,13 +44,34 @@
   font-weight: 600;
 }
 
+.app-toolbar .nav-link::after {
+  content: '';
+}
+
 .app-toolbar .logout-button {
-  color: var(--gg-cream) !important;
+  color: var(--gg-coin-soft) !important;
   margin-inline-start: 0.25rem;
 }
 
+.nav-menu-trigger {
+  display: none;
+  color: var(--gg-cream) !important;
+}
+
+@media (max-width: 720px) {
+  .nav-links {
+    display: none;
+  }
+  .nav-menu-trigger {
+    display: inline-flex;
+  }
+  .brand-name {
+    font-size: 1.05rem;
+  }
+}
+
 .app-content {
-  max-width: 960px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 1.25rem 1rem 3rem;
+  padding: clamp(1rem, 4vw, 2rem) clamp(1rem, 4vw, 1.5rem) 4rem;
 }

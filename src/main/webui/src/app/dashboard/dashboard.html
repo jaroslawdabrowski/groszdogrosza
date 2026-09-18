@@ -1,23 +1,23 @@
 <h1 class="gg-heading">{{ 'dashboard.title' | translate }}</h1>
 
 @if (loading()) {
-  <p>{{ 'common.loading' | translate }}</p>
+  <p class="loading-line">{{ 'common.loading' | translate }}</p>
 } @else if (collections().length === 0) {
-  <p>{{ 'dashboard.empty' | translate }}</p>
+  <p class="empty-state">{{ 'dashboard.empty' | translate }}</p>
 } @else {
   <div class="collection-list">
-    @for (collection of collections(); track collection.id) {
+    @for (collection of collections(); track collection.id; let i = $index) {
       <a class="collection-link" [routerLink]="['/collections', collection.id]">
-        <mat-card [class]="cardClassFor(collection.status)">
+        <mat-card [class]="cardClassFor(collection.status)" class="gg-fade-up" [style.--gg-stagger.ms]="i * 70">
           <mat-card-header>
             <mat-card-title>{{ collection.title }}</mat-card-title>
             <mat-card-subtitle>{{ collection.description }}</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content>
             <mat-chip-set>
-              <mat-chip>{{ ('collection.status.' + collection.status) | translate }}</mat-chip>
+              <mat-chip [class]="'status-chip status-chip--' + collection.status">{{ ('collection.status.' + collection.status) | translate }}</mat-chip>
             </mat-chip-set>
-            <p class="base-amount">{{ 'dashboard.baseAmount' | translate }}: {{ collection.baseAmountPerParent }} zł</p>
+            <p class="base-amount">{{ 'dashboard.baseAmount' | translate }}: <strong>{{ collection.baseAmountPerParent }} zł</strong></p>
           </mat-card-content>
         </mat-card>
       </a>

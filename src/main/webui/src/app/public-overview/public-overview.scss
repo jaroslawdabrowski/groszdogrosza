@@ -1,20 +1,104 @@
+.hero {
+  text-align: center;
+  padding-block: 1rem 1.75rem;
+}
+
+.hero-mark {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--gg-gradient-warm);
+  color: var(--gg-ink);
+  box-shadow: var(--gg-shadow-md);
+}
+
+.hero h1 {
+  font-size: clamp(1.6rem, 4vw, 2.25rem);
+  margin: 0.15rem 0 0.5rem;
+}
+
 .login-hint {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  color: var(--gg-ink-soft);
+  margin: 0.75rem 0 0;
+}
+
+.payment-card {
+  margin-top: 1rem;
+  max-width: 480px;
+  margin-inline: auto;
+}
+
+.payment-card mat-card-header {
   align-items: center;
   gap: 0.5rem;
 }
 
-mat-card {
-  margin-top: 1rem;
+.payment-icon {
+  color: var(--gg-sky);
+}
+
+.payment-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--gg-sky-soft);
+  border-radius: var(--gg-radius-sm);
+}
+
+.payment-label {
+  color: var(--gg-ink-soft);
+  font-size: 0.85rem;
+}
+
+.payment-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .collection-list {
   display: grid;
-  gap: 1rem;
+  gap: 1.1rem;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  margin-top: 1rem;
+  margin-top: 1.5rem;
 }
 
 .collection-list mat-card {
   margin-top: 0;
+}
+
+.percent {
+  font-weight: 800;
+  font-family: "Nunito", sans-serif;
+  margin: 0.4rem 0 0.75rem;
+  color: var(--gg-blush);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--gg-ink-soft);
+  padding-block: 0.15rem;
+}
+
+.stat-row strong {
+  color: var(--gg-ink);
 }

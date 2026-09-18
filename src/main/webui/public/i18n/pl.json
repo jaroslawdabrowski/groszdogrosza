@@ -7,8 +7,8 @@
   },
   "common": {
     "loading": "Ładowanie...",
-    "backToDashboard": "← Powrót do listy zbiórek",
-    "backToTreasurerPanel": "← Powrót do panelu skarbnika"
+    "backToDashboard": "Powrót do listy zbiórek",
+    "backToTreasurerPanel": "Powrót do panelu skarbnika"
   },
   "login": {
     "subtitle": "Zaloguj się, aby zarządzać zbiórkami klasowymi",
@@ -20,6 +20,7 @@
     "baseAmount": "Kwota bazowa"
   },
   "publicOverview": {
+    "eyebrow": "Skarbnik klasowy",
     "title": "Zbiórka klasowa",
     "loginHint": "Chcesz zobaczyć swoją skarbonkę?",
     "howToPay": "Jak zapłacić",

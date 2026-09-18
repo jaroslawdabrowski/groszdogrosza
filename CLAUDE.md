@@ -464,18 +464,47 @@ feed, each prefixed with `parentName`), `TreasurerPanel` (`/treasurer`, parent l
 parent" + "create collection" forms + the payment-info card - the closest thing to an admin
 page), `Login` (`/login`, unguarded).
 
-**Visual style**: `--gg-*` custom properties on `:root` in `styles.scss` (cream/ink base,
-coin-gold/mint/blush/sky accents) - same "hand-picked pastel palette as plain CSS custom
-properties, used only where the app fully controls the surface (toolbar, card top-accent
-stripes), `--mat-sys-*` tokens for anything Material renders itself" convention as
-pvopt (`--pv-*`) and turboorders (`--to-*`). `.gg-card`/`.gg-card--mint`/`--blush`/`--sky`
-are top-accent-stripe utility classes used across Dashboard/CollectionDetails/ParentView -
-follow that pattern (a 4px `border-top` color, not a full background recolor) for any new
-card-based page rather than inventing a new visual language.
+**Client-side treasurer guard, on top of the backend's own check**: `/treasurer` and
+`/ledger` used to be gated only by `authGuard` (any logged-in user) - the page shells
+rendered for any parent, and `TreasurerPanel`'s API calls had no error handling, so a
+regular parent could land on a page that *looked* like an active treasurer panel even
+though every write the backend actually did anything with was still correctly rejected
+(`requireTreasurer`). `core/current-user.service.ts` (`CurrentUserService`, caches
+`GET /api/parents/me`) + `core/treasurer.guard.ts` (`treasurerGuard`, redirects to
+`/dashboard` if `role !== TREASURER`) close this at the UX level; `app.html`'s nav also
+hides the Dziennik/Panel skarbnika links for non-treasurers. This is a UX fix, not a
+security boundary - `AuthorizationSupport.requireTreasurer` on the backend is and remains
+the only thing that actually matters for data protection.
+
+**Visual style - redesigned from the original scaffolding pass**: `--gg-*` custom
+properties on `:root` in `styles.scss` (cream/ink base, coin-gold/mint/blush/sky accents,
+each with a `-soft` tint for chip/row backgrounds) - same "hand-picked pastel palette as
+plain CSS custom properties, used only where the app fully controls the surface, `--mat-sys-*`
+tokens for anything Material renders itself" convention as pvopt (`--pv-*`) and turboorders
+(`--to-*`). Typography is Inter (body, and `mat.theme`'s `typography` - a deliberate
+departure from turboorders/pvopt's plain Roboto, chosen for a more "real product" feel) +
+Nunito 800/900 for headings, both loaded in `index.html`. `.gg-card` (rounded corners,
+resting shadow via `--gg-shadow-md`, lift-and-deepen-shadow on hover when wrapped in
+`a.collection-link` or given `.gg-card--interactive`) replaces the old flat top-accent-only
+card; `--mint`/`--blush`/`--sky` still work as border-top accent modifiers. `.gg-fade-up`
+(+ a `--gg-stagger` custom property set per-card, e.g. `[style.--gg-stagger.ms]="i * 70"`)
+gives lists of cards a staggered entrance animation on load. `shared/logo/logo.ts`
+(`<app-logo>`) is the app's mark - a piggy-bank-with-a-coin SVG using `currentColor` for the
+body/shading (so it reads correctly both on the dark toolbar and on light hero surfaces) and
+a fixed gold for the coin itself; used in the toolbar, `Login`, and `PublicOverview`'s hero.
+Shared cross-page utility classes (`.back-link`, `.timeline`/`.timeline-icon`, `.loading-line`/
+`.empty-state`, `.status-chip--*`, `.title-with-icon` - the last needed because a bare
+`mat-icon` sibling before `mat-card-title` doesn't get picked up by Material's card-header
+grid and renders in the wrong place; put the icon *inside* `mat-card-title` with this class
+instead) live in `styles.scss`, not duplicated per component - see ParentView/GlobalLedger/
+CollectionDetails for the pattern. The toolbar (`app.html`/`app.scss`) collapses its inline
+nav links into a `mat-menu`-driven hamburger below 720px - verified with Playwright at a
+390px viewport, not just by inspecting CSS.
 
 `ng build` was verified working during scaffolding: succeeds, one non-fatal warning
 (initial bundle ~546kB against a 500kB soft budget in `angular.json`) - not addressed yet,
-see TODO.
+see TODO. Not re-measured after the redesign (fonts changed, one new shared component) -
+worth checking next time that TODO is picked up.
 
 ## Verified end-to-end locally (real browser + a mock mailbox)
 

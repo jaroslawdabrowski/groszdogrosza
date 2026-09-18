@@ -7,8 +7,8 @@
   },
   "common": {
     "loading": "Loading...",
-    "backToDashboard": "← Back to collections",
-    "backToTreasurerPanel": "← Back to treasurer panel"
+    "backToDashboard": "Back to collections",
+    "backToTreasurerPanel": "Back to treasurer panel"
   },
   "login": {
     "subtitle": "Log in to manage class collections",
@@ -20,6 +20,7 @@
     "baseAmount": "Base amount"
   },
   "publicOverview": {
+    "eyebrow": "Class treasurer",
     "title": "Class collection",
     "loginHint": "Want to see your own piggy bank?",
     "howToPay": "How to pay",

@@ -8,10 +8,11 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from './core/auth.service';
 import { CurrentUserService } from './core/current-user.service';
 import { LanguageService, SUPPORTED_LANGUAGES, type Language } from './core/language.service';
+import { Logo } from './shared/logo/logo';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, MatToolbarModule, MatButtonModule, MatIconModule, MatMenuModule, TranslatePipe],
+  imports: [RouterOutlet, RouterLink, MatToolbarModule, MatButtonModule, MatIconModule, MatMenuModule, TranslatePipe, Logo],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

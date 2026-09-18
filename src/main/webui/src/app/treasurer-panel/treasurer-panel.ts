@@ -6,6 +6,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ParentApiService } from '../core/parent-api.service';
 import { CollectionApiService } from '../core/collection-api.service';
@@ -13,7 +14,17 @@ import { Parent } from '../core/models';
 
 @Component({
   selector: 'app-treasurer-panel',
-  imports: [RouterLink, FormsModule, MatCardModule, MatListModule, MatFormFieldModule, MatInputModule, MatButtonModule, TranslatePipe],
+  imports: [
+    RouterLink,
+    FormsModule,
+    MatCardModule,
+    MatListModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    TranslatePipe,
+  ],
   templateUrl: './treasurer-panel.html',
   styleUrl: './treasurer-panel.scss',
 })
@@ -82,5 +93,9 @@ export class TreasurerPanel {
         this.newCollectionBaseAmount.set(0);
         this.collectionCreated.set(true);
       });
+  }
+
+  initialsFor(parent: Parent): string {
+    return `${parent.firstName.charAt(0)}${parent.lastName.charAt(0)}`.toUpperCase();
   }
 }

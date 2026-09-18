@@ -1,11 +1,13 @@
 <div class="login-page">
-  <mat-card class="gg-card">
-    <mat-card-header>
-      <mat-card-title class="gg-heading">Grosz do Grosza</mat-card-title>
-      <mat-card-subtitle>{{ 'login.subtitle' | translate }}</mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content>
-      <button mat-flat-button color="primary" (click)="login()">{{ 'login.submit' | translate }}</button>
-    </mat-card-content>
+  <mat-card class="login-card gg-fade-up">
+    <div class="login-mark">
+      <app-logo [size]="56" />
+    </div>
+    <h1 class="gg-heading">Grosz do Grosza</h1>
+    <p class="subtitle">{{ 'login.subtitle' | translate }}</p>
+    <button mat-flat-button color="primary" class="login-button" (click)="login()">
+      <mat-icon>login</mat-icon>
+      {{ 'login.submit' | translate }}
+    </button>
   </mat-card>
 </div>
