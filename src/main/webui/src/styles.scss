@@ -12,41 +12,49 @@ html {
   ));
 }
 
-// Hand-picked pastel palette - warm, friendly, "piggy bank / classroom" tones, deliberately
-// NOT run through Material's HCT token system (their derived light tones don't land as
-// true pastels - same reasoning as the sibling "pvopt"/"turboorders" projects' own --pv-*/
-// --to-* conventions). Used directly only on surfaces this app fully controls: the
-// toolbar, headings, card accent stripes, progress bars. Prefer --mat-sys-* tokens for
-// anything Material renders itself (form fields, buttons' internal states, table
-// structure) - mixing the two systems on the same element is how this breaks later.
+// Palette: "Lagoon Latte" - a published, pre-vetted teal/coral/gold combination (checked
+// against two other candidates - "Aqua Terracotta" ran too muted/adult, "Freshwater Coral"
+// too pastel/lacked a money-ish accent - this one was the best fit and is picked as-is,
+// not freehanded). Teal is the brand hue (growth/savings), coral is its near-complement
+// for the one accent that's allowed to pop, gold is the literal "coin" color the whole app
+// is themed around. --gg-ink is that palette's own dark teal-navy, not generic black/brown,
+// which is what keeps the toolbar/text feeling like one family instead of "dark UI chrome +
+// pastel accents" bolted together. Used directly only on surfaces this app fully controls
+// (toolbar, headings, card accent stripes, progress bars) - prefer --mat-sys-* tokens for
+// anything Material renders itself. Gradients are used sparingly on purpose - one on the
+// toolbar, one on the coin/logo mark - not as a blanket texture over every surface.
 :root {
-  --gg-cream: #faf5e9;
+  --gg-cream: #faf3e0;
   --gg-cream-elevated: #ffffff;
-  --gg-ink: #2b2318;
-  --gg-ink-soft: #6b5f4d;
-  --gg-ink-faint: #9a8d76;
+  --gg-ink: #223c42;
+  --gg-ink-soft: #55706f;
+  --gg-ink-faint: #8ba3a1;
 
-  --gg-coin: #e0b64f;
-  --gg-coin-deep: #c99524;
-  --gg-coin-soft: #f3dfa4;
+  --gg-coin: #e9c46a;
+  --gg-coin-deep: #c79a3d;
+  --gg-coin-soft: #f8e9c4;
 
-  --gg-mint: #5fb79b;
-  --gg-mint-soft: #cbeae0;
-  --gg-blush: #e37f74;
-  --gg-blush-soft: #f6d3ce;
-  --gg-sky: #4f8fbf;
-  --gg-sky-soft: #cfe2f0;
+  // Primary brand hue - teal.
+  --gg-mint: #2a9d8f;
+  --gg-mint-soft: #d3ece8;
+  // Complementary accent (opposite teal) - coral.
+  --gg-blush: #ff7a6e;
+  --gg-blush-soft: #ffe1dc;
+  // A lighter, bluer step of the same teal family - used where a third, distinguishable
+  // but still-cohesive tone is needed (info rows, the DRAFT status chip).
+  --gg-sky: #3fa7ad;
+  --gg-sky-soft: #dceeed;
 
-  --gg-gradient-warm: linear-gradient(135deg, #f3dfa4 0%, #e0b64f 55%, #c99524 100%);
-  --gg-gradient-ink: linear-gradient(160deg, #362b1c 0%, #2b2318 60%, #201a12 100%);
+  --gg-gradient-warm: linear-gradient(135deg, #f8e9c4 0%, #e9c46a 60%, #c79a3d 100%);
+  --gg-gradient-ink: linear-gradient(150deg, #2a9d8f 0%, #264653 75%);
 
   --gg-radius-lg: 20px;
   --gg-radius-md: 14px;
   --gg-radius-sm: 10px;
 
-  --gg-shadow-sm: 0 1px 2px rgba(43, 35, 24, 0.06), 0 1px 1px rgba(43, 35, 24, 0.04);
-  --gg-shadow-md: 0 8px 24px -8px rgba(43, 35, 24, 0.18), 0 2px 8px -2px rgba(43, 35, 24, 0.08);
-  --gg-shadow-lg: 0 20px 48px -12px rgba(43, 35, 24, 0.28), 0 4px 16px -4px rgba(43, 35, 24, 0.1);
+  --gg-shadow-sm: 0 1px 2px rgba(34, 60, 66, 0.07), 0 1px 1px rgba(34, 60, 66, 0.05);
+  --gg-shadow-md: 0 8px 24px -8px rgba(34, 60, 66, 0.2), 0 2px 8px -2px rgba(34, 60, 66, 0.09);
+  --gg-shadow-lg: 0 20px 48px -12px rgba(34, 60, 66, 0.3), 0 4px 16px -4px rgba(34, 60, 66, 0.11);
 
   --gg-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -58,9 +66,7 @@ html {
 body {
   color-scheme: light;
   background-color: var(--gg-cream);
-  background-image:
-    radial-gradient(circle at 8% -10%, rgba(224, 182, 79, 0.16), transparent 42%),
-    radial-gradient(circle at 100% 0%, rgba(95, 183, 155, 0.12), transparent 38%);
+  background-image: radial-gradient(circle at 100% -10%, rgba(42, 157, 143, 0.08), transparent 45%);
   background-attachment: fixed;
   color: var(--gg-ink);
   font: var(--mat-sys-body-medium);
@@ -93,7 +99,8 @@ html, body { height: 100%; }
 }
 
 // Card system: soft elevation + a lift-on-hover animation for anything interactive
-// (link-wrapped cards). Static informational cards simply get the resting shadow.
+// (link-wrapped cards). Static informational cards simply get the resting shadow. A flat
+// top-accent color, not a gradient - one clean signal per card is plenty.
 .gg-card {
   border-radius: var(--gg-radius-lg) !important;
   border-top: 4px solid var(--gg-coin);

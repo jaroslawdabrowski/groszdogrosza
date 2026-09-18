@@ -477,13 +477,27 @@ security boundary - `AuthorizationSupport.requireTreasurer` on the backend is an
 the only thing that actually matters for data protection.
 
 **Visual style - redesigned from the original scaffolding pass**: `--gg-*` custom
-properties on `:root` in `styles.scss` (cream/ink base, coin-gold/mint/blush/sky accents,
-each with a `-soft` tint for chip/row backgrounds) - same "hand-picked pastel palette as
-plain CSS custom properties, used only where the app fully controls the surface, `--mat-sys-*`
-tokens for anything Material renders itself" convention as pvopt (`--pv-*`) and turboorders
-(`--to-*`). Typography is Inter (body, and `mat.theme`'s `typography` - a deliberate
-departure from turboorders/pvopt's plain Roboto, chosen for a more "real product" feel) +
-Nunito 800/900 for headings, both loaded in `index.html`. `.gg-card` (rounded corners,
+properties on `:root` in `styles.scss` are the published "Lagoon Latte" teal/coral/gold
+palette (`#2A9D8F` teal, `#FF7A6E` coral, `#E9C46A` gold, `#FAF3E0` cream, `#264653` deep
+teal-navy for ink) - picked by comparing it against two other candidate palettes
+("Aqua Terracotta" - too muted/adult, no gold; "Freshwater Coral" - too pastel, no
+money-ish accent) rather than freehanded, after an earlier freehand attempt (a hand-tuned
+emerald/rose "color wheel" scheme, then an even more saturated gradient-heavy pass) didn't
+land - the user's own feedback was "colors don't go together" and, separately, "you went
+overboard with gradients." **Gradients are used in exactly two places on purpose** - the
+toolbar (`--gg-gradient-ink`, teal fading into the palette's own ink color) and the coin/
+logo-mark circle (`--gg-gradient-warm`, cream-gold to deep gold) - not on every card border,
+button, or heading; that blanket-gradient version was explicitly walked back after user
+feedback. `--gg-ink` is that palette's own dark teal-navy, not generic near-black, which is
+what keeps the toolbar/text/shadows feeling like one family rather than "dark UI chrome +
+pastel accents" bolted together - see the `:root` block's own comment for the reasoning.
+Each accent (`--gg-coin`/`--gg-mint`/`--gg-blush`/`--gg-sky`) carries a `-soft` tint for
+chip/row backgrounds - same "hand-picked palette as plain CSS custom properties, used only
+where the app fully controls the surface, `--mat-sys-*` tokens for anything Material
+renders itself" convention as pvopt (`--pv-*`) and turboorders (`--to-*`). Typography is
+Inter (body, and `mat.theme`'s `typography` - a deliberate departure from turboorders/
+pvopt's plain Roboto, chosen for a more "real product" feel) + Nunito 800/900 for headings,
+both loaded in `index.html`. `.gg-card` (rounded corners,
 resting shadow via `--gg-shadow-md`, lift-and-deepen-shadow on hover when wrapped in
 `a.collection-link` or given `.gg-card--interactive`) replaces the old flat top-accent-only
 card; `--mint`/`--blush`/`--sky` still work as border-top accent modifiers. `.gg-fade-up`
