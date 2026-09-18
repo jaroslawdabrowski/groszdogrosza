@@ -55,22 +55,28 @@
 
 .payment-row {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-  padding: 0.6rem 0.8rem;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.8rem;
   background: var(--gg-sky-soft);
   border-radius: var(--gg-radius-sm);
+  flex-wrap: wrap;
 }
 
 .payment-label {
   color: var(--gg-ink-soft);
   font-size: 0.85rem;
+  flex: 1 1 auto;
 }
 
 .payment-value {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.copy-button {
+  flex: none;
+  color: var(--gg-sky);
 }
 
 .title-hint {

@@ -25,12 +25,30 @@
             <div class="payment-row">
               <span class="payment-label">{{ 'publicOverview.bankAccountNumber' | translate }}</span>
               <span class="payment-value">{{ o.paymentInfo.bankAccountNumber }}</span>
+              <button
+                mat-icon-button
+                class="copy-button"
+                [matTooltip]="'publicOverview.copy' | translate"
+                [cdkCopyToClipboard]="o.paymentInfo.bankAccountNumber"
+                (cdkCopyToClipboardCopied)="onCopied('bank')"
+              >
+                <mat-icon>{{ justCopied() === 'bank' ? 'check' : 'content_copy' }}</mat-icon>
+              </button>
             </div>
           }
           @if (o.paymentInfo.blikPhoneNumber) {
             <div class="payment-row">
               <span class="payment-label">{{ 'publicOverview.blikPhoneNumber' | translate }}</span>
               <span class="payment-value">{{ o.paymentInfo.blikPhoneNumber }}</span>
+              <button
+                mat-icon-button
+                class="copy-button"
+                [matTooltip]="'publicOverview.copy' | translate"
+                [cdkCopyToClipboard]="o.paymentInfo.blikPhoneNumber"
+                (cdkCopyToClipboardCopied)="onCopied('blik')"
+              >
+                <mat-icon>{{ justCopied() === 'blik' ? 'check' : 'content_copy' }}</mat-icon>
+              </button>
             </div>
           }
         </div>

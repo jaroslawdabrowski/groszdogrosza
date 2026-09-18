@@ -1,8 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
+import { ClipboardModule } from '@angular/cdk/clipboard';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../core/auth.service';
 import { PublicApiService } from '../core/public-api.service';
@@ -17,7 +19,7 @@ import { Logo } from '../shared/logo/logo';
  */
 @Component({
   selector: 'app-public-overview',
-  imports: [MatCardModule, MatProgressBarModule, MatButtonModule, MatIconModule, TranslatePipe, Logo],
+  imports: [ClipboardModule, MatCardModule, MatProgressBarModule, MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, Logo],
   templateUrl: './public-overview.html',
   styleUrl: './public-overview.scss',
 })
@@ -27,6 +29,9 @@ export class PublicOverview {
 
   readonly overview = signal<PublicOverviewModel | null>(null);
   readonly loading = signal(true);
+  /** Which payment field was just copied ('bank' | 'blik'), briefly, to swap its icon to a
+   *  checkmark - reset after a short delay rather than tracked per-click state machinery. */
+  readonly justCopied = signal<'bank' | 'blik' | null>(null);
 
   constructor() {
     this.publicApi.overview().subscribe({
@@ -40,5 +45,14 @@ export class PublicOverview {
 
   login(): void {
     this.authService.login();
+  }
+
+  onCopied(field: 'bank' | 'blik'): void {
+    this.justCopied.set(field);
+    setTimeout(() => {
+      if (this.justCopied() === field) {
+        this.justCopied.set(null);
+      }
+    }, 1500);
   }
 }

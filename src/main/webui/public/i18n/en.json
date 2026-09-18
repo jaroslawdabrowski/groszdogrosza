@@ -28,6 +28,7 @@
     "titleHint": "Please put your child's surname in the transfer title — this is what lets the payment be recognized and booked automatically.",
     "bankAccountNumber": "Account number",
     "blikPhoneNumber": "BLIK phone number",
+    "copy": "Copy",
     "noActiveCollections": "There is no active collection right now.",
     "parentsPaid": "Students paid for",
     "totalPaid": "Collected"
