@@ -476,21 +476,31 @@ hides the Dziennik/Panel skarbnika links for non-treasurers. This is a UX fix, n
 security boundary - `AuthorizationSupport.requireTreasurer` on the backend is and remains
 the only thing that actually matters for data protection.
 
-**Visual style - redesigned from the original scaffolding pass**: `--gg-*` custom
-properties on `:root` in `styles.scss` are the published "Lagoon Latte" teal/coral/gold
-palette (`#2A9D8F` teal, `#FF7A6E` coral, `#E9C46A` gold, `#FAF3E0` cream, `#264653` deep
-teal-navy for ink) - picked by comparing it against two other candidate palettes
-("Aqua Terracotta" - too muted/adult, no gold; "Freshwater Coral" - too pastel, no
-money-ish accent) rather than freehanded, after an earlier freehand attempt (a hand-tuned
-emerald/rose "color wheel" scheme, then an even more saturated gradient-heavy pass) didn't
-land - the user's own feedback was "colors don't go together" and, separately, "you went
-overboard with gradients." **Gradients are used in exactly two places on purpose** - the
-toolbar (`--gg-gradient-ink`, teal fading into the palette's own ink color) and the coin/
-logo-mark circle (`--gg-gradient-warm`, cream-gold to deep gold) - not on every card border,
-button, or heading; that blanket-gradient version was explicitly walked back after user
-feedback. `--gg-ink` is that palette's own dark teal-navy, not generic near-black, which is
-what keeps the toolbar/text/shadows feeling like one family rather than "dark UI chrome +
-pastel accents" bolted together - see the `:root` block's own comment for the reasoning.
+**Visual style - redesigned from the original scaffolding pass, then re-picked once more**:
+`--gg-*` custom properties on `:root` in `styles.scss` are the "Ocean & Amber" palette
+(`#3A5B8E` steel blue, `#E8B74A` amber gold, `#E4572E` terracotta pop, `#F1F3F8` cool
+off-white, `#1F2E4D` deep navy for ink) - the classic trustworthy-fintech blue family (the
+same one Chase/N26/Revolut lean on). This went through two full replacement rounds before
+landing here, each time from real user feedback, not guessing: (1) a hand-tuned emerald/
+rose "color wheel" scheme, rejected as "colors don't go together" + the near-black toolbar
+looked bad; (2) "Lagoon Latte" (teal/coral/gold, picked by comparing 3 published candidates)
+plus a gradient-heavy pass, rejected as "you went overboard with gradients" and "you're
+fixated on this green" - the user explicitly wanted three genuinely different hue families
+tried, not another green/teal variant; (3) three fresh candidates each built from a
+different, real published palette ("Ocean & Amber" - blue/amber; "Terracotta & Clay" -
+burnt-orange/dusty-teal; "Violet & Raspberry" - purple/pink), screenshotted side by side in
+an artifact gallery and picked via `AskUserQuestion` - **"Ocean & Amber" is the one the user
+actually chose**, not an assumption. **Gradients are used in exactly two places on
+purpose** - the toolbar (`--gg-gradient-ink`, primary fading into the palette's own ink
+color) and the coin/logo-mark circle (`--gg-gradient-warm`, cream-gold to deep gold) - not
+on every card border, button, or heading; a blanket-gradient version was tried and
+explicitly walked back after feedback. `--gg-ink` is this palette's own deep navy, not
+generic near-black, which is what keeps the toolbar/text/shadows feeling like one family
+rather than "dark UI chrome + pastel accents" bolted together - see the `:root` block's own
+comment for the reasoning, including why the custom-property *names* (`--gg-mint`/
+`--gg-blush`/`--gg-sky`) are kept as inherited "slot" names from the very first palette and
+don't literally match their current colors anymore - don't be surprised that `--gg-mint` is
+steel blue, not mint; renaming every call site each time the palette changes isn't worth it.
 Each accent (`--gg-coin`/`--gg-mint`/`--gg-blush`/`--gg-sky`) carries a `-soft` tint for
 chip/row backgrounds - same "hand-picked palette as plain CSS custom properties, used only
 where the app fully controls the surface, `--mat-sys-*` tokens for anything Material

@@ -4,7 +4,7 @@
 html {
   @include mat.theme((
     color: (
-      primary: mat.$green-palette,
+      primary: mat.$blue-palette,
       tertiary: mat.$orange-palette,
     ),
     typography: Inter,
@@ -12,49 +12,50 @@ html {
   ));
 }
 
-// Palette: "Lagoon Latte" - a published, pre-vetted teal/coral/gold combination (checked
-// against two other candidates - "Aqua Terracotta" ran too muted/adult, "Freshwater Coral"
-// too pastel/lacked a money-ish accent - this one was the best fit and is picked as-is,
-// not freehanded). Teal is the brand hue (growth/savings), coral is its near-complement
-// for the one accent that's allowed to pop, gold is the literal "coin" color the whole app
-// is themed around. --gg-ink is that palette's own dark teal-navy, not generic black/brown,
-// which is what keeps the toolbar/text feeling like one family instead of "dark UI chrome +
-// pastel accents" bolted together. Used directly only on surfaces this app fully controls
-// (toolbar, headings, card accent stripes, progress bars) - prefer --mat-sys-* tokens for
-// anything Material renders itself. Gradients are used sparingly on purpose - one on the
-// toolbar, one on the coin/logo mark - not as a blanket texture over every surface.
+// Palette: "Ocean & Amber" - picked by the user from three side-by-side candidates built
+// from published references (this one, a warm "Terracotta & Clay" earth-tone scheme, and a
+// playful "Violet & Raspberry" scheme - see CLAUDE.md for how all three were compared).
+// Steel blue reads as the classic trustworthy-fintech hue (the same family Chase/N26/
+// Revolut lean on); amber is the literal "coin" color the app is themed around; terracotta
+// is the one accent allowed to pop (status highlights, the complementary accent chip).
+// --gg-ink is this palette's own deep navy, not generic near-black.
+//
+// The --gg-mint/--gg-blush/--gg-sky custom-property NAMES are inherited "slot" names from
+// the very first palette this app shipped with (literal mint/blush/sky-blue back then) and
+// are kept as-is on purpose so every component's SCSS (`.gg-card--mint`, `.status-chip--*`,
+// etc.) never has to change when the palette does - read them as "primary/pop/secondary
+// accent slot", not as color literals matching their names.
 :root {
-  --gg-cream: #faf3e0;
+  --gg-cream: #f1f3f8;
   --gg-cream-elevated: #ffffff;
-  --gg-ink: #223c42;
-  --gg-ink-soft: #55706f;
-  --gg-ink-faint: #8ba3a1;
+  --gg-ink: #1f2e4d;
+  --gg-ink-soft: #54617f;
+  --gg-ink-faint: #8892a8;
 
-  --gg-coin: #e9c46a;
-  --gg-coin-deep: #c79a3d;
-  --gg-coin-soft: #f8e9c4;
+  --gg-coin: #e8b74a;
+  --gg-coin-deep: #c6942a;
+  --gg-coin-soft: #f8e9c7;
 
-  // Primary brand hue - teal.
-  --gg-mint: #2a9d8f;
-  --gg-mint-soft: #d3ece8;
-  // Complementary accent (opposite teal) - coral.
-  --gg-blush: #ff7a6e;
-  --gg-blush-soft: #ffe1dc;
-  // A lighter, bluer step of the same teal family - used where a third, distinguishable
-  // but still-cohesive tone is needed (info rows, the DRAFT status chip).
-  --gg-sky: #3fa7ad;
-  --gg-sky-soft: #dceeed;
+  // Primary brand hue - steel blue.
+  --gg-mint: #3a5b8e;
+  --gg-mint-soft: #dce4f0;
+  // Complementary/pop accent - terracotta.
+  --gg-blush: #e4572e;
+  --gg-blush-soft: #fadcd2;
+  // Lighter secondary step of the same blue family.
+  --gg-sky: #6c8ebf;
+  --gg-sky-soft: #dce9f5;
 
-  --gg-gradient-warm: linear-gradient(135deg, #f8e9c4 0%, #e9c46a 60%, #c79a3d 100%);
-  --gg-gradient-ink: linear-gradient(150deg, #2a9d8f 0%, #264653 75%);
+  --gg-gradient-warm: linear-gradient(135deg, #f8e9c7 0%, #e8b74a 60%, #c6942a 100%);
+  --gg-gradient-ink: linear-gradient(150deg, #3a5b8e 0%, #1f2e4d 75%);
 
   --gg-radius-lg: 20px;
   --gg-radius-md: 14px;
   --gg-radius-sm: 10px;
 
-  --gg-shadow-sm: 0 1px 2px rgba(34, 60, 66, 0.07), 0 1px 1px rgba(34, 60, 66, 0.05);
-  --gg-shadow-md: 0 8px 24px -8px rgba(34, 60, 66, 0.2), 0 2px 8px -2px rgba(34, 60, 66, 0.09);
-  --gg-shadow-lg: 0 20px 48px -12px rgba(34, 60, 66, 0.3), 0 4px 16px -4px rgba(34, 60, 66, 0.11);
+  --gg-shadow-sm: 0 1px 2px rgba(31, 46, 77, 0.07), 0 1px 1px rgba(31, 46, 77, 0.05);
+  --gg-shadow-md: 0 8px 24px -8px rgba(31, 46, 77, 0.2), 0 2px 8px -2px rgba(31, 46, 77, 0.09);
+  --gg-shadow-lg: 0 20px 48px -12px rgba(31, 46, 77, 0.3), 0 4px 16px -4px rgba(31, 46, 77, 0.11);
 
   --gg-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
