@@ -2,7 +2,7 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "TFStateBucket",
+      "Sid": "S1",
       "Effect": "Allow",
       "Action": [
         "s3:CreateBucket",
@@ -33,7 +33,7 @@
       "Resource": "arn:aws:s3:::groszdogrosza-terraform-state"
     },
     {
-      "Sid": "TFStateObj",
+      "Sid": "S2",
       "Effect": "Allow",
       "Action": [
         "s3:GetObject",
@@ -43,7 +43,7 @@
       "Resource": "arn:aws:s3:::groszdogrosza-terraform-state/*"
     },
     {
-      "Sid": "TFLock",
+      "Sid": "TL",
       "Effect": "Allow",
       "Action": [
         "dynamodb:CreateTable",
@@ -61,7 +61,7 @@
       "Resource": "arn:aws:dynamodb:eu-central-1:814478897174:table/groszdogrosza-terraform-lock"
     },
     {
-      "Sid": "AppTable",
+      "Sid": "AT",
       "Effect": "Allow",
       "Action": [
         "dynamodb:CreateTable",
@@ -72,12 +72,16 @@
         "dynamodb:UpdateTable",
         "dynamodb:TagResource",
         "dynamodb:UntagResource",
-        "dynamodb:ListTagsOfResource"
+        "dynamodb:ListTagsOfResource",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Scan"
       ],
       "Resource": "arn:aws:dynamodb:eu-central-1:814478897174:table/groszdogrosza-*"
     },
     {
-      "Sid": "EcrRepo",
+      "Sid": "E1",
       "Effect": "Allow",
       "Action": [
         "ecr:CreateRepository",
@@ -97,13 +101,13 @@
       "Resource": "arn:aws:ecr:eu-central-1:814478897174:repository/groszdogrosza-*"
     },
     {
-      "Sid": "EcrAuth",
+      "Sid": "E2",
       "Effect": "Allow",
       "Action": "ecr:GetAuthorizationToken",
       "Resource": "*"
     },
     {
-      "Sid": "EcrPush",
+      "Sid": "E3",
       "Effect": "Allow",
       "Action": [
         "ecr:BatchCheckLayerAvailability",
@@ -118,7 +122,7 @@
       "Resource": "arn:aws:ecr:eu-central-1:814478897174:repository/groszdogrosza-*"
     },
     {
-      "Sid": "Lambda",
+      "Sid": "Lm",
       "Effect": "Allow",
       "Action": [
         "lambda:CreateFunction",
@@ -143,7 +147,7 @@
       "Resource": "arn:aws:lambda:eu-central-1:814478897174:function:groszdogrosza-*"
     },
     {
-      "Sid": "Iam",
+      "Sid": "Im",
       "Effect": "Allow",
       "Action": [
         "iam:CreateRole",
@@ -164,7 +168,7 @@
       "Resource": "arn:aws:iam::814478897174:role/groszdogrosza-*"
     },
     {
-      "Sid": "PassRole",
+      "Sid": "Pr",
       "Effect": "Allow",
       "Action": "iam:PassRole",
       "Resource": "arn:aws:iam::814478897174:role/groszdogrosza-*",
@@ -178,7 +182,7 @@
       }
     },
     {
-      "Sid": "CWLogs",
+      "Sid": "CL",
       "Effect": "Allow",
       "Action": [
         "logs:CreateLogGroup",
@@ -199,13 +203,13 @@
       ]
     },
     {
-      "Sid": "LogsDesc",
+      "Sid": "LD",
       "Effect": "Allow",
       "Action": "logs:DescribeLogGroups",
       "Resource": "*"
     },
     {
-      "Sid": "Cognito",
+      "Sid": "Cg",
       "Effect": "Allow",
       "Action": [
         "cognito-idp:CreateUserPool",
@@ -233,7 +237,7 @@
       "Resource": "*"
     },
     {
-      "Sid": "EBConn",
+      "Sid": "C1",
       "Effect": "Allow",
       "Action": [
         "events:CreateConnection",
@@ -251,13 +255,13 @@
       "Resource": "*"
     },
     {
-      "Sid": "SLR",
+      "Sid": "SR",
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "*"
     },
     {
-      "Sid": "EBSec",
+      "Sid": "C2",
       "Effect": "Allow",
       "Action": [
         "secretsmanager:CreateSecret",
@@ -271,7 +275,7 @@
       "Resource": "arn:aws:secretsmanager:eu-central-1:814478897174:secret:events!connection/groszdogrosza-*"
     },
     {
-      "Sid": "EBRule",
+      "Sid": "C3",
       "Effect": "Allow",
       "Action": [
         "events:PutRule",

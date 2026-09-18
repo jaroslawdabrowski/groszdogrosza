@@ -10,7 +10,7 @@
   </mat-card-header>
   <mat-card-content>
     @if (students().length === 0) {
-      <p class="empty-state">{{ 'dashboard.empty' | translate }}</p>
+      <p class="empty-state">{{ 'treasurer.noStudents' | translate }}</p>
     } @else {
       <ul class="student-list">
         @for (student of students(); track student.id) {

@@ -82,6 +82,7 @@
   "treasurer": {
     "title": "Treasurer panel",
     "students": "Students",
+    "noStudents": "There are no students yet.",
     "addStudent": "Add a student",
     "addStudentButton": "Add student",
     "studentCreated": "Student added.",
