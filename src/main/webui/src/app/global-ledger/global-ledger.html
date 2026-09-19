@@ -5,7 +5,7 @@
 <h1 class="gg-heading">{{ 'globalLedger.title' | translate }}</h1>
 
 @if (loading()) {
-  <p class="loading-line">{{ 'common.loading' | translate }}</p>
+  <app-loading-spinner [label]="'common.loading' | translate" />
 } @else if (forbidden()) {
   <p class="empty-state">{{ 'globalLedger.forbidden' | translate }}</p>
 } @else {

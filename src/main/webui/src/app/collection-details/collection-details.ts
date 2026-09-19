@@ -18,6 +18,7 @@ import {
   SettlementResult,
   isCollectionDetails,
 } from '../core/models';
+import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
 
 /**
  * Renders one of two shapes depending on the caller's role, as returned by the backend
@@ -40,6 +41,7 @@ import {
     MatTooltipModule,
     MatProgressBarModule,
     TranslatePipe,
+    LoadingSpinner,
   ],
   templateUrl: './collection-details.html',
   styleUrl: './collection-details.scss',
@@ -50,6 +52,11 @@ export class CollectionDetails {
   private readonly translate = inject(TranslateService);
 
   readonly view = signal<CollectionDetailsModel | CollectionProgress | null>(null);
+  /** Only guards the FIRST load (a Lambda cold start can take real seconds - see
+   *  LoadingSpinner's javadoc) - never set back to true, so a settle()/removeStudent()
+   *  triggered reload() doesn't flash the whole page back to a spinner; `view()` already
+   *  holds the previous value while that reload is in flight. */
+  readonly loading = signal(true);
   readonly settlementPreview = signal<SettlementResult | null>(null);
   readonly actualCostSpent = signal<number>(0);
   readonly requirementColumns = ['studentName', 'requiredAmount', 'paidAmount', 'status'];
@@ -63,7 +70,13 @@ export class CollectionDetails {
   }
 
   reload(): void {
-    this.collectionApi.get(this.collectionId).subscribe((view) => this.view.set(view));
+    this.collectionApi.get(this.collectionId).subscribe({
+      next: (view) => {
+        this.view.set(view);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
   }
 
   settle(): void {

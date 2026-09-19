@@ -7,13 +7,14 @@ import { StudentApiService } from '../core/student-api.service';
 import { LedgerApiService } from '../core/ledger-api.service';
 import { CurrentUserService } from '../core/current-user.service';
 import { LedgerEntry, Student } from '../core/models';
+import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
 
 /** "Moja skarbonka" for a parent, or a per-student drill-down for the treasurer - a
  *  student's own piggy bank balance and ledger, plus (read-only here) their linked
  *  parents' contact info. Editing a parent's details happens in TreasurerPanel. */
 @Component({
   selector: 'app-student-view',
-  imports: [RouterLink, MatCardModule, MatIconModule, TranslatePipe],
+  imports: [RouterLink, MatCardModule, MatIconModule, TranslatePipe, LoadingSpinner],
   templateUrl: './student-view.html',
   styleUrl: './student-view.scss',
 })
@@ -25,6 +26,7 @@ export class StudentView {
 
   readonly student = signal<Student | null>(null);
   readonly ledger = signal<LedgerEntry[]>([]);
+  readonly loading = signal(true);
 
   isTreasurer(): boolean {
     return this.currentUser.isTreasurer();
@@ -32,7 +34,13 @@ export class StudentView {
 
   constructor() {
     const studentId = this.route.snapshot.paramMap.get('id')!;
-    this.studentApi.get(studentId).subscribe((student) => this.student.set(student));
+    this.studentApi.get(studentId).subscribe({
+      next: (student) => {
+        this.student.set(student);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
     this.ledgerApi.getFor(studentId).subscribe((entries) => this.ledger.set(entries));
   }
 

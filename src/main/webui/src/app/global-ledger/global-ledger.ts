@@ -5,12 +5,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LedgerApiService } from '../core/ledger-api.service';
 import { GlobalLedgerEntry } from '../core/models';
+import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
 
 /** Treasurer-only "log wszystkich transakcji" - GET /api/ledger returns 403 for anyone
  * else, which the backend enforces regardless of this page even being reachable. */
 @Component({
   selector: 'app-global-ledger',
-  imports: [RouterLink, MatCardModule, MatIconModule, TranslatePipe],
+  imports: [RouterLink, MatCardModule, MatIconModule, TranslatePipe, LoadingSpinner],
   templateUrl: './global-ledger.html',
   styleUrl: './global-ledger.scss',
 })

@@ -1,4 +1,6 @@
-@if (view(); as v) {
+@if (loading()) {
+  <app-loading-spinner [label]="'common.loading' | translate" />
+} @else if (view(); as v) {
   <a class="back-link" routerLink="/dashboard">
     <mat-icon>arrow_back</mat-icon>{{ 'common.backToDashboard' | translate }}
   </a>

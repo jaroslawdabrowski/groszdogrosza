@@ -15,6 +15,7 @@ import { ParentApiService } from '../core/parent-api.service';
 import { StudentApiService } from '../core/student-api.service';
 import { CollectionApiService } from '../core/collection-api.service';
 import { Parent, Student } from '../core/models';
+import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
 
 @Component({
   selector: 'app-treasurer-panel',
@@ -30,6 +31,7 @@ import { Parent, Student } from '../core/models';
     MatTooltipModule,
     MatCheckboxModule,
     TranslatePipe,
+    LoadingSpinner,
   ],
   templateUrl: './treasurer-panel.html',
   styleUrl: './treasurer-panel.scss',
@@ -41,6 +43,11 @@ export class TreasurerPanel {
   private readonly translate = inject(TranslateService);
 
   readonly students = signal<Student[]>([]);
+  /** Only guards the FIRST load (a Lambda cold start can take real seconds - see
+   *  LoadingSpinner's javadoc) - reloadStudents() is called again after every add/edit/
+   *  delete action, but this only ever goes false→false after the first time, so those
+   *  refreshes never flash the whole panel back to a spinner. */
+  readonly loadingStudents = signal(true);
   readonly me = signal<Parent | null>(null);
   readonly bankAccountNumber = signal('');
   readonly blikPhoneNumber = signal('');
@@ -96,7 +103,13 @@ export class TreasurerPanel {
   }
 
   reloadStudents(): void {
-    this.studentApi.list().subscribe((students) => this.students.set(students));
+    this.studentApi.list().subscribe({
+      next: (students) => {
+        this.students.set(students);
+        this.loadingStudents.set(false);
+      },
+      error: () => this.loadingStudents.set(false),
+    });
   }
 
   savePaymentInfo(): void {

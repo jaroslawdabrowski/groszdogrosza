@@ -1,7 +1,7 @@
 <h1 class="gg-heading">{{ 'dashboard.title' | translate }}</h1>
 
 @if (loading()) {
-  <p class="loading-line">{{ 'common.loading' | translate }}</p>
+  <app-loading-spinner [label]="'common.loading' | translate" />
 } @else if (collections().length === 0) {
   <p class="empty-state">{{ 'dashboard.empty' | translate }}</p>
 } @else {

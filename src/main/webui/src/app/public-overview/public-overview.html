@@ -12,7 +12,7 @@
 </section>
 
 @if (loading()) {
-  <p class="loading-line">{{ 'common.loading' | translate }}</p>
+  <app-loading-spinner [label]="'common.loading' | translate" />
 } @else if (overview(); as o) {
   @if (o.paymentInfo && (o.paymentInfo.bankAccountNumber || o.paymentInfo.blikPhoneNumber)) {
     <mat-card class="gg-card gg-card--sky gg-fade-up payment-card">

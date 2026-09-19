@@ -10,6 +10,7 @@ import { AuthService } from '../core/auth.service';
 import { PublicApiService } from '../core/public-api.service';
 import { PublicOverview as PublicOverviewModel } from '../core/models';
 import { Logo } from '../shared/logo/logo';
+import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
 
 /**
  * The unauthenticated landing page (route "/") - shows every currently active collection's
@@ -19,7 +20,7 @@ import { Logo } from '../shared/logo/logo';
  */
 @Component({
   selector: 'app-public-overview',
-  imports: [ClipboardModule, MatCardModule, MatProgressBarModule, MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, Logo],
+  imports: [ClipboardModule, MatCardModule, MatProgressBarModule, MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, Logo, LoadingSpinner],
   templateUrl: './public-overview.html',
   styleUrl: './public-overview.scss',
 })

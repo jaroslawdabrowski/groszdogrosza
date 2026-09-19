@@ -9,7 +9,9 @@
     <mat-card-title class="title-with-icon"><mat-icon class="section-icon">school</mat-icon>{{ 'treasurer.students' | translate }}</mat-card-title>
   </mat-card-header>
   <mat-card-content>
-    @if (students().length === 0) {
+    @if (loadingStudents()) {
+      <app-loading-spinner [label]="'common.loading' | translate" />
+    } @else if (students().length === 0) {
       <p class="empty-state">{{ 'treasurer.noStudents' | translate }}</p>
     } @else {
       <ul class="student-list">

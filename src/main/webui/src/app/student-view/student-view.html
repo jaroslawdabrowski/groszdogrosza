@@ -1,4 +1,6 @@
-@if (student(); as s) {
+@if (loading()) {
+  <app-loading-spinner [label]="'common.loading' | translate" />
+} @else if (student(); as s) {
   <a class="back-link" [routerLink]="isTreasurer() ? '/treasurer' : '/dashboard'">
     <mat-icon>arrow_back</mat-icon>{{ (isTreasurer() ? 'common.backToTreasurerPanel' : 'common.backToDashboard') | translate }}
   </a>
