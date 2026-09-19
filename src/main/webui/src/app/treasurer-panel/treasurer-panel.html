@@ -249,6 +249,21 @@
         <span matTextSuffix>zł</span>
       </mat-form-field>
     </div>
+
+    @if (students().length > 0) {
+      <p class="checklist-label">{{ 'treasurer.collectionStudents' | translate }}</p>
+      <div class="student-checklist">
+        @for (student of students(); track student.id) {
+          <mat-checkbox
+            [checked]="isStudentIncludedInNewCollection(student.id)"
+            (change)="setStudentIncludedInNewCollection(student.id, $event.checked)"
+          >
+            {{ student.firstName }} {{ student.lastName }}
+          </mat-checkbox>
+        }
+      </div>
+    }
+
     <button mat-flat-button color="primary" (click)="createCollection()">
       <mat-icon>add</mat-icon>
       {{ 'treasurer.createCollectionButton' | translate }}

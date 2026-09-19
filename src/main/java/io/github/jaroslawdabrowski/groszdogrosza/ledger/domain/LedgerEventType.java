@@ -15,5 +15,9 @@ public enum LedgerEventType {
     /** Money landed in this parent's piggy bank (bank transfer surplus, or a settlement leftover). params: amount, bankReference (optional). */
     PIGGY_BANK_CREDITED,
     /** Piggy bank balance was applied towards an active collection's requirement. params: collectionId, collectionTitle, amount. */
-    PIGGY_BANK_APPLIED_TO_COLLECTION
+    PIGGY_BANK_APPLIED_TO_COLLECTION,
+    /** Taken out of a collection before it settled (e.g. couldn't attend a trip); whatever
+     *  they'd already paid was refunded to the piggy bank. params: collectionId,
+     *  collectionTitle, refundedAmount (may be "0" if they hadn't paid anything yet). */
+    REMOVED_FROM_COLLECTION
 }

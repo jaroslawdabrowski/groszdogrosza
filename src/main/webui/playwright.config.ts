@@ -10,6 +10,14 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
   fullyParallel: false,
+  // Every spec in this suite seeds the same bootstrap-gap treasurer under the same email
+  // (see seed.ts) and shares one real backend/DynamoDB table - two spec FILES running as
+  // separate workers at the same time collide on that shared state (AuthorizationSupport's
+  // findByEmail scan has no ordering guarantee - see main-flow.spec.ts's class comment) and
+  // also just overload the single dev server enough to blow past the 30s test timeout.
+  // `fullyParallel: false` alone only serializes tests within one file; workers: 1 is what
+  // actually forces every spec file to run one at a time too.
+  workers: 1,
   retries: 0,
   reporter: [['list']],
   use: {

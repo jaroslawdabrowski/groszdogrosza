@@ -44,6 +44,18 @@ export class RequirementsTable {
   async expectStatus(studentFullName: string, statusText: string): Promise<void> {
     await expect(this.row(studentFullName).locator('td').nth(3)).toContainText(statusText);
   }
+
+  /** A student who was never included in this collection, or who was removed from it (see
+   *  CollectionDetailsPage.removeStudent), has no row here at all - not a row showing 0 zł. */
+  async expectAbsent(studentFullName: string): Promise<void> {
+    await expect(this.table).not.toContainText(studentFullName);
+  }
+
+  /** The 5th ("actions") column only exists while the collection is ACTIVE - see
+   *  CollectionDetails.visibleRequirementColumns. */
+  removeButton(studentFullName: string): Locator {
+    return this.row(studentFullName).getByRole('button');
+  }
 }
 
 export class LoginPage {
@@ -88,7 +100,14 @@ export class Dashboard {
   }
 
   async openCollection(title: string): Promise<void> {
-    await this.page.getByRole('link', { name: new RegExp(title) }).click();
+    // Waits for the resulting client-side route change, not just the click event - a plain
+    // `.click()` returns as soon as the click fires, before Angular's routerLink navigation
+    // actually lands, which made CollectionDetailsPage.id unreliable when read immediately
+    // afterwards instead of after some other auto-waiting assertion.
+    await Promise.all([
+      this.page.waitForURL(/\/collections\//),
+      this.page.getByRole('link', { name: new RegExp(title) }).click(),
+    ]);
   }
 }
 
@@ -151,6 +170,13 @@ export class TreasurerPanel {
     await expect(this.page.getByText('Zapisano.')).toBeVisible();
   }
 
+  /** Every student starts checked on the "who's in this collection" checklist - uncheck one
+   *  before calling createCollection to leave them out of it entirely (see
+   *  CreateCollectionUseCase's javadoc for why that's different from a 0 zł requirement). */
+  async excludeStudentFromNewCollection(studentFullName: string): Promise<void> {
+    await this.page.getByRole('checkbox', { name: studentFullName }).uncheck();
+  }
+
   async createCollection(title: string, description: string, baseAmountPerStudentZl: string): Promise<void> {
     await this.page.getByLabel('Tytuł zbiórki').fill(title);
     await this.page.getByLabel('Opis').fill(description);
@@ -187,6 +213,13 @@ export class CollectionDetailsPage {
 
   async expectStatus(status: 'ACTIVE' | 'SETTLED'): Promise<void> {
     await expect(this.page.locator(`.status-chip--${status}`)).toBeVisible();
+  }
+
+  /** Accepts the confirm() dialog the button triggers - see
+   *  CollectionDetails.removeStudent. Only present while the collection is ACTIVE. */
+  async removeStudent(studentFullName: string): Promise<void> {
+    this.page.once('dialog', (dialog) => dialog.accept());
+    await this.requirements.removeButton(studentFullName).click();
   }
 }
 

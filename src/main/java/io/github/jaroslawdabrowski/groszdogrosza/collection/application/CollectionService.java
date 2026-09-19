@@ -15,6 +15,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetActiveReq
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListCollectionsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RecordManualContributionUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RemoveStudentFromCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.out.CollectionRepositoryPort;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerAmounts;
@@ -30,12 +31,13 @@ import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @ApplicationScoped
 public class CollectionService implements CreateCollectionUseCase, GetCollectionUseCase, ListCollectionsUseCase,
         RecordManualContributionUseCase, ApplyAutomaticContributionUseCase, GetActiveRequirementsForStudentUseCase,
-        SettleCollectionUseCase {
+        SettleCollectionUseCase, RemoveStudentFromCollectionUseCase {
 
     @Inject
     CollectionRepositoryPort collectionRepository;
@@ -50,14 +52,24 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
     RecordLedgerEntryUseCase recordLedgerEntryUseCase;
 
     @Override
-    public Collection createCollection(String title, String description, BigDecimal baseAmountPerStudent) {
+    public Collection createCollection(
+            String title, String description, BigDecimal baseAmountPerStudent, List<String> includedStudentIds) {
         Collection collection = new Collection(UUID.randomUUID().toString(), title, description,
                 CollectionStatus.ACTIVE, baseAmountPerStudent, Instant.now());
         collection = collectionRepository.saveCollection(collection);
 
-        // Snapshot each student's piggy bank balance NOW and fix the requirement - see the
-        // ContributionRequirement javadoc for why this is deliberately not recomputed later.
+        Set<String> included = Set.copyOf(includedStudentIds);
+
+        // Snapshot each INCLUDED student's piggy bank balance NOW and fix the requirement -
+        // see the ContributionRequirement javadoc for why this is deliberately not
+        // recomputed later. A student left unchecked on the "who's in this collection"
+        // checklist gets no requirement at all, not a zero one - see
+        // CreateCollectionUseCase's javadoc for why (an "everyone owes money" collection and
+        // a "whoever's coming on the trip owes money" collection are both real cases here).
         for (Student student : listStudentsUseCase.listStudents()) {
+            if (!included.contains(student.id())) {
+                continue;
+            }
             BigDecimal required = baseAmountPerStudent.subtract(student.piggyBankBalance());
             if (required.signum() < 0) {
                 required = BigDecimal.ZERO;
@@ -156,5 +168,43 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
 
         collectionRepository.saveCollection(collection.withStatus(CollectionStatus.SETTLED));
         return result;
+    }
+
+    @Override
+    public void removeStudentFromCollection(String collectionId, String studentId) {
+        Collection collection = collectionRepository.findCollectionById(collectionId)
+                .orElseThrow(() -> new NoSuchElementException("No such collection: " + collectionId));
+        if (collection.status() != CollectionStatus.ACTIVE) {
+            // Same reasoning as settleCollection's guard: a settled collection's numbers are
+            // already final and baked into everyone's piggy bank leftover - pulling a
+            // student out of it after the fact would need to unwind that settlement, not
+            // just delete a requirement.
+            throw new CollectionNotActiveException(collectionId, collection.status());
+        }
+        collectionRepository.findRequirement(collectionId, studentId)
+                .orElseThrow(() -> new NoSuchElementException(
+                        "Student " + studentId + " is not part of collection " + collectionId));
+
+        List<Contribution> contributions = collectionRepository.findContributionsByCollectionId(collectionId).stream()
+                .filter(contribution -> contribution.studentId().equals(studentId))
+                .toList();
+        BigDecimal refunded = contributions.stream().map(Contribution::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Delete, not zero out - a removed student must vanish from this collection's
+        // breakdown entirely, and their contributions must not still be counted the next
+        // time this collection is settled (see SettlementPolicy, which sums every
+        // Contribution it's handed).
+        for (Contribution contribution : contributions) {
+            collectionRepository.deleteContribution(collectionId, contribution.id());
+        }
+        collectionRepository.deleteRequirement(collectionId, studentId);
+
+        if (refunded.signum() > 0) {
+            creditStudentPiggyBankUseCase.creditPiggyBank(studentId, refunded);
+        }
+        recordLedgerEntryUseCase.record(studentId, LedgerEventType.REMOVED_FROM_COLLECTION, java.util.Map.of(
+                "collectionId", collectionId,
+                "collectionTitle", collection.title(),
+                "refundedAmount", LedgerAmounts.format(refunded)));
     }
 }

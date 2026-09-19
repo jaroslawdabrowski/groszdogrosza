@@ -18,8 +18,11 @@ export class CollectionApiService {
     return this.http.get<CollectionDetails | CollectionProgress>(`/api/collections/${id}`);
   }
 
-  create(title: string, description: string, baseAmountPerStudent: number): Observable<CollectionSummary> {
-    return this.http.post<CollectionSummary>('/api/collections', { title, description, baseAmountPerStudent });
+  /** `studentIds` are the students this collection asks money from - not every collection
+   *  includes every student (a trip some families already opted their kid out of) - see the
+   *  backend CreateCollectionUseCase's javadoc. */
+  create(title: string, description: string, baseAmountPerStudent: number, studentIds: string[]): Observable<CollectionSummary> {
+    return this.http.post<CollectionSummary>('/api/collections', { title, description, baseAmountPerStudent, studentIds });
   }
 
   recordContribution(collectionId: string, studentId: string, amount: number): Observable<CollectionDetails> {
@@ -28,5 +31,11 @@ export class CollectionApiService {
 
   settle(collectionId: string, actualCostSpent: number): Observable<SettlementResult> {
     return this.http.post<SettlementResult>(`/api/collections/${collectionId}/settle`, { actualCostSpent });
+  }
+
+  /** Takes a student out of an ACTIVE collection - whatever they'd already paid is refunded
+   *  to their piggy bank (see the backend RemoveStudentFromCollectionUseCase). */
+  removeStudent(collectionId: string, studentId: string): Observable<CollectionDetails> {
+    return this.http.delete<CollectionDetails>(`/api/collections/${collectionId}/students/${studentId}`);
   }
 }

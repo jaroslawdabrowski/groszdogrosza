@@ -72,7 +72,9 @@
     "toPiggyBank": "do skarbonki",
     "progress": "Postęp zbiórki",
     "studentsPaid": "Wpłacono za uczniów",
-    "totalPaid": "Zebrano"
+    "totalPaid": "Zebrano",
+    "removeStudentTooltip": "Usuń ucznia ze zbiórki (wpłacone pieniądze wrócą do skarbonki)",
+    "removeStudentConfirm": "Na pewno usunąć {{name}} z tej zbiórki? Wpłacone przez niego/nią pieniądze wrócą do skarbonki. Tej operacji nie można cofnąć."
   },
   "studentView": {
     "piggyBank": "Skarbonka",
@@ -115,6 +117,7 @@
     "collectionTitle": "Tytuł zbiórki",
     "collectionDescription": "Opis",
     "baseAmount": "Kwota bazowa od ucznia (zł)",
+    "collectionStudents": "Uczniowie objęci zbiórką",
     "createCollectionButton": "Utwórz zbiórkę",
     "collectionCreated": "Zbiórka została utworzona.",
     "paymentInfo": "Dane do wpłat",
@@ -126,6 +129,7 @@
     "CONTRIBUTION_RECEIVED": "Wpłata {{amount}} zł na zbiórkę \"{{collectionTitle}}\"",
     "COLLECTION_SETTLED": "Zbiórka \"{{collectionTitle}}\" rozliczona, zwrot do skarbonki: {{leftoverAmount}} zł",
     "PIGGY_BANK_CREDITED": "Wpłata {{amount}} zł zasiliła skarbonkę",
-    "PIGGY_BANK_APPLIED_TO_COLLECTION": "Ze skarbonki przeniesiono {{amount}} zł na zbiórkę"
+    "PIGGY_BANK_APPLIED_TO_COLLECTION": "Ze skarbonki przeniesiono {{amount}} zł na zbiórkę",
+    "REMOVED_FROM_COLLECTION": "Usunięto ze zbiórki \"{{collectionTitle}}\", zwrot do skarbonki: {{refundedAmount}} zł"
   }
 }

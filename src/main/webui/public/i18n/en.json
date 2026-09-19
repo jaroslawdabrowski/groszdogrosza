@@ -72,7 +72,9 @@
     "toPiggyBank": "to piggy bank",
     "progress": "Collection progress",
     "studentsPaid": "Students paid for",
-    "totalPaid": "Collected"
+    "totalPaid": "Collected",
+    "removeStudentTooltip": "Remove student from the collection (refund to piggy bank)",
+    "removeStudentConfirm": "Remove {{name}} from this collection? Any money they paid will be refunded to their piggy bank. This can't be undone."
   },
   "studentView": {
     "piggyBank": "Piggy bank",
@@ -115,6 +117,7 @@
     "collectionTitle": "Collection title",
     "collectionDescription": "Description",
     "baseAmount": "Base amount per student (PLN)",
+    "collectionStudents": "Students included in the collection",
     "createCollectionButton": "Create collection",
     "collectionCreated": "Collection created.",
     "paymentInfo": "Payment info",
@@ -126,6 +129,7 @@
     "CONTRIBUTION_RECEIVED": "Contribution of {{amount}} PLN to \"{{collectionTitle}}\"",
     "COLLECTION_SETTLED": "\"{{collectionTitle}}\" settled, {{leftoverAmount}} PLN credited to piggy bank",
     "PIGGY_BANK_CREDITED": "{{amount}} PLN credited to piggy bank",
-    "PIGGY_BANK_APPLIED_TO_COLLECTION": "{{amount}} PLN applied from piggy bank to a collection"
+    "PIGGY_BANK_APPLIED_TO_COLLECTION": "{{amount}} PLN applied from piggy bank to a collection",
+    "REMOVED_FROM_COLLECTION": "Removed from \"{{collectionTitle}}\", {{refundedAmount}} PLN refunded to piggy bank"
   }
 }

@@ -3,11 +3,23 @@
 `main-flow.spec.ts` drives the real app through the main money flow (treasurer creates two
 collections, students pay in, both settle, the settlement surplus math is checked against
 concrete numbers, both the treasurer's and a parent's login see the right numbers) with a
-real browser against a real running backend - not mocked. `pages.ts` is the Page Object
-Model it's written against (`TreasurerPanel`, `CollectionDetailsPage`, `PiggyBankPage`, ...,
-plus a small `Api` wrapper for the one thing there's no UI for yet - see below) - keeps the
-spec itself readable as a story about money and students rather than a wall of
-`page.locator(...)` calls.
+real browser against a real running backend - not mocked. `collection-membership.spec.ts`
+covers the other two collection-creation/editing paths: a student excluded from a collection
+from the start (the "who's in this collection" checklist), and a student removed from an
+already-ACTIVE collection mid-way through, refunding whatever they'd paid back to their
+piggy bank - see CLAUDE.md's `collection` section for why both exist (a class trip isn't
+"everyone owes money" the way a teacher's gift collection is). `pages.ts` is the Page Object
+Model both specs are written against (`TreasurerPanel`, `CollectionDetailsPage`,
+`PiggyBankPage`, ..., plus a small `Api` wrapper for the one thing there's no UI for yet -
+see below) - keeps each spec readable as a story about money and students rather than a wall
+of `page.locator(...)` calls.
+
+**Every spec file in this suite runs one at a time** (`workers: 1` in
+`playwright.config.ts`) - they all seed the same bootstrap-gap treasurer under the same
+email (see `seed.ts`) against one real backend/DynamoDB table, so two spec files as separate
+Playwright workers race on that shared state exactly the way two runs of the same spec used
+to (see the cleanup note below) - confirmed by actually hitting it once two spec files
+existed, not assumed.
 
 ## Running it
 

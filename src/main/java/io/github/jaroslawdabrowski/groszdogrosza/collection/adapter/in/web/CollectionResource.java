@@ -5,6 +5,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetCollectio
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetCollectionUseCase.CollectionDetails;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListCollectionsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RecordManualContributionUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RemoveStudentFromCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
 import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
@@ -12,6 +13,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUse
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
@@ -54,6 +56,9 @@ public class CollectionResource {
     SettleCollectionUseCase settleCollectionUseCase;
 
     @Inject
+    RemoveStudentFromCollectionUseCase removeStudentFromCollectionUseCase;
+
+    @Inject
     ListStudentsUseCase listStudentsUseCase;
 
     @Inject
@@ -71,7 +76,7 @@ public class CollectionResource {
     public CollectionResponse create(CreateCollectionRequest request) {
         authorizationSupport.requireTreasurer(identity);
         return CollectionResponse.from(createCollectionUseCase.createCollection(
-                request.title(), request.description(), request.baseAmountPerStudent()));
+                request.title(), request.description(), request.baseAmountPerStudent(), request.studentIds()));
     }
 
     @GET
@@ -99,6 +104,16 @@ public class CollectionResource {
     public SettlementResultResponse settle(@PathParam("id") String id, SettleCollectionRequest request) {
         authorizationSupport.requireTreasurer(identity);
         return SettlementResultResponse.from(settleCollectionUseCase.settleCollection(id, request.actualCostSpent()));
+    }
+
+    @DELETE
+    @Path("/{id}/students/{studentId}")
+    public CollectionDetailsResponse removeStudent(@PathParam("id") String id, @PathParam("studentId") String studentId) {
+        authorizationSupport.requireTreasurer(identity);
+        removeStudentFromCollectionUseCase.removeStudentFromCollection(id, studentId);
+        CollectionDetails details = getCollectionUseCase.getCollection(id)
+                .orElseThrow(() -> new NotFoundException("No such collection: " + id));
+        return CollectionDetailsResponse.from(details, studentNamesById());
     }
 
     private Map<String, String> studentNamesById() {

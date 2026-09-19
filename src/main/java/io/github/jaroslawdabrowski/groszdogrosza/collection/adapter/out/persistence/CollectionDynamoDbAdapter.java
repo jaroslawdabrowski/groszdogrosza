@@ -22,6 +22,7 @@ import java.util.Optional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
@@ -142,6 +143,14 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
     }
 
     @Override
+    public void deleteRequirement(String collectionId, String studentId) {
+        dynamoDbClient.deleteItem(DeleteItemRequest.builder()
+                .tableName(tableName)
+                .key(Map.of("pk", s(collectionPk(collectionId)), "sk", s(REQUIREMENT_SK_PREFIX + studentId)))
+                .build());
+    }
+
+    @Override
     public List<ContributionRequirement> findActivePendingRequirementsForStudent(String studentId) {
         // See class javadoc: a table scan, filtered by sk suffix and status, then
         // re-checked per-collection for ACTIVE status and sorted oldest-collection-first
@@ -198,6 +207,14 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
         return queryByPkAndSkPrefix(collectionPk(collectionId), CONTRIBUTION_SK_PREFIX).stream()
                 .map(CollectionDynamoDbAdapter::contributionFromItem)
                 .toList();
+    }
+
+    @Override
+    public void deleteContribution(String collectionId, String contributionId) {
+        dynamoDbClient.deleteItem(DeleteItemRequest.builder()
+                .tableName(tableName)
+                .key(Map.of("pk", s(collectionPk(collectionId)), "sk", s(CONTRIBUTION_SK_PREFIX + contributionId)))
+                .build());
     }
 
     private static Contribution contributionFromItem(Map<String, AttributeValue> item) {

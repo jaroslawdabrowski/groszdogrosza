@@ -38,8 +38,21 @@
                 <span [class]="'req-status req-status--' + r.status">{{ ('requirementStatus.' + r.status) | translate }}</span>
               </td>
             </ng-container>
-            <tr mat-header-row *matHeaderRowDef="requirementColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: requirementColumns"></tr>
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let r">
+                <button
+                  mat-icon-button
+                  class="delete-button"
+                  [matTooltip]="'collectionDetails.removeStudentTooltip' | translate"
+                  (click)="removeStudent(r.studentId, r.studentName)"
+                >
+                  <mat-icon>person_remove</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="visibleRequirementColumns()"></tr>
+            <tr mat-row *matRowDef="let row; columns: visibleRequirementColumns()"></tr>
           </table>
         </div>
       </mat-card-content>

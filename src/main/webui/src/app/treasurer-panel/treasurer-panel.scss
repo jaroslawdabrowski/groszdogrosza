@@ -214,3 +214,16 @@ mat-card-header {
   font-size: 0.9rem;
   margin-top: 0;
 }
+
+.checklist-label {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.9rem;
+  color: var(--gg-ink-soft);
+}
+
+.student-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  margin-bottom: 1rem;
+}

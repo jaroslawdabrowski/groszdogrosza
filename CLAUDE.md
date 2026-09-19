@@ -148,6 +148,24 @@ wired up yet: `createCollection` computes requirements and sets status `ACTIVE`
 immediately; `CollectionStatus.DRAFT` exists in the domain model for a possible future
 two-step flow but nothing currently produces one.
 
+**Not every collection includes every student** - `CreateCollectionUseCase.createCollection`
+takes an explicit `includedStudentIds` list; a student left off it gets no
+`ContributionRequirement` at all, not a zeroed one. This exists for the class-trip case: a
+teacher's gift collection really is "everyone owes money", but a trip collection is "whoever
+the treasurer already knows is coming owes money" - a student unchecked on
+`TreasurerPanel`'s "who's in this collection" checklist (defaults to everyone checked)
+should never show up as "you owe nothing" on a collection they were never actually part of.
+**`RemoveStudentFromCollectionUseCase`** handles the other direction: a student drops out of
+an already-ACTIVE collection (illness, moved away) after possibly having already paid in.
+`CollectionService.removeStudentFromCollection` deletes that student's
+`ContributionRequirement` **and** every `Contribution` they made to this collection (not
+just zeroes them out - a lingering `Contribution` would still be summed the next time
+`SettlementPolicy.settle` runs), refunds whatever they'd paid straight to their piggy bank
+via `CreditStudentPiggyBankUseCase`, and records a `REMOVED_FROM_COLLECTION` ledger entry
+either way (even a 0 zł refund, for the audit trail). Only legal on an ACTIVE collection -
+same `CollectionNotActiveException` guard as settling, since a SETTLED collection's numbers
+are already final.
+
 **`SettlementPolicy.settle(contributions, actualCostSpent)`** is a pure static function
 (no Spring/Quarkus, no I/O) - same pattern as `ChargeDecisionPolicy` in the sibling "pvopt"
 project, and this app's single most important piece of tested logic. The rule, from the

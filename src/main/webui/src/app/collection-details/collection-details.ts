@@ -8,7 +8,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
-import { TranslatePipe } from '@ngx-translate/core';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { CollectionApiService } from '../core/collection-api.service';
 import {
@@ -36,6 +37,7 @@ import {
     MatInputModule,
     MatIconModule,
     MatChipsModule,
+    MatTooltipModule,
     MatProgressBarModule,
     TranslatePipe,
   ],
@@ -45,6 +47,7 @@ import {
 export class CollectionDetails {
   private readonly route = inject(ActivatedRoute);
   private readonly collectionApi = inject(CollectionApiService);
+  private readonly translate = inject(TranslateService);
 
   readonly view = signal<CollectionDetailsModel | CollectionProgress | null>(null);
   readonly settlementPreview = signal<SettlementResult | null>(null);
@@ -68,6 +71,26 @@ export class CollectionDetails {
       this.settlementPreview.set(result);
       this.reload();
     });
+  }
+
+  /** Only meaningful while the collection is ACTIVE - see backend
+   *  RemoveStudentFromCollectionUseCase, which refunds whatever the student already paid
+   *  back to their piggy bank. Adds the 'actions' column to the requirements table (see
+   *  visibleRequirementColumns) only in that state. */
+  removeStudent(studentId: string, studentName: string): void {
+    const confirmed = window.confirm(this.translate.instant('collectionDetails.removeStudentConfirm', { name: studentName }));
+    if (!confirmed) {
+      return;
+    }
+    this.collectionApi.removeStudent(this.collectionId, studentId).subscribe(() => this.reload());
+  }
+
+  visibleRequirementColumns(): string[] {
+    const current = this.view();
+    if (current && isCollectionDetails(current) && current.collection.status === 'ACTIVE') {
+      return [...this.requirementColumns, 'actions'];
+    }
+    return this.requirementColumns;
   }
 
   /** SettlementResult only carries studentId (see backend SettlementResultResponse) - name

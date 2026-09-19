@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ParentApiService } from '../core/parent-api.service';
 import { StudentApiService } from '../core/student-api.service';
@@ -27,6 +28,7 @@ import { Parent, Student } from '../core/models';
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    MatCheckboxModule,
     TranslatePipe,
   ],
   templateUrl: './treasurer-panel.html',
@@ -78,6 +80,11 @@ export class TreasurerPanel {
   readonly newCollectionDescription = signal('');
   readonly newCollectionBaseAmount = signal<number>(0);
   readonly collectionCreated = signal(false);
+  /** Students unchecked on the "who's in this collection" checklist - not every collection
+   *  includes every student (e.g. a trip a student already can't attend). Tracking the
+   *  excluded set rather than the included one means a newly-added student defaults to
+   *  included without any extra bookkeeping. */
+  readonly excludedStudentIdsForNewCollection = signal<ReadonlySet<string>>(new Set());
 
   constructor() {
     this.reloadStudents();
@@ -113,14 +120,34 @@ export class TreasurerPanel {
   }
 
   createCollection(): void {
+    const includedStudentIds = this.students()
+      .map((s) => s.id)
+      .filter((id) => this.isStudentIncludedInNewCollection(id));
     this.collectionApi
-      .create(this.newCollectionTitle(), this.newCollectionDescription(), this.newCollectionBaseAmount())
+      .create(this.newCollectionTitle(), this.newCollectionDescription(), this.newCollectionBaseAmount(), includedStudentIds)
       .subscribe(() => {
         this.newCollectionTitle.set('');
         this.newCollectionDescription.set('');
         this.newCollectionBaseAmount.set(0);
+        this.excludedStudentIdsForNewCollection.set(new Set());
         this.collectionCreated.set(true);
       });
+  }
+
+  isStudentIncludedInNewCollection(studentId: string): boolean {
+    return !this.excludedStudentIdsForNewCollection().has(studentId);
+  }
+
+  setStudentIncludedInNewCollection(studentId: string, included: boolean): void {
+    this.excludedStudentIdsForNewCollection.update((excluded) => {
+      const next = new Set(excluded);
+      if (included) {
+        next.delete(studentId);
+      } else {
+        next.add(studentId);
+      }
+      return next;
+    });
   }
 
   // --- student name edit ---
