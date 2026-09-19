@@ -848,12 +848,12 @@ to fit under the limit; they carry no other significance, don't rename them back
 checking the character count (`python3 -c "import json; print(len(''.join(json.dumps(json.load(open('infra/iam/terraform-user-policy.json')),separators=(',',':')).split())))"`
 against the *current* file before pasting a new version into the IAM console).
 
-This is deployed but **not yet in daily real use**: the treasurer's own `Parent` record
-(role=TREASURER) still needs seeding (see "Bootstrap gap" above - same manual
-`aws dynamodb put-item` recipe used for local testing, just against the real table and a
-real Cognito user created via `admin-create-user`), and the bank-statement pipeline still
-needs a real Gmail App Password (TODO #2 below) before the daily EventBridge-triggered poll
-does anything beyond finding zero configured credentials and skipping gracefully.
+**Update, later session**: the treasurer's own `Parent`/`Student` record has since been
+seeded for real (see "Student replaces Parent" above) and the app is in actual use. The
+bank-statement pipeline's IMAP credentials are also now set on production and confirmed
+connecting for real (see TODO #2 below) - the daily EventBridge-triggered poll (9:00 Warsaw
+time) does a genuine IMAP login and search now, not just a "not configured" no-op; it just
+hasn't seen a real mBank notification yet.
 
 ## TODO for the next session
 
@@ -881,14 +881,29 @@ Roughly in the order they'd block real usage:
    human-typed title vs. always a structured code is unconfirmed; the "From" address for
    `groszdogrosza.bankstatement.imap.expected-sender` also still needs verifying against a
    real header (only the rendered body was available, not the raw `.eml`).
-2. **Create a Gmail App Password** for jaros.dabrowski@gmail.com (Google Account → Security
-   → 2-Step Verification → App passwords - requires 2FA already enabled) and set
-   `groszdogrosza.bankstatement.imap.username`/`app-password` locally (env vars, never
-   committed) to test `ImapBankStatementFetchAdapter` against the real inbox. The pipeline
-   itself (IMAP fetch → parse → match → book → ledger) is now verified end-to-end against a
-   mock IMAP/SMTP server (GreenMail) with a synthetic mBank-shaped email - see "Verified
-   end-to-end locally" below - so this step is specifically about the real Gmail connection
-   (TLS handshake against imap.gmail.com, real credentials), not the business logic.
+2. **Real Gmail IMAP connection - partially done.** Rather than an App Password on
+   jaros.dabrowski@gmail.com itself (a Google App Password has no scoping - no read-only, no
+   single-folder restriction, it's full IMAP/SMTP/POP access to the whole account - the user
+   explicitly didn't want to hand that over for their real personal mailbox), the mailbox
+   actually polled is a **dedicated throwaway account**, `gdogrosza@gmail.com`, created
+   solely for this. The real mailbox forwards mBank's notification mails to it via a Gmail
+   filter (Settings → Forwarding and POP/IMAP → add + verify the forwarding address, then a
+   filter matching `From: kontakt@mbank.pl` with "Forward it to" checked) - so a leaked App
+   Password only ever exposes forwarded mBank notifications, never the user's real mail. Its
+   App Password is set on production (`GROSZDOGROSZA_BANKSTATEMENT_IMAP_USERNAME`/
+   `_APP_PASSWORD`, via `TF_VAR_bankstatement_imap_username`/`_app_password`, never
+   committed) and **connectivity is confirmed working from real AWS** - `POST
+   /internal/bankstatement/poll` against production returns a clean
+   `transactionsFailed: 0` result (a real IMAP login + search, not a "not configured, skipping"
+   no-op). Still open: no genuine mBank notification has been forwarded and parsed yet - the
+   forwarding filter was only just set up, and mBank only sends this mail on an actual
+   incoming transfer (not a fixed daily digest, confirmed - the daily poll's job is to catch
+   whatever arrived since the last run, not to trigger a digest send). The first real
+   transfer received will be the actual end-to-end proof that a *forwarded* copy still
+   parses correctly (headers, HTML structure) - the pipeline logic itself (IMAP fetch →
+   parse → match → book → ledger) is already verified end-to-end against a mock IMAP/SMTP
+   server (GreenMail) with a synthetic mBank-shaped email, see "Verified end-to-end locally"
+   below.
 3. **Decide the settle-preview UX** - right now `POST /collections/{id}/settle` commits
    immediately with no dry-run; the user's spec asked for a preview-then-confirm flow. Add
    either a `dryRun` param to `SettleCollectionUseCase` or a separate preview endpoint, and
