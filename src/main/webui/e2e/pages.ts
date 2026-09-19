@@ -299,6 +299,20 @@ export class Api {
     }
   }
 
+  /** Treasurer-only manual top-up (`CreditStudentPiggyBankManuallyUseCase`) - used to give a
+   *  student an existing piggy bank balance *before* a collection is created, so its
+   *  requirement is computed against a non-zero starting balance. */
+  async creditPiggyBank(studentId: string, amountZl: number): Promise<void> {
+    const resp = await this.request.post(`${this.baseURL}/api/students/${studentId}/piggy-bank/credit`, {
+      headers: this.headers,
+      data: { amount: amountZl },
+    });
+    if (resp.status() !== 200) {
+      throw new Error(`Crediting ${amountZl} zł to student ${studentId}'s piggy bank failed: ` +
+        `${resp.status()} ${await resp.text()}`);
+    }
+  }
+
   async deleteStudent(studentId: string): Promise<void> {
     await this.request.delete(`${this.baseURL}/api/students/${studentId}`, { headers: this.headers }).catch(() => {});
   }
