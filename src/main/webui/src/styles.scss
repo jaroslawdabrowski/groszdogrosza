@@ -74,6 +74,10 @@ body {
   margin: 0;
   font-family: "Inter", Roboto, "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
+  // Without this, a left-edge swipe on a mobile browser triggers the browser's own
+  // "go back" gesture (a translucent chevron overlaid on the page) right next to our
+  // own back-link arrow, reading as a duplicated arrow.
+  overscroll-behavior-x: none;
 }
 
 html, body { height: 100%; }
