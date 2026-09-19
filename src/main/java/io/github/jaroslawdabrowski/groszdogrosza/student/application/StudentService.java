@@ -1,5 +1,6 @@
 package io.github.jaroslawdabrowski.groszdogrosza.student.application;
 
+import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerAmounts;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.RecordLedgerEntryUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
@@ -103,7 +104,7 @@ public class StudentService implements CreateStudentUseCase, GetStudentUseCase, 
     public Student creditPiggyBankManually(String studentId, BigDecimal amount) {
         Student updated = creditPiggyBank(studentId, amount);
         recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_CREDITED,
-                Map.of("amount", amount.toPlainString()));
+                Map.of("amount", LedgerAmounts.format(amount)));
         return updated;
     }
 

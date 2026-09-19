@@ -14,6 +14,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.ContributionR
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.ContributionSource;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ApplyAutomaticContributionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetActiveRequirementsForStudentUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerAmounts;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.RecordLedgerEntryUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
@@ -190,7 +191,7 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
         // unconditionally, even if it's immediately swept back out in step 2.
         creditStudentPiggyBankUseCase.creditPiggyBank(studentId, transaction.amount());
         recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_CREDITED, Map.of(
-                "amount", transaction.amount().toPlainString(),
+                "amount", LedgerAmounts.format(transaction.amount()),
                 "bankReference", transaction.bankReference()));
 
         // Step 2: sweep as much of the (pre-existing balance + this payment) as needed
@@ -206,7 +207,7 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
             debitStudentPiggyBankUseCase.debitPiggyBank(studentId, requirementAllocation.amountApplied());
             recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION, Map.of(
                     "collectionId", requirementAllocation.collectionId(),
-                    "amount", requirementAllocation.amountApplied().toPlainString()));
+                    "amount", LedgerAmounts.format(requirementAllocation.amountApplied())));
             applyAutomaticContributionUseCase.applyContribution(
                     requirementAllocation.collectionId(), studentId, requirementAllocation.amountApplied(),
                     ContributionSource.PIGGY_BANK_APPLIED, transaction.bankReference());

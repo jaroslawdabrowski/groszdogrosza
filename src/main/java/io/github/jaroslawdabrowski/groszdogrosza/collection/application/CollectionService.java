@@ -17,6 +17,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListCollecti
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RecordManualContributionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.out.CollectionRepositoryPort;
+import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerAmounts;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.RecordLedgerEntryUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
@@ -61,9 +62,14 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
             if (required.signum() < 0) {
                 required = BigDecimal.ZERO;
             }
+            // A student whose existing piggy bank balance already covers the full base
+            // amount has nothing left to pay - without this, requiredAmount=0 still showed
+            // as PENDING ("Do zapłaty"), misleadingly implying money was still owed.
+            ContributionRequirementStatus initialStatus =
+                    required.signum() == 0 ? ContributionRequirementStatus.PAID : ContributionRequirementStatus.PENDING;
             ContributionRequirement requirement = new ContributionRequirement(
                     UUID.randomUUID().toString(), collection.id(), student.id(), required, BigDecimal.ZERO,
-                    ContributionRequirementStatus.PENDING);
+                    initialStatus);
             collectionRepository.saveRequirement(requirement);
         }
 
@@ -111,7 +117,7 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
         recordLedgerEntryUseCase.record(studentId, LedgerEventType.CONTRIBUTION_RECEIVED, java.util.Map.of(
                 "collectionId", collectionId,
                 "collectionTitle", collection.title(),
-                "amount", amount.toPlainString()));
+                "amount", LedgerAmounts.format(amount)));
 
         return contribution;
     }
@@ -139,13 +145,13 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
             if (settlement.leftoverToCredit().signum() > 0) {
                 creditStudentPiggyBankUseCase.creditPiggyBank(settlement.studentId(), settlement.leftoverToCredit());
                 recordLedgerEntryUseCase.record(settlement.studentId(), LedgerEventType.PIGGY_BANK_CREDITED,
-                        java.util.Map.of("amount", settlement.leftoverToCredit().toPlainString()));
+                        java.util.Map.of("amount", LedgerAmounts.format(settlement.leftoverToCredit())));
             }
             recordLedgerEntryUseCase.record(settlement.studentId(), LedgerEventType.COLLECTION_SETTLED,
                     java.util.Map.of(
                             "collectionId", collectionId,
                             "collectionTitle", collection.title(),
-                            "leftoverAmount", settlement.leftoverToCredit().toPlainString()));
+                            "leftoverAmount", LedgerAmounts.format(settlement.leftoverToCredit())));
         }
 
         collectionRepository.saveCollection(collection.withStatus(CollectionStatus.SETTLED));

@@ -482,6 +482,17 @@ JSON files). If you add a new `LedgerEventType` value or change what a `record(.
 `params` map contains, update **both** language files' `ledger.*` keys to match, or the
 frontend renders raw `{{placeholder}}` text for that entry.
 
+**Every amount going into `params` must go through `LedgerAmounts.format`, never a raw
+`BigDecimal.toPlainString()`** - found (and fixed) while extending the e2e suite: a
+`params` value is a `String`, not a JSON number, so the frontend inserts it into the
+translated sentence verbatim. Every other amount in this app (a piggy bank balance, a
+settlement's `leftoverToCredit`) is a JSON number field that Angular interpolates after JS's
+own `JSON.parse` has already dropped meaningless trailing zeros (`40.00` becomes the number
+`40`) - but `SettlementPolicy.fromGrosz` always produces scale-2 `BigDecimal`s, so a raw
+`toPlainString()` on a whole-złoty settlement amount printed `"40.00"` in a ledger sentence
+sitting right next to a piggy bank balance that said `"40 zł"` on the very same page.
+`LedgerAmounts.format` strips the unnecessary trailing zeros first.
+
 ### Persistence: DynamoDB, single table, composite key (pk/sk)
 
 `quarkus-amazon-dynamodb` (+ `software.amazon.awssdk:url-connection-client`, which the

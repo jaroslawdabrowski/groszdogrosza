@@ -1,8 +1,13 @@
 # End-to-end tests
 
-`main-flow.spec.ts` drives the real app through the main money flow (treasurer creates a
-collection → a payment is recorded → it settles → both the treasurer's and a parent's login
-see the right numbers) with a real browser against a real running backend - not mocked.
+`main-flow.spec.ts` drives the real app through the main money flow (treasurer creates two
+collections, students pay in, both settle, the settlement surplus math is checked against
+concrete numbers, both the treasurer's and a parent's login see the right numbers) with a
+real browser against a real running backend - not mocked. `pages.ts` is the Page Object
+Model it's written against (`TreasurerPanel`, `CollectionDetailsPage`, `PiggyBankPage`, ...,
+plus a small `Api` wrapper for the one thing there's no UI for yet - see below) - keeps the
+spec itself readable as a story about money and students rather than a wall of
+`page.locator(...)` calls.
 
 ## Running it
 
@@ -22,10 +27,16 @@ Everything after that - adding a student, adding a parent, creating and settling
 collection, both logins - goes through the real UI or the real API, not direct database
 writes.
 
-Re-running the suite doesn't clean up after itself (matching every other local-dev recipe in
-this project) - it leaves an extra treasurer-role `Parent` row and a `Jasio Skarbnik`/`Kasia
-<timestamp>` student behind each time. Harmless for local Dev Services DynamoDB, which nobody
-depends on staying clean; never point `GG_E2E_BASE_URL` at a real deployment.
+The suite cleans up after itself in `test.afterEach` - both the seeded treasurer's own
+`Jasio Skarbnik` and the UI-created `Kasia <timestamp>` student are deleted via the real
+`DELETE /api/students/{id}` once the test finishes, pass or fail. This isn't just tidiness:
+`Parent.email` isn't unique and `AuthorizationSupport` resolves "who am I" via a full-table
+scan's `.findFirst()`, so a leftover `Parent` row from a previous run sharing the same
+dev-user email can non-deterministically win that scan and make the *next* run assert
+against stale data instead of what it just created - confirmed the hard way, a second
+consecutive run without this hook failed on a stale-student mismatch. Never point
+`GG_E2E_BASE_URL` at a real deployment - `seed.ts` writes straight to whatever DynamoDB table
+the app under test is using, dev-only Localstack credentials and all.
 
 ## Why a payment is recorded via API, not a UI click
 
@@ -35,6 +46,18 @@ pipeline (`BankStatementProcessingService`), not something a parent clicks in th
 all. That pipeline's own logic (fuzzy/exact matching, the piggy-bank-first-then-sweep
 allocation) is covered by `PaymentMatchingPolicyTest`/`ContributionAllocationPolicyTest` and
 was manually verified against a mocked mailbox - see CLAUDE.md, "Verified end-to-end
-locally". This suite calls `POST /api/collections/{id}/contributions` directly to stand in
-for "a payment landed", the same way the treasurer would record a cash payment by hand once
-that UI exists.
+locally". This suite calls `POST /api/collections/{id}/contributions` (`Api.recordContribution`)
+directly to stand in for "a payment landed", the same way the treasurer would record a cash
+payment by hand once that UI exists - `SettlementPolicy`'s surplus-crediting math (what a
+collection actually settles the leftover to the piggy bank for) is the same either way, so
+the two settlement scenarios in `main-flow.spec.ts` (an overpayment settled with money left
+over; two students settled at a lower-than-expected actual cost) exercise real business
+logic even though the money arrived via this stand-in rather than a real bank transfer.
+
+One real bug surfaced while writing those scenarios and is fixed alongside this suite: a
+`ContributionRequirement` whose `requiredAmount` is already 0 (fully covered by an existing
+piggy bank balance at the moment the collection was created) used to still be created with
+status `PENDING` ("Do zapłaty") - misleadingly implying money was still owed when nothing
+was. `CollectionService.createCollection` now sets the initial status to `PAID` when the
+computed required amount is zero. See the second collection in `main-flow.spec.ts` for the
+regression test.

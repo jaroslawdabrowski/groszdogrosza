@@ -1,23 +1,43 @@
-import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { seedTreasurer } from './seed';
+import {
+  Api,
+  AppShell,
+  CollectionDetailsPage,
+  Dashboard,
+  GlobalLedgerPage,
+  LoginPage,
+  PiggyBankPage,
+  TreasurerPanel,
+} from './pages';
 
 /**
  * The main money flow, end to end, against a real running app (see e2e/README.md for how to
  * run it) - not mocked, not a unit test. One long sequential test rather than many small
  * ones: each step depends on state the previous step created (a collection to pay into, a
- * parent account to log in as), so splitting it up would just mean re-doing setup per test
- * for no real isolation benefit.
+ * parent account to log in as, a piggy bank balance carried from one collection into the
+ * next), so splitting it up would just mean re-doing setup per test for no real isolation
+ * benefit. See `e2e/pages.ts` for the Page Object Model this spec is written against.
  *
  * Money is "paid in" via the treasurer directly recording a contribution
- * (`POST /api/collections/{id}/contributions`) rather than through a UI button, because
- * there isn't one yet (see CLAUDE.md's "No UI to manually record a contribution" TODO) - and
- * because a real parent payment normally arrives via the automatic bank-statement pipeline
- * (`BankStatementProcessingService`), not a UI action a parent takes themselves. That
- * piggy-bank-first-then-sweep pipeline is covered separately by
- * `PaymentMatchingPolicyTest`/`ContributionAllocationPolicyTest` and was manually verified
- * against a mocked mailbox (see CLAUDE.md, "Verified end-to-end locally") - this test's job
- * is the rest of the flow: creating the collection, the money actually landing against the
- * right student, the settlement math, and both the treasurer's and a parent's view of it.
+ * (`POST /api/collections/{id}/contributions`, see `Api.recordContribution`) rather than
+ * through a UI button, because there isn't one yet (see CLAUDE.md's "No UI to manually
+ * record a contribution" TODO) - and because a real parent payment normally arrives via the
+ * automatic bank-statement pipeline (`BankStatementProcessingService`), not something a
+ * parent clicks in this app at all. **That pipeline's own money-moving mechanics - crediting
+ * the piggy bank first, then sweeping it against active requirements
+ * (`ContributionAllocationPolicy`) - are NOT exercised here**: they're covered by
+ * `PaymentMatchingPolicyTest`/`ContributionAllocationPolicyTest` and were manually verified
+ * against a mocked mailbox (see CLAUDE.md, "Verified end-to-end locally"), and wiring up a
+ * real/mock IMAP server for this suite would need the dev server itself to be started with
+ * IMAP config - a bigger change than this suite's own bootstrap. What this test's settlement
+ * scenarios below verify instead is `SettlementPolicy`'s surplus-crediting math (contributed
+ * minus actual cost, credited back to the piggy bank of whoever contributed) - the same
+ * arithmetic, reached through the manual-contribution endpoint instead of the automatic
+ * sweep. The two worked examples below use the exact numbers from the app's own spec: "do
+ * skarbonki poszło 50 zł, a zbiórka była 10 zł, więc w skarbonce zostało 40" (collection A),
+ * then "zbiórka wyszła po 8 zł na głowę zamiast 10, więc 2 zł wraca do skarbonki - jest 42"
+ * (collection B).
  *
  * Cleans up the students it creates in `afterEach` (using a treasurer token captured during
  * the test, even after the test itself logs out and in as a different user) - both the
@@ -31,150 +51,160 @@ import { seedTreasurer } from './seed';
  * without cleanup failed on a stale-student mismatch before this hook was added.
  */
 test.describe('main flow: collection → payment → settlement → both logins see it', () => {
-  let treasurerIdToken: string | undefined;
+  let api: Api | undefined;
   let treasurerKidStudentId: string | undefined;
   let kasiaStudentId: string | undefined;
 
-  test.afterEach(async ({ request, baseURL }) => {
-    if (!treasurerIdToken) {
+  test.afterEach(async () => {
+    if (!api) {
       return;
     }
-    const headers = { Authorization: `Bearer ${treasurerIdToken}` };
     if (kasiaStudentId) {
-      await request.delete(`${baseURL}/api/students/${kasiaStudentId}`, { headers }).catch(() => {});
+      await api.deleteStudent(kasiaStudentId);
     }
     if (treasurerKidStudentId) {
-      await request.delete(`${baseURL}/api/students/${treasurerKidStudentId}`, { headers }).catch(() => {});
+      await api.deleteStudent(treasurerKidStudentId);
     }
   });
 
-  test('treasurer creates a collection, a payment is recorded, it settles, both logins see the right numbers', async ({
+  test('treasurer creates collections, payments are recorded, settlement math is right, both logins see it', async ({
     page,
     request,
     baseURL,
   }) => {
     const unique = Date.now();
+    const studentLastName = `Testowa${unique}`;
+    const kasiaFullName = `Kasia ${studentLastName}`;
+    const jasioFullName = 'Jasio Skarbnik';
+
+    const login = new LoginPage(page);
+    const app = new AppShell(page);
+    const treasurer = new TreasurerPanel(page);
+    const dashboard = new Dashboard(page);
+    const globalLedger = new GlobalLedgerPage(page);
+    const piggyBank = new PiggyBankPage(page);
+
     // Must be the exact email keycloak-realm.json's "skarbnik" dev user logs in as -
     // AuthorizationSupport resolves the caller's own Parent record by matching this email
     // against the OIDC token's email claim, not by any stored subject id.
     const seeded = seedTreasurer('skarbnik@example.com', 'Jarek', 'Skarbnik', 'Jasio', 'Skarbnik');
     treasurerKidStudentId = seeded.studentId;
 
-    await loginAsKeycloakUser(page, 'skarbnik', 'skarbnik');
-    treasurerIdToken = await page.evaluate(() => sessionStorage.getItem('id_token'));
+    await login.loginAs('skarbnik', 'skarbnik');
+    const treasurerIdToken = await page.evaluate(() => sessionStorage.getItem('id_token'));
+    expect(treasurerIdToken, 'expected an id_token in sessionStorage right after login').toBeTruthy();
+    api = new Api(request, baseURL!, treasurerIdToken!);
 
-    await page.goto('/treasurer');
-    await expect(page.locator('.student-list')).toContainText('Jasio Skarbnik');
+    await treasurer.goto();
+    await treasurer.expectStudentVisible(jasioFullName);
 
     // --- Add a second student with a parent, via the real UI ---
-    const studentLastName = `Testowa${unique}`;
-    await page.getByLabel('Imię').fill('Kasia');
-    await page.getByLabel('Nazwisko').fill(studentLastName);
-    await page.getByRole('button', { name: 'Dodaj ucznia' }).click();
-    const studentItem = page.locator('.student-item').filter({ hasText: `Kasia ${studentLastName}` });
-    await expect(studentItem).toBeVisible();
+    const kasia = await treasurer.addStudent('Kasia', studentLastName);
+    await kasia.addParent({
+      firstName: 'Anna',
+      lastName: studentLastName,
+      // Must match keycloak-realm.json's "rodzic1" dev user's real email exactly - same
+      // email-claim-matching rule as the treasurer seeding above.
+      email: 'anna.testowa@example.com',
+      expectedSenderName: `Anna ${studentLastName}`,
+    });
+    await kasia.expectParentVisible('anna.testowa@example.com');
 
-    await studentItem.getByRole('button', { name: 'Dodaj rodzica' }).click();
-    const addParentForm = studentItem.locator('.edit-form');
-    await addParentForm.getByLabel('Imię').fill('Anna');
-    await addParentForm.getByLabel('Nazwisko').fill(studentLastName);
-    // Must match keycloak-realm.json's "rodzic1" dev user's real email exactly - same
-    // email-claim-matching rule as the treasurer seeding above.
-    await addParentForm.getByLabel('E-mail').fill('anna.testowa@example.com');
-    await addParentForm.getByLabel('Nazwa nadawcy na przelewie').fill(`Anna ${studentLastName}`);
-    await addParentForm.getByRole('button', { name: 'Dodaj rodzica' }).click();
-    await expect(studentItem).toContainText('anna.testowa@example.com');
-
-    kasiaStudentId = await studentIdByLastName(request, baseURL!, treasurerIdToken!, studentLastName);
+    kasiaStudentId = await api.studentIdByLastName(studentLastName);
 
     // --- Payment info (shown on the public, unauthenticated page) ---
-    await page.getByLabel('Numer konta').fill('11 2222 3333 4444 5555 6666 7777');
-    await page.getByLabel('BLIK na telefon').fill('600 700 800');
-    await page.locator('mat-card').filter({ hasText: 'Dane do wpłat' }).getByRole('button', { name: 'Zapisz' }).click();
-    await expect(page.getByText('Zapisano.')).toBeVisible();
+    await treasurer.setPaymentInfo('11 2222 3333 4444 5555 6666 7777', '600 700 800');
 
-    // --- Create the collection - one requirement per student, including the one just added ---
-    const collectionTitle = `Prezent testowy ${unique}`;
-    await page.getByLabel('Tytuł zbiórki').fill(collectionTitle);
-    await page.getByLabel('Opis').fill('Zbiórka utworzona przez test end-to-end');
-    await page.getByLabel('Kwota bazowa od ucznia (zł)').fill('50');
-    await page.getByRole('button', { name: 'Utwórz zbiórkę' }).click();
-    await expect(page.getByText('Zbiórka została utworzona.')).toBeVisible();
+    // ============================================================================
+    // Collection A: one overpaying student, settled at exactly the requested amount.
+    // 50 zł paid in, 10 zł actually needed -> the whole 40 zł surplus goes to Kasia's
+    // piggy bank. Also checks the requirement's initial status before any payment lands.
+    // ============================================================================
+    const collectionATitle = `Prezent testowy ${unique}`;
+    await treasurer.createCollection(collectionATitle, 'Zbiórka utworzona przez test end-to-end', '10');
 
-    await page.goto('/dashboard');
-    await page.getByRole('link', { name: new RegExp(collectionTitle) }).click();
-    await expect(page.locator('table')).toContainText(studentLastName);
-    await expect(page.locator('table')).toContainText('Do zapłaty');
+    await dashboard.goto();
+    await dashboard.openCollection(collectionATitle);
+    const collectionA = new CollectionDetailsPage(page);
+    await collectionA.requirements.expectRequiredAmount(kasiaFullName, '10');
+    await collectionA.requirements.expectPaidAmount(kasiaFullName, '0');
+    await collectionA.requirements.expectStatus(kasiaFullName, 'Do zapłaty');
 
-    const collectionId = new URL(page.url()).pathname.split('/').pop()!;
+    await api.recordContribution(collectionA.id, kasiaStudentId, 50);
+    await collectionA.reload();
+    await collectionA.requirements.expectPaidAmount(kasiaFullName, '50');
+    await collectionA.requirements.expectStatus(kasiaFullName, 'Nadpłacone');
+    await collectionA.contributions.containsEntry('50 zł');
 
-    // --- "A parent pays" - recorded the way a real incoming bank transfer would book it,
-    // see the class-level comment above for why this isn't a UI click. ---
-    const contributionResp = await request.post(`${baseURL}/api/collections/${collectionId}/contributions`, {
-      headers: { Authorization: `Bearer ${treasurerIdToken}` },
-      data: { studentId: kasiaStudentId, amount: 50 },
-    });
-    expect(contributionResp.status()).toBe(200);
+    await collectionA.settle('10');
+    await collectionA.settlementResult.containsEntry(`${kasiaFullName}: +40 zł`);
+    await collectionA.expectStatus('SETTLED');
 
-    await page.reload();
-    await expect(page.locator('table')).toContainText('Zapłacone');
-    await expect(page.locator('.contribution-list')).toContainText('50 zł');
+    await piggyBank.goto(kasiaStudentId);
+    await piggyBank.expectStudentName(kasiaFullName);
+    await piggyBank.expectBalance('40');
+    await piggyBank.activityLog.isVisible();
+    await piggyBank.activityLog.containsEntry('40 zł');
 
-    // --- Settle: contributed 50, actual cost 40 -> 10 zł surplus credited back ---
-    await page.locator('input[type="number"]').fill('40');
-    await page.getByRole('button', { name: 'Rozlicz zbiórkę' }).click();
-    await expect(page.locator('.settlement-list')).toContainText('+10 zł');
-    await expect(page.locator('.status-chip--SETTLED')).toBeVisible();
+    // ============================================================================
+    // Collection B: two students, actual cost comes in under the 10 zł ask - "wyszło po
+    // 8 zł na głowę" - each contributor's 2 zł surplus is credited back. Also exercises the
+    // OTHER piggy-bank interaction: Kasia's now-40-zł balance already covers this
+    // collection's 10 zł base amount on its own, so her requirement here starts already
+    // satisfied (0 zł owed, status PAID) even before anyone pays anything - the fix in
+    // CollectionService.createCollection made this initial status correct instead of
+    // showing "Do zapłaty" ("still owed") for a requirement that's already 0.
+    // ============================================================================
+    await treasurer.goto();
+    const collectionBTitle = `Wycieczka testowa ${unique}`;
+    await treasurer.createCollection(collectionBTitle, 'Druga zbiórka - test rozliczenia po niższym koszcie', '10');
 
-    // --- Treasurer-only global ledger shows the same student's events ---
-    await page.goto('/ledger');
-    await expect(page.locator('mat-card')).toContainText(`Kasia ${studentLastName}`);
-    await expect(page.locator('mat-card')).toContainText('50 zł');
+    await dashboard.goto();
+    await dashboard.openCollection(collectionBTitle);
+    const collectionB = new CollectionDetailsPage(page);
+    await collectionB.requirements.expectRequiredAmount(kasiaFullName, '0');
+    await collectionB.requirements.expectStatus(kasiaFullName, 'Zapłacone');
+    await collectionB.requirements.expectRequiredAmount(jasioFullName, '10');
+    await collectionB.requirements.expectStatus(jasioFullName, 'Do zapłaty');
 
-    await logout(page);
+    // Both families pay the nominal 10 zł anyway (a real family might not know/use an
+    // existing piggy bank credit) - SettlementPolicy only cares who actually contributed
+    // to THIS collection, not what the pre-computed requirement said.
+    await api.recordContribution(collectionB.id, kasiaStudentId, 10);
+    await api.recordContribution(collectionB.id, treasurerKidStudentId, 10);
+    await collectionB.reload();
+    await collectionB.requirements.expectStatus(kasiaFullName, 'Nadpłacone');
+    await collectionB.requirements.expectStatus(jasioFullName, 'Zapłacone');
 
-    // --- The parent logs in and sees their own child's collection and piggy bank ---
-    await loginAsKeycloakUser(page, 'rodzic1', 'rodzic1');
+    // 20 zł paid in total, the trip actually cost 16 zł -> 4 zł surplus, split evenly two
+    // ways (no odd grosz to worry about here - see SettlementPolicyTest for that case).
+    await collectionB.settle('16');
+    await collectionB.settlementResult.containsEntry(`${kasiaFullName}: +2 zł`);
+    await collectionB.settlementResult.containsEntry(`${jasioFullName}: +2 zł`);
+    await collectionB.expectStatus('SETTLED');
 
-    await page.goto('/dashboard');
-    await expect(page.getByText(collectionTitle)).toBeVisible();
+    await piggyBank.goto(kasiaStudentId);
+    await piggyBank.expectBalance('42');
 
-    await page.locator('.nav-links a', { hasText: 'Moja skarbonka' }).click();
-    await expect(page.locator('h1')).toContainText(`Kasia ${studentLastName}`);
-    await expect(page.locator('.piggy-balance')).toHaveText('10 zł');
-    await expect(page.locator('.timeline')).toContainText('Wpłata');
+    // --- Treasurer-only global ledger shows both students' events ---
+    await globalLedger.goto();
+    await globalLedger.activityLog.containsEntry(kasiaFullName);
+    await globalLedger.activityLog.containsEntry(jasioFullName);
+    await globalLedger.activityLog.containsEntry('50 zł');
+
+    await app.logout();
+
+    // --- The parent logs in and sees their own child's collections and piggy bank, not
+    // the treasurer's kid's ---
+    await login.loginAs('rodzic1', 'rodzic1');
+
+    await dashboard.goto();
+    await dashboard.expectCollectionVisible(collectionATitle);
+    await dashboard.expectCollectionVisible(collectionBTitle);
+
+    await app.openMyPiggyBank();
+    await piggyBank.expectStudentName(kasiaFullName);
+    await piggyBank.expectBalance('42');
+    await piggyBank.activityLog.containsEntry('Wpłata');
   });
 });
-
-async function loginAsKeycloakUser(page: Page, username: string, password: string): Promise<void> {
-  await page.goto('/login');
-  await page.getByRole('button', { name: 'Zaloguj się' }).click();
-  await page.waitForURL(/\/realms\//, { timeout: 15_000 });
-  await page.locator('#username').fill(username);
-  await page.locator('#password').fill(password);
-  await page.locator('#kc-login').click();
-  await page.waitForURL((url) => !url.pathname.includes('/realms/'), { timeout: 15_000 });
-  await page.waitForLoadState('networkidle');
-}
-
-async function logout(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Log out' }).click();
-  await page.waitForLoadState('networkidle');
-}
-
-/** The test only knows a lastName, not the id DynamoDB assigned when the UI created the
- *  student - resolve it the same way the app itself would, via the real API. */
-async function studentIdByLastName(
-  request: APIRequestContext,
-  baseURL: string,
-  idToken: string,
-  lastName: string,
-): Promise<string> {
-  const resp = await request.get(`${baseURL}/api/students`, { headers: { Authorization: `Bearer ${idToken}` } });
-  const students = (await resp.json()) as Array<{ id: string; lastName: string }>;
-  const match = students.find((s) => s.lastName === lastName);
-  if (!match) {
-    throw new Error(`No student with lastName ${lastName} found via GET /api/students`);
-  }
-  return match.id;
-}
