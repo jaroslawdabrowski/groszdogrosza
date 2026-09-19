@@ -321,12 +321,16 @@ resource "aws_iam_role_policy" "scheduler_invoke_api_destination" {
   })
 }
 
-# Fires once a day, a bit after the mBank statement mail typically arrives ("rano" per the
-# user - 6:00 UTC = 7:00/8:00 Warsaw local time depending on DST). Adjust to taste once
-# real mail delivery timing is confirmed.
+# Fires once a day at 9:00 Warsaw local time (the user's chosen time, confirmed while
+# testing the real Gmail IMAP pipeline for the first time). Classic aws_cloudwatch_event_rule
+# cron is always UTC with no timezone parameter (that's a aws_scheduler_schedule-only
+# feature, and Scheduler can't target an API destination - see the comment on the
+# aws_cloudwatch_event_connection above), so this is hardcoded to 7:00 UTC = 9:00 CEST and
+# will need bumping to 8:00 UTC when Poland switches back to CET in late October, and again
+# each spring/autumn after that.
 resource "aws_cloudwatch_event_rule" "bankstatement_poll" {
   name                = "${local.name}-bankstatement-poll"
-  schedule_expression = "cron(0 6 * * ? *)"
+  schedule_expression = "cron(0 7 * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "bankstatement_poll" {
