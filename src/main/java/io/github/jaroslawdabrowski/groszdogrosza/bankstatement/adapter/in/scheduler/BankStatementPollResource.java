@@ -49,8 +49,20 @@ public class BankStatementPollResource {
             LOG.warn("Rejected bankstatement poll request: missing/incorrect X-Poll-Secret header");
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
-        PollBankStatementsUseCase.PollResult result = pollBankStatementsUseCase.pollAndProcess();
-        return Response.ok(result).build();
+        // Always logged, success or failure - this is the ONLY durable record of a poll
+        // cycle. The HTTP response body isn't read by anything (the caller in production is
+        // an unattended EventBridge rule, not a human watching curl output), so without this
+        // there'd be no way to check the next morning whether last night's poll even ran,
+        // let alone what it found - CloudWatch Logs for the Lambda is where to look.
+        LOG.info("Bank statement poll starting");
+        try {
+            PollBankStatementsUseCase.PollResult result = pollBankStatementsUseCase.pollAndProcess();
+            LOG.infof("Bank statement poll finished: %s", result);
+            return Response.ok(result).build();
+        } catch (RuntimeException e) {
+            LOG.error("Bank statement poll failed with an unexpected error", e);
+            throw e;
+        }
     }
 
     // Constant-time comparison - this endpoint is deliberately reachable without OIDC auth
