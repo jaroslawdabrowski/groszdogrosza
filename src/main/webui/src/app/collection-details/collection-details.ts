@@ -12,7 +12,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { CollectionApiService } from '../core/collection-api.service';
+import { ALLOWED_ATTACHMENT_TYPES, AttachmentApiService, MAX_ATTACHMENT_SIZE_BYTES } from '../core/attachment-api.service';
 import {
+  Attachment,
   CollectionDetails as CollectionDetailsModel,
   CollectionProgress,
   SettlementResult,
@@ -49,9 +51,14 @@ import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
 export class CollectionDetails {
   private readonly route = inject(ActivatedRoute);
   private readonly collectionApi = inject(CollectionApiService);
+  private readonly attachmentApi = inject(AttachmentApiService);
   private readonly translate = inject(TranslateService);
 
   readonly view = signal<CollectionDetailsModel | CollectionProgress | null>(null);
+  readonly attachments = signal<Attachment[]>([]);
+  readonly uploadingAttachment = signal(false);
+  readonly attachmentError = signal<string | null>(null);
+  readonly allowedAttachmentTypes = ALLOWED_ATTACHMENT_TYPES.join(',');
   /** Only guards the FIRST load (a Lambda cold start can take real seconds - see
    *  LoadingSpinner's javadoc) - never set back to true, so a settle()/removeStudent()
    *  triggered reload() doesn't flash the whole page back to a spinner; `view()` already
@@ -67,6 +74,7 @@ export class CollectionDetails {
   constructor() {
     this.collectionId = this.route.snapshot.paramMap.get('id')!;
     this.reload();
+    this.reloadAttachments();
   }
 
   reload(): void {
@@ -77,6 +85,55 @@ export class CollectionDetails {
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  reloadAttachments(): void {
+    this.attachmentApi.list(this.collectionId).subscribe((attachments) => this.attachments.set(attachments));
+  }
+
+  /** Client-side validation is purely a fast/friendly rejection - see AttachmentPolicy on
+   *  the backend for the actual enforcement point, which a malicious client could still
+   *  bypass by calling the API directly. */
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) {
+      return;
+    }
+    this.attachmentError.set(null);
+    if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+      this.attachmentError.set(this.translate.instant('collectionDetails.attachmentTypeError'));
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+      this.attachmentError.set(this.translate.instant('collectionDetails.attachmentSizeError'));
+      return;
+    }
+
+    this.uploadingAttachment.set(true);
+    this.attachmentApi.upload(this.collectionId, file).subscribe({
+      next: () => {
+        this.uploadingAttachment.set(false);
+        this.reloadAttachments();
+      },
+      error: () => {
+        this.uploadingAttachment.set(false);
+        this.attachmentError.set(this.translate.instant('collectionDetails.attachmentUploadFailed'));
+      },
+    });
+  }
+
+  deleteAttachment(attachmentId: string, fileName: string): void {
+    const confirmed = window.confirm(this.translate.instant('collectionDetails.deleteAttachmentConfirm', { name: fileName }));
+    if (!confirmed) {
+      return;
+    }
+    this.attachmentApi.delete(this.collectionId, attachmentId).subscribe(() => this.reloadAttachments());
+  }
+
+  isImageAttachment(contentType: string): boolean {
+    return contentType.startsWith('image/');
   }
 
   settle(): void {

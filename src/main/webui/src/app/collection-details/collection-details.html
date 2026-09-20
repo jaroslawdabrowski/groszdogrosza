@@ -172,4 +172,64 @@
       </mat-card-content>
     </mat-card>
   }
+
+  <!-- Visible to anyone with access to the collection (any authenticated parent) - only
+       upload/delete are treasurer-only, gated the same way every other treasurer-only
+       control on this page is (isCollectionDetails(v) is true only for a treasurer, see
+       backend CollectionResource.get). -->
+  <mat-card class="gg-card gg-fade-up attachments-card" style="--gg-stagger: 180ms">
+    <mat-card-header>
+      <mat-card-title class="title-with-icon no-print"><mat-icon>attachment</mat-icon>{{ 'collectionDetails.attachments' | translate }}</mat-card-title>
+      <mat-card-title class="print-only">{{ 'collectionDetails.attachments' | translate }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (isCollectionDetails(v)) {
+        <div class="no-print attachment-upload">
+          <input type="file" #fileInput hidden [accept]="allowedAttachmentTypes" (change)="onFileSelected($event)">
+          <button mat-stroked-button [disabled]="uploadingAttachment()" (click)="fileInput.click()">
+            <mat-icon>upload_file</mat-icon>
+            {{ (uploadingAttachment() ? 'collectionDetails.attachmentUploading' : 'collectionDetails.uploadAttachmentButton') | translate }}
+          </button>
+          @if (attachmentError()) {
+            <p class="attachment-error">{{ attachmentError() }}</p>
+          }
+        </div>
+      }
+
+      @if (attachments().length === 0) {
+        <p class="empty-state no-print">{{ 'collectionDetails.noAttachments' | translate }}</p>
+      } @else {
+        <ul class="attachment-list">
+          @for (a of attachments(); track a.id) {
+            <li>
+              @if (isImageAttachment(a.contentType)) {
+                <a [href]="a.viewUrl" target="_blank" rel="noopener" class="attachment-image-link no-print">
+                  <img [src]="a.viewUrl" [alt]="a.fileName" class="attachment-thumb">
+                </a>
+                <!-- Inlined into the printed page itself, per the user's request - the
+                     whole point is a document that can be handed over on paper without
+                     also handing over a phone to open a link. -->
+                <img [src]="a.viewUrl" [alt]="a.fileName" class="print-only attachment-print-image">
+              } @else {
+                <a [href]="a.viewUrl" target="_blank" rel="noopener" class="attachment-file-link">
+                  <mat-icon>description</mat-icon>{{ a.fileName }}
+                </a>
+              }
+              <span class="attachment-name no-print">{{ a.fileName }}</span>
+              @if (isCollectionDetails(v)) {
+                <button
+                  mat-icon-button
+                  class="no-print delete-button"
+                  [matTooltip]="'collectionDetails.deleteAttachmentTooltip' | translate"
+                  (click)="deleteAttachment(a.id, a.fileName)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </mat-card-content>
+  </mat-card>
 }

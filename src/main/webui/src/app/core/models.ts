@@ -108,3 +108,16 @@ export interface PublicOverview {
   paymentInfo: PublicPaymentInfo | null;
   activeCollections: CollectionProgress[];
 }
+
+/** A photo/receipt attached to a collection to document what the money was spent on - see
+ *  backend CollectionAttachmentResource. `viewUrl` is a freshly-minted, short-lived
+ *  presigned S3 URL, not a durable link - always re-fetch the attachment list rather than
+ *  caching one of these across page loads. */
+export interface Attachment {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  viewUrl: string;
+}

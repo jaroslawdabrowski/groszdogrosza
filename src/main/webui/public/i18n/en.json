@@ -80,7 +80,16 @@
     "removeStudentConfirm": "Remove {{name}} from this collection? Any money they paid will be refunded to their piggy bank. This can't be undone.",
     "printButton": "Print report",
     "printedOn": "Printed: {{date}}",
-    "totalCollectedLabel": "Total collected"
+    "totalCollectedLabel": "Total collected",
+    "attachments": "Attachments",
+    "noAttachments": "No documents attached yet.",
+    "uploadAttachmentButton": "Add photo or file",
+    "attachmentUploading": "Uploading...",
+    "deleteAttachmentTooltip": "Delete attachment",
+    "deleteAttachmentConfirm": "Delete \"{{name}}\"? This can't be undone.",
+    "attachmentTypeError": "Only images (jpg/png/heic) and PDF files are allowed.",
+    "attachmentSizeError": "File is too large - the limit is 10MB.",
+    "attachmentUploadFailed": "Couldn't upload this file. Please try again."
   },
   "studentView": {
     "piggyBank": "Piggy bank",

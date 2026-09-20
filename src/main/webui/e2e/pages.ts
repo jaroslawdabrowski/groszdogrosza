@@ -265,6 +265,43 @@ export class CollectionDetailsPage {
     this.page.once('dialog', (dialog) => dialog.accept());
     await this.requirements.removeButton(studentFullName).click();
   }
+
+  /** Treasurer-only - the "Add photo or file" control only exists inside the
+   *  `isCollectionDetails` branch (see CollectionAttachmentResource's javadoc). Uploads via
+   *  the real presigned-URL flow (request-url -> PUT to S3/Localstack -> confirm), not a
+   *  mock - the hidden <input type="file"> still accepts setInputFiles even though it's
+   *  never visible on screen (Playwright doesn't require visibility for that action). */
+  async uploadAttachment(filePath: string): Promise<void> {
+    await this.page.locator('input[type="file"]').setInputFiles(filePath);
+    // Waits for the button to leave its "Uploading..." state - the full three-call upload
+    // flow (request-url, PUT to S3, confirm) needs to actually finish before the caller's
+    // next assertion looks for the new attachment in the (now-reloaded) list.
+    await expect(this.page.getByRole('button', { name: 'Wysyłanie...' })).toHaveCount(0);
+  }
+
+  async expectAttachmentVisible(fileName: string): Promise<void> {
+    await expect(this.page.locator('.attachment-list li', { hasText: fileName })).toBeVisible();
+  }
+
+  async expectAttachmentCount(count: number): Promise<void> {
+    await expect(this.page.locator('.attachment-list li')).toHaveCount(count);
+  }
+
+  async expectUploadAttachmentButtonAbsent(): Promise<void> {
+    await expect(this.page.getByRole('button', { name: 'Dodaj zdjęcie lub plik' })).toHaveCount(0);
+  }
+
+  async expectDeleteAttachmentButtonAbsent(): Promise<void> {
+    await expect(this.page.locator('.attachment-list .delete-button')).toHaveCount(0);
+  }
+
+  /** Accepts the confirm() dialog, same pattern as removeStudent. Icon-only button, no
+   *  accessible name (matTooltip text isn't exposed as one) - grab the row's one button, same
+   *  pattern as RequirementsTable.removeButton. */
+  async deleteAttachment(fileName: string): Promise<void> {
+    this.page.once('dialog', (dialog) => dialog.accept());
+    await this.page.locator('.attachment-list li', { hasText: fileName }).getByRole('button').click();
+  }
 }
 
 export class GlobalLedgerPage {

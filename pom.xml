@@ -16,6 +16,12 @@
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.6</surefire-plugin.version>
         <jsoup.version>1.18.3</jsoup.version>
+        <!-- Matches whatever version software.amazon.awssdk:cognitoidentityprovider (already
+             BOM-managed) resolves to - s3-presigner isn't covered by
+             quarkus-amazon-services-bom itself, so it needs pinning explicitly; keeping it in
+             sync with the BOM-managed SDK version avoids two different AWS SDK versions on
+             the classpath. -->
+        <aws-sdk-s3-presigner.version>2.49.1</aws-sdk-s3-presigner.version>
     </properties>
 
     <dependencyManagement>
@@ -45,6 +51,13 @@
         <dependency>
             <groupId>io.quarkiverse.amazonservices</groupId>
             <artifactId>quarkus-amazon-dynamodb</artifactId>
+        </dependency>
+        <dependency>
+            <!-- Collection attachments (photos/receipts, see collection.adapter.out.s3) -
+                 Dev Services auto-shares the same Localstack container quarkus-amazon-dynamodb
+                 already starts, so no separate local setup is needed. -->
+            <groupId>io.quarkiverse.amazonservices</groupId>
+            <artifactId>quarkus-amazon-s3</artifactId>
         </dependency>
         <dependency>
             <!-- Sync HTTP client for the DynamoDB SDK - quarkus-amazon-dynamodb needs an

@@ -53,6 +53,36 @@ resource "aws_dynamodb_table" "app" {
   }
 }
 
+# --- S3: collection attachments (photos/receipts documenting what money was spent on) ---
+# See CLAUDE.md, "Collection attachments" - the browser uploads/downloads directly against
+# presigned URLs, the Lambda never sees the file bytes, so this bucket only needs CORS for
+# the app's own origin plus the usual private-bucket lockdown.
+resource "aws_s3_bucket" "attachments" {
+  bucket = "${local.name}-attachments"
+}
+
+resource "aws_s3_bucket_public_access_block" "attachments" {
+  bucket = aws_s3_bucket.attachments.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_cors_configuration" "attachments" {
+  bucket = aws_s3_bucket.attachments.id
+
+  cors_rule {
+    allowed_methods = ["GET", "PUT"]
+    # The Function URL is the app's one and only origin (frontend + backend served from the
+    # same Lambda, see Quinoa above) - no separate SPA domain to also allow.
+    allowed_origins = [trimsuffix(aws_lambda_function_url.app.function_url, "/")]
+    allowed_headers = ["*"]
+    max_age_seconds = 3000
+  }
+}
+
 # --- Cognito: OIDC identity provider ---
 # Admin-created accounts only (no self-service sign-up) - @Authenticated alone doesn't
 # restrict *which* Cognito users can log in, and this app has no other allowlist. Create
@@ -183,6 +213,26 @@ resource "aws_iam_role_policy" "dynamodb_access" {
   })
 }
 
+resource "aws_iam_role_policy" "attachments_access" {
+  name = "${local.name}-attachments-access"
+  role = aws_iam_role.lambda_exec.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      # No ListBucket/CreateBucket - the app only ever addresses objects it already knows
+      # the exact key of (see AttachmentPolicy/S3AttachmentStorageAdapter), and Terraform
+      # owns the bucket's own lifecycle, same reasoning as dynamodb_access above.
+      # HeadObject (used to confirm an upload actually landed, see
+      # ConfirmAttachmentUploadUseCase) is authorized under s3:GetObject - there's no
+      # separate IAM action for it.
+      Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+      Resource = ["${aws_s3_bucket.attachments.arn}/*"]
+    }]
+  })
+}
+
 resource "aws_iam_role_policy" "cognito_admin_access" {
   name = "${local.name}-cognito-admin-access"
   role = aws_iam_role.lambda_exec.id
@@ -222,6 +272,16 @@ resource "aws_lambda_function" "app" {
       QUARKUS_OIDC_AUTH_SERVER_URL = "https://cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.app.id}"
       QUARKUS_OIDC_CLIENT_ID       = aws_cognito_user_pool_client.spa.id
       QUARKUS_DYNAMODB_AWS_REGION  = var.region
+      QUARKUS_S3_AWS_REGION        = var.region
+
+      # Collection attachments bucket - see CLAUDE.md, "Collection attachments" and
+      # S3AttachmentStorageAdapter. Must match aws_s3_bucket.attachments.bucket; without
+      # this the app falls back to application.properties' literal "groszdogrosza-attachments"
+      # default, which happens to match here too (both derive from the same
+      # "${local.name}-attachments" naming) but is set explicitly anyway, same reasoning as
+      # GROSZDOGROSZA_DYNAMODB_TABLE_NAME below - never rely on a default staying in sync
+      # with a Terraform-computed name by coincidence.
+      GROSZDOGROSZA_ATTACHMENTS_BUCKET_NAME = aws_s3_bucket.attachments.bucket
 
       # Without this, the app falls back to application.properties' literal
       # "groszdogrosza" default (correct for local dev, where DynamoDbTableInitializer

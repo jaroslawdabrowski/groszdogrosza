@@ -208,3 +208,87 @@ mat-form-field {
     border-radius: 0;
   }
 }
+
+.attachment-upload {
+  margin-bottom: 0.75rem;
+}
+
+.attachment-error {
+  color: var(--gg-blush);
+  font-size: 0.85rem;
+  margin: 0.4rem 0 0;
+}
+
+.attachment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.attachment-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--gg-sky-soft);
+  border-radius: var(--gg-radius-sm);
+}
+
+.attachment-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--gg-radius-sm);
+  display: block;
+}
+
+.attachment-file-link,
+.attachment-image-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--gg-ink);
+  text-decoration: none;
+}
+
+.attachment-file-link:hover {
+  text-decoration: underline;
+}
+
+.attachment-name {
+  color: var(--gg-ink-soft);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.attachment-list .delete-button {
+  margin-inline-start: auto;
+}
+
+.attachment-print-image {
+  display: none;
+}
+
+@media print {
+  .attachments-card {
+    break-inside: avoid;
+  }
+
+  .attachment-list li {
+    background: none;
+    border-bottom: 1px solid #ccc;
+    border-radius: 0;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .attachment-print-image {
+    display: block;
+    max-width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+  }
+}

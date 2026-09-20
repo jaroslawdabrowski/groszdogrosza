@@ -80,7 +80,16 @@
     "removeStudentConfirm": "Na pewno usunąć {{name}} z tej zbiórki? Wpłacone przez niego/nią pieniądze wrócą do skarbonki. Tej operacji nie można cofnąć.",
     "printButton": "Drukuj raport",
     "printedOn": "Wydrukowano: {{date}}",
-    "totalCollectedLabel": "Łącznie zebrano"
+    "totalCollectedLabel": "Łącznie zebrano",
+    "attachments": "Załączniki",
+    "noAttachments": "Nie dodano jeszcze żadnych dokumentów.",
+    "uploadAttachmentButton": "Dodaj zdjęcie lub plik",
+    "attachmentUploading": "Wysyłanie...",
+    "deleteAttachmentTooltip": "Usuń załącznik",
+    "deleteAttachmentConfirm": "Na pewno usunąć \"{{name}}\"? Tej operacji nie można cofnąć.",
+    "attachmentTypeError": "Dozwolone są tylko zdjęcia (jpg/png/heic) i pliki PDF.",
+    "attachmentSizeError": "Plik jest za duży - limit to 10MB.",
+    "attachmentUploadFailed": "Nie udało się wysłać pliku. Spróbuj ponownie."
   },
   "studentView": {
     "piggyBank": "Skarbonka",
