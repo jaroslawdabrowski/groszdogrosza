@@ -904,6 +904,26 @@ Roughly in the order they'd block real usage:
    parse → match → book → ledger) is already verified end-to-end against a mock IMAP/SMTP
    server (GreenMail) with a synthetic mBank-shaped email, see "Verified end-to-end locally"
    below.
+
+   **A real bug this surfaced, fixed 2026-09-20**: the daily EventBridge-triggered poll had
+   **never actually run**, since the very first deployment - `aws_cloudwatch_event_api_destination.bankstatement_poll`'s
+   `invocation_endpoint` was set to the bare Lambda Function URL root
+   (`aws_lambda_function_url.app.function_url`, i.e. `.../`) instead of
+   `.../internal/bankstatement/poll`. Every scheduled invocation 404'd before ever reaching
+   `BankStatementPollResource` - confirmed by CloudWatch Logs showing the Lambda cold-starting
+   at the scheduled time but with *zero* application log output at all, not even the
+   "Rejected bankstatement poll request" line the secret-check would have logged had the
+   request actually reached the resource. Manually curling the *correct* path directly had
+   always worked (that's what "connectivity is confirmed working from real AWS" above was
+   based on) - the schedule itself calling the wrong URL is what went unnoticed. Also why
+   `BankStatementPollResource.poll` now explicitly logs "Bank statement poll starting" and
+   the full `PollResult` on every call (or the exception on failure) - before this, a poll
+   cycle's outcome was only ever returned as an HTTP response body nobody reads for an
+   unattended EventBridge-triggered call, so there was no durable way to notice this kind of
+   silent failure at all, let alone check the next morning whether last night's poll even
+   ran. Fixed the URL by appending the real path to the invocation endpoint. Only provable by
+   watching the next scheduled run's logs (can't force-fire a `schedule_expression` rule on
+   demand).
 3. **Decide the settle-preview UX** - right now `POST /collections/{id}/settle` commits
    immediately with no dry-run; the user's spec asked for a preview-then-confirm flow. Add
    either a `dryRun` param to `SettleCollectionUseCase` or a separate preview endpoint, and

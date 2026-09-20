@@ -277,8 +277,15 @@ resource "aws_cloudwatch_event_connection" "bankstatement_poll" {
 }
 
 resource "aws_cloudwatch_event_api_destination" "bankstatement_poll" {
-  name                             = "${local.name}-bankstatement-poll"
-  invocation_endpoint              = aws_lambda_function_url.app.function_url
+  name = "${local.name}-bankstatement-poll"
+  # BUG, found 2026-09-20 by checking CloudWatch Logs for the first time after wiring up
+  # real IMAP credentials: this pointed at the bare Function URL root ("/") instead of the
+  # actual poll path, so EVERY scheduled invocation since this was first deployed 404'd
+  # before ever reaching BankStatementPollResource - confirmed by a clean absence of even
+  # the "Rejected bankstatement poll request" log line (that guard never ran either) and a
+  # direct `curl -X POST` against the bare Function URL returning 404. The daily poll has
+  # never actually fetched mail, not once, until this was fixed.
+  invocation_endpoint              = "${trimsuffix(aws_lambda_function_url.app.function_url, "/")}/internal/bankstatement/poll"
   http_method                      = "POST"
   invocation_rate_limit_per_second = 1
   connection_arn                   = aws_cloudwatch_event_connection.bankstatement_poll.arn
