@@ -77,7 +77,10 @@
     "studentsPaid": "Students paid for",
     "totalPaid": "Collected",
     "removeStudentTooltip": "Remove student from the collection (refund to piggy bank)",
-    "removeStudentConfirm": "Remove {{name}} from this collection? Any money they paid will be refunded to their piggy bank. This can't be undone."
+    "removeStudentConfirm": "Remove {{name}} from this collection? Any money they paid will be refunded to their piggy bank. This can't be undone.",
+    "printButton": "Print report",
+    "printedOn": "Printed: {{date}}",
+    "totalCollectedLabel": "Total collected"
   },
   "studentView": {
     "piggyBank": "Piggy bank",

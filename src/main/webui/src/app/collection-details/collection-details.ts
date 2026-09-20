@@ -119,4 +119,32 @@ export class CollectionDetails {
     }
     return studentId;
   }
+
+  /** Money actually received for this collection - the sum of every recorded Contribution,
+   *  not the requirements' paidAmount (which a settled collection can leave at a value that
+   *  no longer matches what's actually in hand after leftovers are swept back out). This is
+   *  the number a treasurer would want on a report handed over with cash/a transfer receipt
+   *  - see the print report below. */
+  totalCollected(): number {
+    const current = this.view();
+    if (!current || !isCollectionDetails(current)) {
+      return 0;
+    }
+    return current.contributions.reduce((sum, c) => sum + c.amount, 0);
+  }
+
+  /** Only meaningful the moment it's called (not stored as state) - the print report always
+   *  shows "printed on <today>", so it's fine to compute fresh on each render rather than
+   *  fixing it once. Formatted in the app's currently-chosen language, not the browser's own
+   *  locale - the rest of the printed page (labels, statuses) is already in that language,
+   *  and this report is meant to be handed to someone else (a teacher), so it should read
+   *  consistently regardless of what locale the treasurer's own browser happens to be set to. */
+  printedOnLabel(): string {
+    const locale = this.translate.currentLang() === 'en' ? 'en-US' : 'pl-PL';
+    return new Date().toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  print(): void {
+    window.print();
+  }
 }

@@ -1,20 +1,40 @@
 @if (loading()) {
   <app-loading-spinner [label]="'common.loading' | translate" />
 } @else if (view(); as v) {
-  <a class="back-link" routerLink="/dashboard">
+  <a class="back-link no-print" routerLink="/dashboard">
     <mat-icon>arrow_back</mat-icon>{{ 'common.backToDashboard' | translate }}
   </a>
+
+  <!-- Only shown when printed (see the @media print rules in styles.scss) - the on-screen
+       header above already says all of this, but a printed page needs its own header since
+       the toolbar/back-link around it are hidden. -->
+  <header class="print-only print-header">
+    <p class="print-brand">Grosz do Grosza</p>
+    <p class="print-date">{{ 'collectionDetails.printedOn' | translate: { date: printedOnLabel() } }}</p>
+  </header>
 
   <header class="detail-header">
     <h1 class="gg-heading">{{ v.collection.title }}</h1>
     <p class="description">{{ v.collection.description }}</p>
-    <mat-chip-set>
+    <mat-chip-set class="no-print">
       <mat-chip [class]="'status-chip status-chip--' + v.collection.status">{{ ('collection.status.' + v.collection.status) | translate }}</mat-chip>
       <mat-chip class="amount-chip">{{ 'dashboard.baseAmount' | translate }}: {{ v.collection.baseAmountPerStudent }} zł</mat-chip>
     </mat-chip-set>
+    <p class="print-only">
+      {{ ('collection.status.' + v.collection.status) | translate }} · {{ 'dashboard.baseAmount' | translate }}: {{ v.collection.baseAmountPerStudent }} zł
+    </p>
   </header>
 
   @if (isCollectionDetails(v)) {
+    <button mat-stroked-button class="no-print print-button" (click)="print()">
+      <mat-icon>print</mat-icon>
+      {{ 'collectionDetails.printButton' | translate }}
+    </button>
+
+    <p class="print-only total-collected">
+      {{ 'collectionDetails.totalCollectedLabel' | translate }}: <strong>{{ totalCollected() }} zł</strong>
+    </p>
+
     <mat-card class="gg-card gg-fade-up">
       <mat-card-header>
         <mat-card-title>{{ 'collectionDetails.requirements' | translate }}</mat-card-title>
@@ -82,7 +102,7 @@
     </mat-card>
 
     @if (v.collection.status === 'ACTIVE') {
-      <mat-card class="gg-card gg-card--blush gg-fade-up" style="--gg-stagger: 120ms">
+      <mat-card class="gg-card gg-card--blush gg-fade-up no-print" style="--gg-stagger: 120ms">
         <mat-card-header>
           <mat-card-title>{{ 'collectionDetails.settle' | translate }}</mat-card-title>
         </mat-card-header>

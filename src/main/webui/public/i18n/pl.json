@@ -77,7 +77,10 @@
     "studentsPaid": "Wpłacono za uczniów",
     "totalPaid": "Zebrano",
     "removeStudentTooltip": "Usuń ucznia ze zbiórki (wpłacone pieniądze wrócą do skarbonki)",
-    "removeStudentConfirm": "Na pewno usunąć {{name}} z tej zbiórki? Wpłacone przez niego/nią pieniądze wrócą do skarbonki. Tej operacji nie można cofnąć."
+    "removeStudentConfirm": "Na pewno usunąć {{name}} z tej zbiórki? Wpłacone przez niego/nią pieniądze wrócą do skarbonki. Tej operacji nie można cofnąć.",
+    "printButton": "Drukuj raport",
+    "printedOn": "Wydrukowano: {{date}}",
+    "totalCollectedLabel": "Łącznie zebrano"
   },
   "studentView": {
     "piggyBank": "Skarbonka",

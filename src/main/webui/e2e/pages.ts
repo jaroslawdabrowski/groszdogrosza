@@ -223,6 +223,42 @@ export class CollectionDetailsPage {
     await expect(this.page.locator(`.status-chip--${status}`)).toBeVisible();
   }
 
+  /** Treasurer-only - see CollectionDetails.print's javadoc: it's only rendered inside the
+   *  `isCollectionDetails` branch the backend restricts to a treasurer in the first place. */
+  async expectPrintButtonVisible(): Promise<void> {
+    await expect(this.page.getByRole('button', { name: 'Drukuj raport' })).toBeVisible();
+  }
+
+  async expectPrintButtonAbsent(): Promise<void> {
+    await expect(this.page.getByRole('button', { name: 'Drukuj raport' })).toHaveCount(0);
+  }
+
+  /** Switches this page's CSS media emulation to "print" (Playwright talks to the real
+   *  browser engine, so this exercises the actual `@media print` rules - not a guess at what
+   *  they'd do). Caller is responsible for switching back with `exitPrintPreview` if the test
+   *  keeps using the page afterwards. */
+  async enterPrintPreview(): Promise<void> {
+    await this.page.emulateMedia({ media: 'print' });
+  }
+
+  async exitPrintPreview(): Promise<void> {
+    await this.page.emulateMedia({ media: 'screen' });
+  }
+
+  async expectPrintOnlyContentVisible(): Promise<void> {
+    await expect(this.page.locator('.print-header')).toBeVisible();
+    await expect(this.page.locator('.total-collected')).toBeVisible();
+  }
+
+  /** Everything that makes sense to click but not to read on paper - the toolbar, the
+   *  back-link, the settle form, and the "remove student" action column - is hidden once
+   *  print CSS applies (see the `.no-print` rules in styles.scss/collection-details.scss). */
+  async expectInteractiveChromeHiddenForPrint(): Promise<void> {
+    await expect(this.page.locator('.app-toolbar')).toBeHidden();
+    await expect(this.page.locator('.back-link')).toBeHidden();
+    await expect(this.page.locator('.mat-column-actions').first()).toBeHidden();
+  }
+
   /** Accepts the confirm() dialog the button triggers - see
    *  CollectionDetails.removeStudent. Only present while the collection is ACTIVE. */
   async removeStudent(studentFullName: string): Promise<void> {

@@ -285,3 +285,39 @@ mat-progress-bar {
   --mat-chip-elevated-container-color: var(--gg-mint-soft);
   --mat-chip-label-text-color: var(--gg-mint);
 }
+
+// Printing (see CollectionDetails' "Drukuj raport" button): `.no-print` marks interactive
+// chrome that makes no sense on paper (the toolbar, nav, forms, action buttons);
+// `.print-only` marks a page's own print-specific header/summary that's normally hidden on
+// screen (redundant with the toolbar/on-screen header) but is the only header a printed page
+// gets, since everything in `.no-print` disappears. Kept here, not per-component, since the
+// toolbar itself (app.html) needs hiding regardless of which page is being printed.
+.print-only {
+  display: none;
+}
+
+@media print {
+  .app-toolbar,
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .app-content {
+    padding: 0;
+    max-width: none;
+  }
+
+  .gg-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc;
+    break-inside: avoid;
+  }
+}
