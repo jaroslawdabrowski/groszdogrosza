@@ -52,8 +52,12 @@
               <div class="student-row">
                 <a class="student-link" [routerLink]="['/students', student.id]">
                   <span class="avatar avatar--student">{{ initialsFor(student) }}</span>
-                  <span class="student-name">{{ student.firstName }} {{ student.lastName }}</span>
-                  <span class="student-balance">{{ student.piggyBankBalance }} zł</span>
+                  <span class="student-name-block">
+                    <span class="student-name">{{ student.firstName }} {{ student.lastName }}</span>
+                    <span class="student-balance">
+                      <mat-icon>account_balance_wallet</mat-icon>{{ student.piggyBankBalance }} zł
+                    </span>
+                  </span>
                 </a>
                 <div class="student-actions">
                   <button mat-icon-button [matTooltip]="'treasurer.editStudentTooltip' | translate" (click)="startEditStudent(student)">

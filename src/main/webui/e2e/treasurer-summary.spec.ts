@@ -12,6 +12,10 @@ import { Api, LoginPage, TreasurerPanel } from './pages';
  * is behind `treasurerGuard` client-side. This suite proves both halves: the widget shows
  * the right sum for a treasurer, and a regular parent can't reach the page (widget
  * included) at all.
+ *
+ * Also covers the per-student piggy bank balance chip shown under each student's own name
+ * (`.student-balance` in treasurer-panel.html) - a follow-up request from the treasurer to
+ * see one child's current balance right in the roster, not just the class-wide total.
  */
 test.describe('treasurer panel: total piggy bank balance widget', () => {
   let api: Api | undefined;
@@ -66,6 +70,10 @@ test.describe('treasurer panel: total piggy bank balance widget', () => {
 
     await treasurer.goto();
     await treasurer.expectTotalPiggyBankBalance('55');
+    // Each student's OWN row also shows their own balance, not the total - the treasurer's
+    // own worked request ("chce widzieć stan aktualny skarbonki tego dziecka").
+    await treasurer.student('Jasio Skarbnik').expectPiggyBankBalance('40');
+    await treasurer.student(`Zosia ${studentLastName}`).expectPiggyBankBalance('15');
 
     // --- A regular parent can't reach the treasurer panel - the widget included - at all ---
     await page.getByRole('button', { name: 'Log out' }).click();

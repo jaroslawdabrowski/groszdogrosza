@@ -133,6 +133,14 @@ export class StudentItem {
   async expectParentVisible(email: string): Promise<void> {
     await expect(this.root).toContainText(email);
   }
+
+  /** The piggy bank balance chip shown under this student's name - see
+   *  treasurer-panel.html's `.student-balance`. Uses `toContainText`, not `toHaveText` -
+   *  the chip also renders a mat-icon, whose ligature name ("account_balance_wallet") is
+   *  part of the element's own text content. */
+  async expectPiggyBankBalance(amountZl: string): Promise<void> {
+    await expect(this.root.locator('.student-balance')).toContainText(`${amountZl} zł`);
+  }
 }
 
 export class TreasurerPanel {

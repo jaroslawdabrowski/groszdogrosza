@@ -82,9 +82,19 @@ mat-card-header {
   color: inherit;
 }
 
-.student-name {
+// Name on top, piggy bank balance chip below - a fixed vertical stack rather than a
+// side-by-side row that only wraps once it runs out of horizontal space. This is what
+// keeps the balance readable and never clipped/pushed off-screen at phone widths (~390px),
+// where student-actions (edit/delete icon buttons) also compete for the same row.
+.student-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.student-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -92,9 +102,23 @@ mat-card-header {
 }
 
 .student-balance {
-  color: var(--gg-ink-soft);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  align-self: flex-start;
+  padding: 0.05rem 0.55rem 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--gg-coin-soft);
+  color: var(--gg-coin-deep);
+  font-size: 0.78rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.student-balance mat-icon {
+  font-size: 0.95rem;
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .student-actions,
