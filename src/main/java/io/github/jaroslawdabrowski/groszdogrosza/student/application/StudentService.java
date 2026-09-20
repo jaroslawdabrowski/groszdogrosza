@@ -19,6 +19,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.student.port.out.StudentReposit
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -55,7 +56,15 @@ public class StudentService implements CreateStudentUseCase, GetStudentUseCase, 
 
     @Override
     public List<Student> listStudents() {
-        return studentRepository.findAll();
+        // The repository (a DynamoDB Scan) has no ordering guarantee at all - sort here,
+        // once, so every caller (the treasurer's student list, the "who's in this
+        // collection" checklist, a collection's requirement breakdown, ...) sees the same
+        // stable lastName-then-firstName order without having to sort it again itself. See
+        // Student.byLastNameThenFirstName's javadoc for why a class roster, specifically,
+        // needs Polish collation rather than raw String ordering.
+        List<Student> students = new ArrayList<>(studentRepository.findAll());
+        students.sort(Student.byLastNameThenFirstName());
+        return students;
     }
 
     @Override

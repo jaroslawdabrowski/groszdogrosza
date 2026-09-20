@@ -1,6 +1,9 @@
 package io.github.jaroslawdabrowski.groszdogrosza.student.domain;
 
 import java.math.BigDecimal;
+import java.text.Collator;
+import java.util.Comparator;
+import java.util.Locale;
 
 /**
  * A child in the class - the unit collections and piggy banks are actually tracked against
@@ -32,5 +35,17 @@ public record Student(
 
     public String fullName() {
         return firstName + " " + lastName;
+    }
+
+    /** The one true ordering for any student list in this app (the class roster, a
+     *  collection's requirement breakdown, ...) - lastName then firstName, Polish
+     *  collation so "Ł"/"ł" and friends sort where a Polish reader expects, not by raw
+     *  code point. A fresh {@link Collator} per call, deliberately: {@code Collator}
+     *  instances aren't thread-safe, and this is cheap enough at this app's list sizes
+     *  (one class) to not bother caching one. */
+    public static Comparator<Student> byLastNameThenFirstName() {
+        Collator collator = Collator.getInstance(new Locale("pl", "PL"));
+        return Comparator.comparing(Student::lastName, collator::compare)
+                .thenComparing(Student::firstName, collator::compare);
     }
 }

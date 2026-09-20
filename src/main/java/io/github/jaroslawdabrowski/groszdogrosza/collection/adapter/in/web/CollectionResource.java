@@ -8,7 +8,6 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RecordManual
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RemoveStudentFromCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
-import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -22,7 +21,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
-import java.util.Map;
 
 /**
  * {@code list}/{@code get} are available to any authenticated parent, but {@code get}
@@ -85,7 +83,7 @@ public class CollectionResource {
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
         return authorizationSupport.isTreasurer(identity)
-                ? CollectionDetailsResponse.from(details, studentNamesById())
+                ? CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents())
                 : CollectionProgressResponse.from(details);
     }
 
@@ -96,7 +94,7 @@ public class CollectionResource {
         recordManualContributionUseCase.recordManualContribution(id, request.studentId(), request.amount());
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
-        return CollectionDetailsResponse.from(details, studentNamesById());
+        return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());
     }
 
     @POST
@@ -113,11 +111,6 @@ public class CollectionResource {
         removeStudentFromCollectionUseCase.removeStudentFromCollection(id, studentId);
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
-        return CollectionDetailsResponse.from(details, studentNamesById());
-    }
-
-    private Map<String, String> studentNamesById() {
-        return listStudentsUseCase.listStudents().stream()
-                .collect(java.util.stream.Collectors.toMap(Student::id, Student::fullName, (a, b) -> a));
+        return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());
     }
 }
