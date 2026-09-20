@@ -65,6 +65,21 @@ resource "aws_cognito_user_pool" "app" {
 
   admin_create_user_config {
     allow_admin_create_user_only = true
+
+    # Codifies a manual Console edit made 2026-09-20, after at least two parents reported
+    # "Incorrect username or password" on a temp password that looked right when copy-pasted
+    # from the invite email. The original/default template ended the sentence with "{####}."
+    # - a trailing period directly after the password placeholder, no space before it - the
+    # working theory is that copy-pasting the whole sentence grabbed that period along with
+    # the password. Fixed by dropping the trailing period. Declared here now purely so
+    # `terraform apply` doesn't silently revert this fix on the next deploy - Terraform had
+    # no opinion on this block before, so it just saw a real AWS value with nothing in config
+    # to match and planned to delete it back to Cognito's own generic default text.
+    invite_message_template {
+      email_subject = "Twoje tymczasowe hasło do aplikacji Grosz do Grosza"
+      email_message = "Twoja nazwa użytkownika {username} twoje tymczasowe hasło: {####}"
+      sms_message   = "Your username is {username} and temporary password is {####}."
+    }
   }
 
   password_policy {
