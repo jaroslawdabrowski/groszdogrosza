@@ -4,12 +4,14 @@
     "myWallet": "Moja skarbonka",
     "ledger": "Dziennik zdarzeń",
     "treasurer": "Panel skarbnika",
-    "login": "Zaloguj się"
+    "login": "Zaloguj się",
+    "howItWorks": "Jak to działa"
   },
   "common": {
     "loading": "Ładowanie...",
     "backToDashboard": "Powrót do listy zbiórek",
-    "backToTreasurerPanel": "Powrót do panelu skarbnika"
+    "backToTreasurerPanel": "Powrót do panelu skarbnika",
+    "backToHome": "Powrót na stronę główną"
   },
   "login": {
     "subtitle": "Zaloguj się, aby zarządzać zbiórkami klasowymi",
@@ -31,7 +33,8 @@
     "copy": "Kopiuj",
     "noActiveCollections": "Obecnie nie ma żadnej aktywnej zbiórki.",
     "parentsPaid": "Wpłacono za uczniów",
-    "totalPaid": "Zebrano"
+    "totalPaid": "Zebrano",
+    "howItWorksLink": "Jak to działa?"
   },
   "globalLedger": {
     "title": "Log wszystkich transakcji",
@@ -124,6 +127,19 @@
     "paymentInfoHint": "Widoczne dla każdego na stronie głównej, bez logowania.",
     "savePaymentInfoButton": "Zapisz",
     "paymentInfoSaved": "Zapisano."
+  },
+  "howItWorks": {
+    "eyebrow": "Dla rodziców",
+    "title": "Jak to działa",
+    "intro": "Krótkie wyjaśnienie, jak działają zbiórki klasowe i skąd wiadomo, kto ile wpłacił.",
+    "collectionsTitle": "Zbiórki klasowe",
+    "collectionsBody": "Skarbnik organizuje zbiórki na wspólne wydatki klasy — np. prezent dla nauczyciela czy wycieczkę. Każde dziecko ma przypisaną kwotę do wpłaty. Przelew wystarczy zrobić na numer konta lub BLIK podany na stronie głównej, wpisując w tytule nazwisko dziecka — system sam rozpozna wpłatę i ją zaksięguje.",
+    "piggyBankTitle": "Skarbonka dziecka",
+    "piggyBankBody": "Każde dziecko ma swoją skarbonkę. Jeśli wpłata jest wyższa niż akurat potrzeba, nadwyżka zostaje w skarbonce i automatycznie pokrywa kolejne zbiórki — nie trzeba wpłacać od nowa za każdym razem.",
+    "transparencyTitle": "Pełna przejrzystość",
+    "transparencyBody": "Każda wpłata, rozliczenie zbiórki i zmiana w skarbonce jest zapisywana w dzienniku zdarzeń, więc zawsze można sprawdzić, co się działo z pieniędzmi.",
+    "accountTitle": "Chcesz mieć własne konto?",
+    "accountBody": "Rodzic z kontem może w każdej chwili sprawdzić skarbonkę swojego dziecka oraz dziennik zdarzeń. Aby założyć konto, napisz na grupie klasowej na Messengerze do skarbnika, Jarosława Dąbrowskiego (jeśli wolisz napisać prywatnie, najpierw daj znać na grupie, bo prywatne wiadomości czasem trafiają do zablokowanych/spamu) i podaj: imię i nazwisko, adres e-mail oraz imię i nazwisko dziecka, którego jesteś rodzicem."
   },
   "ledger": {
     "CONTRIBUTION_RECEIVED": "Wpłata {{amount}} zł na zbiórkę \"{{collectionTitle}}\"",

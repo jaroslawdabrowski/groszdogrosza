@@ -5,8 +5,8 @@
   </a>
   <span class="spacer"></span>
 
-  @if (isAuthenticated()) {
-    <nav class="nav-links">
+  <nav class="nav-links">
+    @if (isAuthenticated()) {
       <a mat-button class="nav-link" routerLink="/dashboard">{{ 'nav.dashboard' | translate }}</a>
       @if (myStudentId(); as studentId) {
         <a mat-button class="nav-link" [routerLink]="['/students', studentId]">{{ 'nav.myWallet' | translate }}</a>
@@ -15,12 +15,15 @@
         <a mat-button class="nav-link" routerLink="/ledger">{{ 'nav.ledger' | translate }}</a>
         <a mat-button class="nav-link" routerLink="/treasurer">{{ 'nav.treasurer' | translate }}</a>
       }
-    </nav>
+    }
+    <a mat-button class="nav-link" routerLink="/jak-to-dziala">{{ 'nav.howItWorks' | translate }}</a>
+  </nav>
 
-    <button mat-icon-button class="nav-menu-trigger" [matMenuTriggerFor]="navMenu" aria-label="Menu">
-      <mat-icon>menu</mat-icon>
-    </button>
-    <mat-menu #navMenu="matMenu">
+  <button mat-icon-button class="nav-menu-trigger" [matMenuTriggerFor]="navMenu" aria-label="Menu">
+    <mat-icon>menu</mat-icon>
+  </button>
+  <mat-menu #navMenu="matMenu">
+    @if (isAuthenticated()) {
       <a mat-menu-item routerLink="/dashboard">{{ 'nav.dashboard' | translate }}</a>
       @if (myStudentId(); as studentId) {
         <a mat-menu-item [routerLink]="['/students', studentId]">{{ 'nav.myWallet' | translate }}</a>
@@ -29,8 +32,9 @@
         <a mat-menu-item routerLink="/ledger">{{ 'nav.ledger' | translate }}</a>
         <a mat-menu-item routerLink="/treasurer">{{ 'nav.treasurer' | translate }}</a>
       }
-    </mat-menu>
-  }
+    }
+    <a mat-menu-item routerLink="/jak-to-dziala">{{ 'nav.howItWorks' | translate }}</a>
+  </mat-menu>
 
   <button mat-button class="lang-button" [matMenuTriggerFor]="languageMenu">{{ currentLanguage().toUpperCase() }}</button>
   <mat-menu #languageMenu="matMenu">

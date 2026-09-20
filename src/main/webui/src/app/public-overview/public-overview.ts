@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ClipboardModule } from '@angular/cdk/clipboard';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -20,7 +21,7 @@ import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
  */
 @Component({
   selector: 'app-public-overview',
-  imports: [ClipboardModule, MatCardModule, MatProgressBarModule, MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, Logo, LoadingSpinner],
+  imports: [RouterLink, ClipboardModule, MatCardModule, MatProgressBarModule, MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, Logo, LoadingSpinner],
   templateUrl: './public-overview.html',
   styleUrl: './public-overview.scss',
 })

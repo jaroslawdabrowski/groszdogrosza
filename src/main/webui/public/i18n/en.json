@@ -4,12 +4,14 @@
     "myWallet": "My piggy bank",
     "ledger": "Activity log",
     "treasurer": "Treasurer panel",
-    "login": "Log in"
+    "login": "Log in",
+    "howItWorks": "How it works"
   },
   "common": {
     "loading": "Loading...",
     "backToDashboard": "Back to collections",
-    "backToTreasurerPanel": "Back to treasurer panel"
+    "backToTreasurerPanel": "Back to treasurer panel",
+    "backToHome": "Back to homepage"
   },
   "login": {
     "subtitle": "Log in to manage class collections",
@@ -31,7 +33,8 @@
     "copy": "Copy",
     "noActiveCollections": "There is no active collection right now.",
     "parentsPaid": "Students paid for",
-    "totalPaid": "Collected"
+    "totalPaid": "Collected",
+    "howItWorksLink": "How does this work?"
   },
   "globalLedger": {
     "title": "Full activity log",
@@ -124,6 +127,19 @@
     "paymentInfoHint": "Visible to anyone on the public homepage, no login required.",
     "savePaymentInfoButton": "Save",
     "paymentInfoSaved": "Saved."
+  },
+  "howItWorks": {
+    "eyebrow": "For parents",
+    "title": "How it works",
+    "intro": "A short explanation of how class collections work and how we know who's paid.",
+    "collectionsTitle": "Class collections",
+    "collectionsBody": "The treasurer organizes collections for shared class expenses - like a teacher's gift or a school trip. Each child has their own amount to pay. Just transfer money to the account number or BLIK shown on the homepage, putting your child's surname in the title - the system recognizes and books the payment automatically.",
+    "piggyBankTitle": "Your child's piggy bank",
+    "piggyBankBody": "Every child has their own piggy bank. If a payment is bigger than what's currently needed, the extra stays in the piggy bank and automatically covers future collections - no need to pay again from scratch each time.",
+    "transparencyTitle": "Full transparency",
+    "transparencyBody": "Every payment, collection settlement, and piggy bank change is recorded in an activity log, so you can always check what happened with the money.",
+    "accountTitle": "Want your own account?",
+    "accountBody": "A parent with an account can check their child's piggy bank and activity log anytime. To get an account, message the treasurer, Jarosław Dąbrowski, in the class Messenger group (if you'd rather message privately, please say so in the group first - private messages sometimes get filtered as spam) with your full name, email address, and your child's full name."
   },
   "ledger": {
     "CONTRIBUTION_RECEIVED": "Contribution of {{amount}} PLN to \"{{collectionTitle}}\"",

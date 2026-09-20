@@ -1,0 +1,45 @@
+<a class="back-link" routerLink="/">
+  <mat-icon>arrow_back</mat-icon>{{ 'common.backToHome' | translate }}
+</a>
+
+<header class="detail-header">
+  <span class="gg-eyebrow">{{ 'howItWorks.eyebrow' | translate }}</span>
+  <h1 class="gg-heading">{{ 'howItWorks.title' | translate }}</h1>
+  <p class="intro">{{ 'howItWorks.intro' | translate }}</p>
+</header>
+
+<mat-card class="gg-card gg-card--sky gg-fade-up">
+  <mat-card-header>
+    <mat-card-title class="title-with-icon"><mat-icon class="section-icon">groups</mat-icon>{{ 'howItWorks.collectionsTitle' | translate }}</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <p>{{ 'howItWorks.collectionsBody' | translate }}</p>
+  </mat-card-content>
+</mat-card>
+
+<mat-card class="gg-card gg-card--mint gg-fade-up" style="--gg-stagger: 60ms">
+  <mat-card-header>
+    <mat-card-title class="title-with-icon"><mat-icon class="section-icon">savings</mat-icon>{{ 'howItWorks.piggyBankTitle' | translate }}</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <p>{{ 'howItWorks.piggyBankBody' | translate }}</p>
+  </mat-card-content>
+</mat-card>
+
+<mat-card class="gg-card gg-card--blush gg-fade-up" style="--gg-stagger: 120ms">
+  <mat-card-header>
+    <mat-card-title class="title-with-icon"><mat-icon class="section-icon">history</mat-icon>{{ 'howItWorks.transparencyTitle' | translate }}</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <p>{{ 'howItWorks.transparencyBody' | translate }}</p>
+  </mat-card-content>
+</mat-card>
+
+<mat-card class="gg-card gg-fade-up" style="--gg-stagger: 180ms">
+  <mat-card-header>
+    <mat-card-title class="title-with-icon"><mat-icon class="section-icon">person_add</mat-icon>{{ 'howItWorks.accountTitle' | translate }}</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <p>{{ 'howItWorks.accountBody' | translate }}</p>
+  </mat-card-content>
+</mat-card>

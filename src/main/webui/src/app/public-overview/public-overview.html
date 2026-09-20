@@ -57,6 +57,10 @@
     </mat-card>
   }
 
+  <p class="how-it-works-hint">
+    <a routerLink="/jak-to-dziala">{{ 'publicOverview.howItWorksLink' | translate }}</a>
+  </p>
+
   @if (o.activeCollections.length === 0) {
     <p class="empty-state">{{ 'publicOverview.noActiveCollections' | translate }}</p>
   } @else {
