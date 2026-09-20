@@ -87,6 +87,7 @@
   },
   "treasurer": {
     "title": "Panel skarbnika",
+    "totalPiggyBankBalance": "Suma w skarbonkach",
     "students": "Uczniowie",
     "noStudents": "Nie ma jeszcze żadnych uczniów.",
     "addStudent": "Dodaj ucznia",

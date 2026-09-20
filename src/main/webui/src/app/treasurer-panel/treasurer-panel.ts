@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -48,6 +48,13 @@ export class TreasurerPanel {
    *  delete action, but this only ever goes false→false after the first time, so those
    *  refreshes never flash the whole panel back to a spinner. */
   readonly loadingStudents = signal(true);
+  /** Sum of every student's own piggy bank balance - "how much of parents' money am I
+   *  currently holding", shown as a widget at the top of the panel. Purely derived from
+   *  `students()`, which the backend already only ever returns to a treasurer
+   *  (`StudentResource.list` - see `AuthorizationSupport.requireTreasurer`) - this page
+   *  itself is also behind `treasurerGuard`, so there's no separate access check needed
+   *  here, the widget just inherits both. */
+  readonly totalPiggyBankBalance = computed(() => this.students().reduce((sum, s) => sum + s.piggyBankBalance, 0));
   readonly me = signal<Parent | null>(null);
   readonly bankAccountNumber = signal('');
   readonly blikPhoneNumber = signal('');

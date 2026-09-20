@@ -87,6 +87,7 @@
   },
   "treasurer": {
     "title": "Treasurer panel",
+    "totalPiggyBankBalance": "Total in piggy banks",
     "students": "Students",
     "noStudents": "There are no students yet.",
     "addStudent": "Add a student",

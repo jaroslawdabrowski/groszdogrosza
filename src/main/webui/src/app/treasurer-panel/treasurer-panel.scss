@@ -11,6 +11,43 @@ mat-card-header {
   color: var(--gg-coin-deep);
 }
 
+.summary-card {
+  margin-top: 0.75rem;
+}
+
+.summary-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.summary-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gg-cream-elevated);
+  color: var(--gg-mint);
+}
+
+.summary-label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--gg-ink-soft);
+}
+
+.summary-value {
+  margin: 0.1rem 0 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-family: "Nunito", sans-serif;
+  color: var(--gg-ink);
+  font-variant-numeric: tabular-nums;
+}
+
 .student-list {
   list-style: none;
   margin: 0 0 0.5rem;

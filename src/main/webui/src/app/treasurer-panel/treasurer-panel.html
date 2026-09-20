@@ -4,7 +4,19 @@
 
 <h1 class="gg-heading">{{ 'treasurer.title' | translate }}</h1>
 
-<mat-card class="gg-card gg-fade-up">
+<mat-card class="gg-card gg-card--mint gg-fade-up summary-card">
+  <mat-card-content>
+    <div class="summary-stat">
+      <span class="summary-icon"><mat-icon>account_balance_wallet</mat-icon></span>
+      <div>
+        <p class="summary-label">{{ 'treasurer.totalPiggyBankBalance' | translate }}</p>
+        <p class="summary-value">{{ totalPiggyBankBalance() }} zł</p>
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<mat-card class="gg-card gg-fade-up" style="--gg-stagger: 40ms">
   <mat-card-header>
     <mat-card-title class="title-with-icon"><mat-icon class="section-icon">school</mat-icon>{{ 'treasurer.students' | translate }}</mat-card-title>
   </mat-card-header>

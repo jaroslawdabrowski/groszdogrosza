@@ -146,6 +146,14 @@ export class TreasurerPanel {
     await expect(this.page.locator('.student-list')).toContainText(fullName);
   }
 
+  /** The "suma w skarbonkach" widget at the top of the panel - sum of every student's
+   *  piggy bank balance, treasurer-only (see TreasurerPanel.totalPiggyBankBalance's
+   *  javadoc: it's derived from the same GET /api/students the backend already restricts
+   *  to a treasurer, on a page already behind treasurerGuard). */
+  async expectTotalPiggyBankBalance(amountZl: string): Promise<void> {
+    await expect(this.page.locator('.summary-value')).toHaveText(`${amountZl} zł`);
+  }
+
   student(fullName: string): StudentItem {
     return new StudentItem(this.page.locator('.student-item').filter({ hasText: fullName }));
   }
