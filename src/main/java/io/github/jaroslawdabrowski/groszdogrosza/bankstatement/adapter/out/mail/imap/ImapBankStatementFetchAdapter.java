@@ -9,11 +9,14 @@ import jakarta.mail.Multipart;
 import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
+import jakarta.mail.internet.ContentType;
 import jakarta.mail.search.AndTerm;
 import jakarta.mail.search.FromStringTerm;
 import jakarta.mail.search.ReceivedDateTerm;
 import jakarta.mail.search.SearchTerm;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -135,12 +138,25 @@ public class ImapBankStatementFetchAdapter implements BankStatementFetchPort {
         return attachment.isPresent() ? attachment : findHtmlPart(part, false);
     }
 
+    /**
+     * mBank's own rendering system emits this notification as ISO-8859-2, confirmed by the
+     * {@code multipart/alternative} sibling {@code text/html} part, which explicitly declares
+     * {@code charset=iso-8859-2} in its MIME headers - but the actual attachment part this
+     * parser reads (the one with {@code Content-Disposition: attachment; filename=
+     * "Powiadomienie e-mail z ....htm"}) declares NO charset at all in its Content-Type
+     * header, only inside its own HTML {@code <meta http-equiv="Content-Type" ...
+     * charset=iso-8859-2>} tag - which is an HTML/browser convention, not something
+     * jakarta.mail's own charset resolution ever looks at. Used as the fallback below when a
+     * part's own MIME Content-Type header omits a charset.
+     */
+    private static final Charset MBANK_FALLBACK_CHARSET = Charset.forName("ISO-8859-2");
+
     private static java.util.Optional<String> findHtmlPart(Part part, boolean requireAttachmentDisposition) {
         try {
             if (part.isMimeType("text/html")) {
                 boolean isAttachment = Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition());
                 if (!requireAttachmentDisposition || isAttachment) {
-                    return java.util.Optional.of((String) part.getContent());
+                    return java.util.Optional.of(decodeTextPart(part));
                 }
                 return java.util.Optional.empty();
             }
@@ -156,6 +172,47 @@ public class ImapBankStatementFetchAdapter implements BankStatementFetchPort {
             LOG.error("Failed to extract HTML content from bank statement mail", e);
         }
         return java.util.Optional.empty();
+    }
+
+    /**
+     * Decodes the part's raw bytes with the charset it actually declares, falling back to
+     * {@link #MBANK_FALLBACK_CHARSET} only when none is declared - deliberately NOT
+     * {@code part.getContent()}, which is jakarta.mail's own convenience method for this but
+     * silently defaults an undeclared charset to US-ASCII (effectively ISO-8859-1 byte
+     * pass-through). That default is wrong for mBank's actual attachment part (see
+     * {@link #MBANK_FALLBACK_CHARSET}'s javadoc) and was confirmed, the hard way, to corrupt
+     * some Polish diacritics into characters that no longer whole-word-match the correctly
+     * spelled name already stored in the app (e.g. "Ś" was coming through as "�" -
+     * {@code PaymentMatchingPolicy}'s tier-1 surname match requires an exact word, so this
+     * silently broke automatic matching for the affected sender names specifically, not
+     * transactions in general - other diacritics happened to still normalize/strip down to
+     * the same base letter regardless of which single-byte charset misread them, which is
+     * why this went unnoticed until one specific surname failed to match in production).
+     * {@code getInputStream()} (unlike {@code getContent()}) only undoes the MIME
+     * Content-Transfer-Encoding (quoted-printable/base64/...), never touches the character
+     * set - exactly the raw octets this method needs to decode itself.
+     */
+    private static String decodeTextPart(Part part) throws MessagingException, IOException {
+        Charset charset = declaredCharsetOf(part).orElse(MBANK_FALLBACK_CHARSET);
+        try (InputStream in = part.getInputStream()) {
+            return new String(in.readAllBytes(), charset);
+        }
+    }
+
+    private static java.util.Optional<Charset> declaredCharsetOf(Part part) {
+        try {
+            String charsetName = new ContentType(part.getContentType()).getParameter("charset");
+            return charsetName == null || charsetName.isBlank()
+                    ? java.util.Optional.empty()
+                    : java.util.Optional.of(Charset.forName(charsetName));
+        } catch (MessagingException | java.nio.charset.IllegalCharsetNameException
+                | java.nio.charset.UnsupportedCharsetException e) {
+            // A malformed/unrecognized Content-Type header shouldn't crash the whole poll -
+            // fall back to the known-correct charset for this specific sender instead.
+            LOG.warn("Could not determine this part's declared charset - falling back to "
+                    + MBANK_FALLBACK_CHARSET, e);
+            return java.util.Optional.empty();
+        }
     }
 
     private static String messageIdOf(Message message) {
