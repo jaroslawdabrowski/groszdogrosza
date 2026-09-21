@@ -141,6 +141,20 @@ export class StudentItem {
   async expectPiggyBankBalance(amountZl: string): Promise<void> {
     await expect(this.root.locator('.student-balance')).toContainText(`${amountZl} zł`);
   }
+
+  /** Manual cash top-up ("ktoś dał mi gotówkę") - treasurer-only, credit-only (see
+   *  TreasurerPanel.creditPiggyBank's javadoc: adds to the balance, never replaces it).
+   *  Behind the row's single "more" (⋮) menu, not its own icon button - see the comment on
+   *  `.student-actions` in treasurer-panel.html for why. The menu's own panel is a CDK
+   *  overlay portaled to the document body, not a descendant of this row, so the item has
+   *  to be located from the page, not `this.root`. */
+  async creditPiggyBank(amountZl: string): Promise<void> {
+    await this.root.locator('.student-actions button').click();
+    await this.root.page().getByRole('menuitem', { name: 'Doładuj skarbonkę gotówką' }).click();
+    const form = this.root.locator('.credit-form');
+    await form.getByLabel('Kwota (zł)').fill(amountZl);
+    await form.getByRole('button', { name: 'Doładuj skarbonkę' }).click();
+  }
 }
 
 export class TreasurerPanel {

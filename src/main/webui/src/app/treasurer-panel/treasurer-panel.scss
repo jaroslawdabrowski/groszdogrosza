@@ -210,6 +210,14 @@ mat-card-header {
   background: var(--gg-cream-elevated);
 }
 
+.credit-form {
+  margin-top: 0.5rem;
+}
+
+.credit-form mat-form-field {
+  max-width: 200px;
+}
+
 .edit-form .form-grid {
   margin-bottom: 0.5rem;
 }

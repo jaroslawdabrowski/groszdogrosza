@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -28,6 +29,7 @@ import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatMenuModule,
     MatTooltipModule,
     MatCheckboxModule,
     TranslatePipe,
@@ -77,6 +79,14 @@ export class TreasurerPanel {
   readonly editingStudentId = signal<string | null>(null);
   readonly editStudentFirstName = signal('');
   readonly editStudentLastName = signal('');
+
+  /** Which student's card is showing the inline "credit piggy bank" form - e.g. the
+   *  treasurer received cash by hand and wants to add it without waiting for a bank
+   *  transfer. Deliberately credit-only (adds to the existing balance, backend rejects a
+   *  negative amount) - never a "set the balance to X" control, so this can't be used to
+   *  silently erase money that's actually there. */
+  readonly creditingStudentId = signal<string | null>(null);
+  readonly creditAmount = signal<number>(0);
 
   /** Which student's card currently has its "add parent" mini-form open (a student has at
    *  most 2 parent slots - see the backend Parent.studentId javadoc). */
@@ -213,6 +223,38 @@ export class TreasurerPanel {
     this.studentApi.delete(student.id).subscribe({
       next: () => this.reloadStudents(),
       error: () => this.setAccountStatus(student.id, 'error', 'treasurer.deleteFailed'),
+    });
+  }
+
+  // --- manual piggy bank top-up (cash received by hand, not a bank transfer) ---
+
+  startCreditPiggyBank(studentId: string): void {
+    this.creditingStudentId.set(studentId);
+    this.creditAmount.set(0);
+    this.accountStatus.update((s) => ({ ...s, [studentId]: undefined }));
+  }
+
+  cancelCreditPiggyBank(): void {
+    this.creditingStudentId.set(null);
+  }
+
+  isCreditingPiggyBank(studentId: string): boolean {
+    return this.creditingStudentId() === studentId;
+  }
+
+  creditPiggyBank(studentId: string): void {
+    const amount = this.creditAmount();
+    if (!(amount > 0)) {
+      this.setAccountStatus(studentId, 'error', 'treasurer.creditAmountInvalid');
+      return;
+    }
+    this.studentApi.creditPiggyBank(studentId, amount).subscribe({
+      next: () => {
+        this.creditingStudentId.set(null);
+        this.setAccountStatus(studentId, 'success', 'treasurer.creditSuccess');
+        this.reloadStudents();
+      },
+      error: () => this.setAccountStatus(studentId, 'error', 'treasurer.creditFailed'),
     });
   }
 

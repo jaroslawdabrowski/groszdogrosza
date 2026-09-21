@@ -60,20 +60,46 @@
                   </span>
                 </a>
                 <div class="student-actions">
-                  <button mat-icon-button [matTooltip]="'treasurer.editStudentTooltip' | translate" (click)="startEditStudent(student)">
-                    <mat-icon>edit</mat-icon>
+                  <!-- A single "more" trigger, not one icon per action - three separate
+                       buttons here would widen this block enough to squeeze a long
+                       first+last name into an unreadably short ellipsis, especially on a
+                       phone (~390px). Same overflow-menu pattern as the toolbar's mobile
+                       nav - see app.html. -->
+                  <button mat-icon-button [matMenuTriggerFor]="studentMenu" [matTooltip]="'treasurer.studentActionsTooltip' | translate">
+                    <mat-icon>more_vert</mat-icon>
                   </button>
-                  <button
-                    mat-icon-button
-                    class="delete-button"
-                    [disabled]="isOwnStudent(student)"
-                    [matTooltip]="(isOwnStudent(student) ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteStudentTooltip') | translate"
-                    (click)="deleteStudent(student)"
-                  >
-                    <mat-icon>delete_outline</mat-icon>
-                  </button>
+                  <mat-menu #studentMenu="matMenu">
+                    <button mat-menu-item (click)="startCreditPiggyBank(student.id)">
+                      <mat-icon>add_card</mat-icon>
+                      <span>{{ 'treasurer.creditPiggyBankTooltip' | translate }}</span>
+                    </button>
+                    <button mat-menu-item (click)="startEditStudent(student)">
+                      <mat-icon>edit</mat-icon>
+                      <span>{{ 'treasurer.editStudentTooltip' | translate }}</span>
+                    </button>
+                    <button mat-menu-item [disabled]="isOwnStudent(student)" (click)="deleteStudent(student)">
+                      <mat-icon>delete_outline</mat-icon>
+                      <span>{{ (isOwnStudent(student) ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteStudentTooltip') | translate }}</span>
+                    </button>
+                  </mat-menu>
                 </div>
               </div>
+              @if (isCreditingPiggyBank(student.id)) {
+                <div class="edit-form credit-form">
+                  <p class="hint">{{ 'treasurer.creditPiggyBankHint' | translate }}</p>
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'treasurer.creditAmount' | translate }}</mat-label>
+                    <input matInput type="number" min="0.01" step="0.01" [ngModel]="creditAmount()" (ngModelChange)="creditAmount.set($event)">
+                    <span matTextSuffix>zł</span>
+                  </mat-form-field>
+                  <div class="edit-form-actions">
+                    <button mat-flat-button color="primary" (click)="creditPiggyBank(student.id)">
+                      <mat-icon>add_card</mat-icon>{{ 'treasurer.creditPiggyBankButton' | translate }}
+                    </button>
+                    <button mat-button (click)="cancelCreditPiggyBank()">{{ 'treasurer.cancelEditButton' | translate }}</button>
+                  </div>
+                </div>
+              }
               @if (accountStatusFor(student.id); as status) {
                 <p class="account-status" [class.account-status--error]="status.kind === 'error'">
                   {{ status.key | translate }}
@@ -117,34 +143,30 @@
                       <span class="parent-name">{{ parent.firstName }} {{ parent.lastName }}</span>
                       <span class="parent-email">{{ parent.email }}</span>
                       <div class="parent-actions">
-                        <button
-                          mat-icon-button
-                          [disabled]="isAccountActionInFlight(parent.id)"
-                          [matTooltip]="'treasurer.createAccountTooltip' | translate"
-                          (click)="createAccount(parent)"
-                        >
-                          <mat-icon>person_add</mat-icon>
+                        <!-- Same "more" consolidation as the student row above, for the
+                             same reason - four separate icons here left even less room for
+                             the name/email, and these actions are used rarely. -->
+                        <button mat-icon-button [matMenuTriggerFor]="parentMenu" [matTooltip]="'treasurer.parentActionsTooltip' | translate">
+                          <mat-icon>more_vert</mat-icon>
                         </button>
-                        <button
-                          mat-icon-button
-                          [disabled]="isAccountActionInFlight(parent.id)"
-                          [matTooltip]="'treasurer.resendInvitationTooltip' | translate"
-                          (click)="resendInvitation(parent)"
-                        >
-                          <mat-icon>forward_to_inbox</mat-icon>
-                        </button>
-                        <button mat-icon-button [matTooltip]="'treasurer.editTooltip' | translate" (click)="startEdit(parent)">
-                          <mat-icon>edit</mat-icon>
-                        </button>
-                        <button
-                          mat-icon-button
-                          class="delete-button"
-                          [disabled]="parent.id === me()?.id"
-                          [matTooltip]="(parent.id === me()?.id ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteTooltip') | translate"
-                          (click)="deleteParent(parent)"
-                        >
-                          <mat-icon>delete_outline</mat-icon>
-                        </button>
+                        <mat-menu #parentMenu="matMenu">
+                          <button mat-menu-item [disabled]="isAccountActionInFlight(parent.id)" (click)="createAccount(parent)">
+                            <mat-icon>person_add</mat-icon>
+                            <span>{{ 'treasurer.createAccountTooltip' | translate }}</span>
+                          </button>
+                          <button mat-menu-item [disabled]="isAccountActionInFlight(parent.id)" (click)="resendInvitation(parent)">
+                            <mat-icon>forward_to_inbox</mat-icon>
+                            <span>{{ 'treasurer.resendInvitationTooltip' | translate }}</span>
+                          </button>
+                          <button mat-menu-item (click)="startEdit(parent)">
+                            <mat-icon>edit</mat-icon>
+                            <span>{{ 'treasurer.editTooltip' | translate }}</span>
+                          </button>
+                          <button mat-menu-item [disabled]="parent.id === me()?.id" (click)="deleteParent(parent)">
+                            <mat-icon>delete_outline</mat-icon>
+                            <span>{{ (parent.id === me()?.id ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteTooltip') | translate }}</span>
+                          </button>
+                        </mat-menu>
                       </div>
                     </div>
                     @if (accountStatusFor(parent.id); as status) {
