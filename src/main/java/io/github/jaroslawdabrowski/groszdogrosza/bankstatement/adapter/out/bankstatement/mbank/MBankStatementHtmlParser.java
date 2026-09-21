@@ -58,9 +58,22 @@ public class MBankStatementHtmlParser implements StatementParserPort {
      * masked source IBAN?) is NOT confirmed; treat it as an opaque reference, not
      * necessarily a human-typed transfer title, until a sample with a real free-text title
      * is observed.
+     *
+     * <p>The trailing {@code " ."} after the sender name (before the first {@code ;}) is
+     * OPTIONAL, not guaranteed - confirmed against a real notification mail
+     * (2026-09-20/21) where two rows out of seven omitted it (e.g. {@code "od DAWID
+     * DEREGOWSKI; MILOSZ DEREG...; Dost."} instead of the usual {@code "od DAWID
+     * DEREGOWSKI .; ...; Dost."}). The original pattern required a literal {@code \.;} right
+     * after the sender name; without it, the non-greedy sender-name group kept expanding
+     * until it found *any* {@code .;} substring later in the row - which it did, inside the
+     * title's own {@code "..."} ellipsis - swallowing the semicolon the title/reference group
+     * needed, so the whole match failed and the row was silently skipped as "not a transfer".
+     * Making the dot optional (`\\.?`) fixes both the with-dot and without-dot cases without
+     * weakening anything else: `;` alone is still an unambiguous field separator here, since
+     * a real sender name never contains one.
      */
     private static final Pattern INCOMING_TRANSFER_PATTERN = Pattern.compile(
-            "Przelew przych\\..*?kwota\\s+([0-9][0-9 ]*,[0-9]{2})\\s*PLN\\s+od\\s+(.+?)\\s*\\.;\\s*(.*?);\\s*Dost\\.",
+            "Przelew przych\\..*?kwota\\s+([0-9][0-9 ]*,[0-9]{2})\\s*PLN\\s+od\\s+(.+?)\\s*\\.?;\\s*(.*?);\\s*Dost\\.",
             Pattern.CASE_INSENSITIVE);
 
     private static final Pattern EMAIL_DATE_PATTERN = Pattern.compile("(\\d{4}-\\d{2}-\\d{2})");

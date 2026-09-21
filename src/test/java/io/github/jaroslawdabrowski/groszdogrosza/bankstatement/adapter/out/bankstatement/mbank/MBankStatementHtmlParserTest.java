@@ -41,6 +41,33 @@ class MBankStatementHtmlParserTest {
         assertEquals(new BigDecimal("45.50"), second.amount());
     }
 
+    /**
+     * A real notification (2026-09-20/21) had two rows out of seven where mBank omitted the
+     * usual " ." after the sender name (going straight to ";") - the original pattern
+     * required that literal dot, so both rows silently failed to match at all and the
+     * transfers were never booked (confirmed against production: {@code transactionsSeen=5}
+     * for a mail with 7 real transfers). See INCOMING_TRANSFER_PATTERN's javadoc for the
+     * exact failure mechanism this fixture reproduces (row 1 has the dot, rows 2 and 3 don't).
+     */
+    @Test
+    void parsesTransfersEvenWhenMbankOmitsTheDotAfterTheSenderName() throws IOException {
+        List<BankTransaction> transactions = parser.parse(readFixture("missing-sender-dot-statement.html"));
+
+        assertEquals(3, transactions.size());
+
+        BankTransaction dotted = transactions.get(0);
+        assertEquals("Jakub Testowy", dotted.senderName());
+        assertEquals(new BigDecimal("150.00"), dotted.amount());
+
+        BankTransaction noDotEllipsisTitle = transactions.get(1);
+        assertEquals("DAWID PRZYKLADOWY", noDotEllipsisTitle.senderName());
+        assertEquals(new BigDecimal("100.00"), noDotEllipsisTitle.amount());
+
+        BankTransaction noDotSimpleTitle = transactions.get(2);
+        assertEquals("ANNA WZOROWA", noDotSimpleTitle.senderName());
+        assertEquals(new BigDecimal("100.00"), noDotSimpleTitle.amount());
+    }
+
     @Test
     void referenceHashesAreUniquePerOperationEvenWithSameSenderAndAmount() throws IOException {
         List<BankTransaction> transactions = parser.parse(readFixture());
@@ -90,7 +117,11 @@ class MBankStatementHtmlParserTest {
     }
 
     private static String readFixture() throws IOException {
-        try (InputStream in = MBankStatementHtmlParserTest.class.getResourceAsStream("/mbank/sample-statement.html")) {
+        return readFixture("sample-statement.html");
+    }
+
+    private static String readFixture(String fileName) throws IOException {
+        try (InputStream in = MBankStatementHtmlParserTest.class.getResourceAsStream("/mbank/" + fileName)) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }
     }

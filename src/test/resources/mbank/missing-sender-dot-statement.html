@@ -1,0 +1,95 @@
+<!--
+  ANONYMIZED real mBank "Powiadomienie e-mail" sample (2026-09-20/21) - kept specifically
+  because it reproduces a real formatting inconsistency in mBank's own sentence template:
+  most rows end the sender-name segment with " .;" (space, period, semicolon), but some
+  rows omit the period entirely, going straight to ";". All personal data (names, account
+  number fragments, balances, amounts, reference number) is fabricated - only the markup
+  shape and the exact punctuation quirk in rows 2 and 3 below are real (see
+  MBankStatementHtmlParser.INCOMING_TRANSFER_PATTERN's javadoc for how this broke parsing
+  and how it was fixed). Row 1 is a normal, correctly-dotted row for contrast. Do not
+  replace this with an unredacted export.
+-->
+<html>
+  <head>
+    <title>Powiadomienie e-mail</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+  </head>
+  <body>
+    <div>
+      <table role="presentation" cellpadding="0" cellspacing="0" width="600">
+        <tr>
+          <td>
+            <h1 class="h1">2026-09-20 -
+Powiadomienie <span lang="en">e-mail</span></h1>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <table cellpadding="1" cellspacing="0" border="1" width="600">
+              <tr>
+                <th class="th">Dane banku</th>
+                <th class="th">Dane klienta</th>
+              </tr>
+              <tr>
+                <td class="td">
+mBank S.A.<br />
+Bankowosc Detaliczna<br />
+Skrytka Pocztowa 2108<br />
+90-959 Lodz 2<br /><a href="https://www.mbank.pl" target="_blank">www.mBank.pl</a><br />
+mLinia: +48 42 6 300 800
+</td>
+                <td class="td">JAN MARIAN KOWALSKI<br />JAN.KOWALSKI@EXAMPLE.COM</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <p>
+              <h2 class="h2">Operacje</h2>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <table cellpadding="1" cellspacing="0" border="1">
+              <tr>
+                <th class="th">
+                  <nobr>Czas operacji</nobr>
+                  <br />(GG:MM)</th>
+                <th class="th">Opis operacji</th>
+              </tr>
+              <tr>
+                <td class="td">
+                  <nobr>16:57</nobr>
+                </td>
+                <td class="td">mBank: Przelew przych. z rach. 6224...435609 na rach. 78272084 kwota 150,00 PLN od Jakub Testowy .; Eryk Testowy; Dost. 1218,90 PLN</td>
+              </tr>
+              <tr>
+                <td class="td">
+                  <nobr>21:26</nobr>
+                </td>
+                <td class="td">mBank: Przelew przych. z rach. 1424...933385 na rach. 78272084 kwota 100,00 PLN od DAWID PRZYKLADOWY; MILOSZ PRZYKLA...; Dost. 1571,95 PLN</td>
+              </tr>
+              <tr>
+                <td class="td">
+                  <nobr>22:07</nobr>
+                </td>
+                <td class="td">mBank: Przelew przych. z rach. 7411...489382 na rach. 78272084 kwota 100,00 PLN od ANNA WZOROWA; Przelew na t...; Dost. 1671,95 PLN</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      <p>
+        <table role="presentation" cellpadding="0" cellspacing="0" width="600">
+          <tr>
+            <td class="td">
+Dokument sporzadzono na podstawie art. 7 Ustawy Prawo Bankowe. Numer referencyjny maila: L000TEST1.
+</td>
+          </tr>
+        </table>
+      </p>
+    </div>
+  </body>
+</html>
