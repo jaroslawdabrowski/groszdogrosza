@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LedgerApiService } from '../core/ledger-api.service';
 import { GlobalLedgerEntry } from '../core/models';
 import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
@@ -17,6 +17,7 @@ import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
 })
 export class GlobalLedger {
   private readonly ledgerApi = inject(LedgerApiService);
+  private readonly translate = inject(TranslateService);
 
   readonly entries = signal<GlobalLedgerEntry[]>([]);
   readonly loading = signal(true);
@@ -39,6 +40,21 @@ export class GlobalLedger {
 
   translationKeyFor(entry: GlobalLedgerEntry): string {
     return 'ledger.' + entry.eventType;
+  }
+
+  /** Formatted in the app's currently-chosen language, not the browser's own locale - same
+   *  reasoning as CollectionDetails.printedOnLabel. Includes the time, not just the date -
+   *  more than one event can land on the same day (see the Deręgowski double-credit this
+   *  was added to help spot), so the date alone wouldn't have been enough to tell them apart. */
+  dateLabel(occurredAt: string): string {
+    const locale = this.translate.currentLang() === 'en' ? 'en-US' : 'pl-PL';
+    return new Date(occurredAt).toLocaleString(locale, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   iconFor(entry: GlobalLedgerEntry): string {

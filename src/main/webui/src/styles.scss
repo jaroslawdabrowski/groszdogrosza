@@ -227,7 +227,7 @@ mat-progress-bar {
 
 .timeline li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.7rem;
   padding: 0.6rem 0.75rem;
   background: var(--gg-sky-soft);
@@ -252,8 +252,24 @@ mat-progress-bar {
   height: 18px;
 }
 
+// Description on top, timestamp on its own line below - not a second column, so a long
+// sentence + date never has to compete for horizontal space on a phone screen. Icon uses
+// align-items: flex-start (above) rather than center so it lines up with the first line
+// once this block is two lines tall.
+.timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
 .timeline-text {
   font-size: 0.92rem;
+}
+
+.timeline-date {
+  font-size: 0.76rem;
+  color: var(--gg-ink-soft);
 }
 
 // mat-card-header lays its content out on an internal grid keyed to mat-card-avatar;

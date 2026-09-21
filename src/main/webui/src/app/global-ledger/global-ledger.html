@@ -18,7 +18,10 @@
           @for (entry of entries(); track entry.id) {
             <li>
               <span class="timeline-icon"><mat-icon>{{ iconFor(entry) }}</mat-icon></span>
-              <span class="timeline-text"><strong>{{ entry.studentName }}</strong> — {{ translationKeyFor(entry) | translate: entry.params }}</span>
+              <span class="timeline-content">
+                <span class="timeline-text"><strong>{{ entry.studentName }}</strong> — {{ translationKeyFor(entry) | translate: entry.params }}</span>
+                <span class="timeline-date">{{ dateLabel(entry.occurredAt) }}</span>
+              </span>
             </li>
           }
         </ul>

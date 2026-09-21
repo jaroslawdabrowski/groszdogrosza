@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { StudentApiService } from '../core/student-api.service';
 import { LedgerApiService } from '../core/ledger-api.service';
 import { CurrentUserService } from '../core/current-user.service';
@@ -23,6 +23,7 @@ export class StudentView {
   private readonly studentApi = inject(StudentApiService);
   private readonly ledgerApi = inject(LedgerApiService);
   private readonly currentUser = inject(CurrentUserService);
+  private readonly translate = inject(TranslateService);
 
   readonly student = signal<Student | null>(null);
   readonly ledger = signal<LedgerEntry[]>([]);
@@ -48,6 +49,20 @@ export class StudentView {
    *  ships an enum + params, rendering the sentence is this frontend's job via i18n. */
   translationKeyFor(entry: LedgerEntry): string {
     return 'ledger.' + entry.eventType;
+  }
+
+  /** Formatted in the app's currently-chosen language, not the browser's own locale - same
+   *  reasoning as CollectionDetails.printedOnLabel. Includes the time, not just the date -
+   *  more than one event can land on the same day. */
+  dateLabel(occurredAt: string): string {
+    const locale = this.translate.currentLang() === 'en' ? 'en-US' : 'pl-PL';
+    return new Date(occurredAt).toLocaleString(locale, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   iconFor(entry: LedgerEntry): string {
