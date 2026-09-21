@@ -28,6 +28,16 @@ export class AuthService {
       strictDiscoveryDocumentValidation: false,
     });
     await this.oAuthService.loadDiscoveryDocumentAndTryLogin();
+    // Without this, the ID/access token's own TTL (24h - see main.tf) is the entire
+    // session length: authGuard only checks hasValidAccessToken() locally, and there is no
+    // other code anywhere that calls refreshToken() - once the token expired, the only
+    // thing that ever happened was a full redirect back to the Hosted UI. This uses the
+    // refresh token (issued by Cognito's code-flow token exchange, but never actually used
+    // client-side until now) to silently renew the ID/access token in the background ahead
+    // of expiry - no iframe involved, that's only needed for the implicit flow's silent
+    // refresh, not a plain grant_type=refresh_token call against the token endpoint. Session
+    // now effectively lasts up to the 30-day refresh token validity instead of 24h.
+    this.oAuthService.setupAutomaticSilentRefresh();
   }
 
   isAuthenticated(): boolean {
