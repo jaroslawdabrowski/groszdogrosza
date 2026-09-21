@@ -2,7 +2,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners, provideZoneChangeDetection, isDevMode } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
-import { provideOAuthClient } from 'angular-oauth2-oidc';
+import { OAuthStorage, provideOAuthClient } from 'angular-oauth2-oidc';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { provideTranslateService } from '@ngx-translate/core';
 
@@ -19,6 +19,16 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
     provideOAuthClient(),
+    // angular-oauth2-oidc defaults to sessionStorage, which the browser/OS wipes the
+    // moment the tab/app is actually closed (not just backgrounded) - on a phone, closing
+    // a PWA (or the OS reclaiming a backgrounded one) does exactly that, so reopening it
+    // later found no tokens at all and forced a full re-login regardless of how long the
+    // access/refresh tokens were actually still valid for (see main.tf's 24h/30-day TTLs
+    // and setupAutomaticSilentRefresh below - neither helps if the storage itself is gone).
+    // localStorage survives exactly this, and carries the same security model as
+    // sessionStorage anyway (no httpOnly protection either way, since this is a public SPA
+    // client with no backend session) - so there's no real tradeoff being made here.
+    { provide: OAuthStorage, useFactory: () => localStorage },
     // Must run before the router evaluates authGuard, so it's an app initializer rather
     // than e.g. an effect in App - fetches /api/auth-config (issuer/client differ between
     // local Keycloak and AWS Cognito) and lets angular-oauth2-oidc complete the code-flow

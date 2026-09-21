@@ -46,8 +46,8 @@ test.describe('piggy bank balance partially covers a new collection', () => {
     studentId = seeded.studentId;
 
     await login.loginAs('skarbnik', 'skarbnik');
-    const treasurerIdToken = await page.evaluate(() => sessionStorage.getItem('id_token'));
-    expect(treasurerIdToken, 'expected an id_token in sessionStorage right after login').toBeTruthy();
+    const treasurerIdToken = await page.evaluate(() => localStorage.getItem('id_token'));
+    expect(treasurerIdToken, 'expected an id_token in localStorage right after login').toBeTruthy();
     api = new Api(request, baseURL!, treasurerIdToken!);
 
     // Jasio already has 10 zł saved up, from before this collection ever existed.

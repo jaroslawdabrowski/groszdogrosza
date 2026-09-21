@@ -91,8 +91,8 @@ test.describe('main flow: collection → payment → settlement → both logins 
     treasurerKidStudentId = seeded.studentId;
 
     await login.loginAs('skarbnik', 'skarbnik');
-    const treasurerIdToken = await page.evaluate(() => sessionStorage.getItem('id_token'));
-    expect(treasurerIdToken, 'expected an id_token in sessionStorage right after login').toBeTruthy();
+    const treasurerIdToken = await page.evaluate(() => localStorage.getItem('id_token'));
+    expect(treasurerIdToken, 'expected an id_token in localStorage right after login').toBeTruthy();
     api = new Api(request, baseURL!, treasurerIdToken!);
 
     await treasurer.goto();
