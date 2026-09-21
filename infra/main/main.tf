@@ -146,13 +146,18 @@ resource "aws_cognito_user_pool_client" "spa" {
     "http://localhost:8080/",
   ]
 
+  # Bumped from 60 minutes to the maximum Cognito allows (24h) 2026-09-21, after the
+  # treasurer noticed the short TTL forcing frequent re-logins - the app's own bearer
+  # credential is actually the ID token, not the access token (see auth.interceptor.ts for
+  # why), so both are extended together; the access token itself isn't currently used for
+  # anything, but there's no reason to leave it short while everything else is long.
   token_validity_units {
-    access_token  = "minutes"
-    id_token      = "minutes"
+    access_token  = "hours"
+    id_token      = "hours"
     refresh_token = "days"
   }
-  access_token_validity  = 60
-  id_token_validity      = 60
+  access_token_validity  = 24
+  id_token_validity      = 24
   refresh_token_validity = 30
 
   lifecycle {
