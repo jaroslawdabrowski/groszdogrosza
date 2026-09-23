@@ -136,6 +136,10 @@ test.describe('main flow: collection → payment → settlement → both logins 
     await collectionA.requirements.expectStatus(kasiaFullName, 'Nadpłacone');
     await collectionA.contributions.containsEntry('50 zł');
 
+    // Nobody was ever removed from this collection - the stat stays hidden rather than
+    // showing a pointless "0" (see CollectionDetails.removedStudentsCount's javadoc).
+    await collectionA.settleSummary.expectRemovedStudentsCountAbsent();
+
     await collectionA.settle('10');
     await collectionA.settlementResult.containsEntry(`${kasiaFullName}: +40 zł`);
     await collectionA.expectStatus('SETTLED');

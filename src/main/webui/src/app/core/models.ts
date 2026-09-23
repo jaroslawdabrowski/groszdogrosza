@@ -37,6 +37,10 @@ export interface CollectionDetails {
   collection: CollectionSummary;
   requirements: RequirementView[];
   contributions: ContributionView[];
+  /** How many students were removed from this collection before it settled (see backend
+   *  CollectionDetailsResponse's javadoc) - their requirement/contributions are deleted
+   *  outright, so this is the only remaining trace, resolved from the ledger. */
+  removedStudentsCount: number;
 }
 
 /**

@@ -133,6 +133,11 @@ test.describe('collection membership: exclude a student, or remove one mid-colle
     await dashboard.goto();
     await dashboard.openCollection(tripTitle);
     const tripAfterRemoval = new CollectionDetailsPage(page);
+    // Jasio's removal shows up on the settle card, even though his requirement/contribution
+    // are both gone (see CollectionDetailsResponse.removedStudentsCount's javadoc - this
+    // count comes from the ledger, the only remaining trace). Zosia doesn't count here - she
+    // was excluded from the start (requirement 1), never actually removed (requirement 2).
+    await tripAfterRemoval.settleSummary.expectRemovedStudentsCount(1);
     await tripAfterRemoval.settle('0');
     await tripAfterRemoval.expectStatus('SETTLED');
   });

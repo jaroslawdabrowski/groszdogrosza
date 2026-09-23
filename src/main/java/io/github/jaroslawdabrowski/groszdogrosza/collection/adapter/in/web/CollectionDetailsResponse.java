@@ -14,7 +14,8 @@ import java.util.Map;
 public record CollectionDetailsResponse(
         CollectionResponse collection,
         List<RequirementResponse> requirements,
-        List<ContributionResponse> contributions) {
+        List<ContributionResponse> contributions,
+        int removedStudentsCount) {
 
     /**
      * @param studentsInOrder resolved by the caller (see CollectionResource), already
@@ -29,8 +30,17 @@ public record CollectionDetailsResponse(
      *  collection page a regular parent gets, not just the full per-student table (which
      *  works, but means hunting their own row out of a potentially long roster). {@code null}
      *  if the treasurer's own account has no linked Student yet.
+     * @param removedStudentsCount resolved by the caller from the global ledger (see
+     *  CollectionResource) - {@code RemoveStudentFromCollectionUseCase} DELETES a removed
+     *  student's requirement/contributions outright (see that class's own javadoc: "must
+     *  vanish from this collection's breakdown entirely"), so by the time this DTO is built
+     *  there is no trace of them left in {@code details.requirements()}/{@code contributions()}
+     *  at all - the ONLY remaining record is the {@code REMOVED_FROM_COLLECTION} ledger entry
+     *  each removal writes. Shown on the settle card so the treasurer can see at a glance how
+     *  many students dropped out before finalizing the numbers.
      */
-    static CollectionDetailsResponse from(CollectionDetails details, List<Student> studentsInOrder, String myStudentId) {
+    static CollectionDetailsResponse from(
+            CollectionDetails details, List<Student> studentsInOrder, String myStudentId, int removedStudentsCount) {
         Map<String, String> studentNamesById = new LinkedHashMap<>();
         for (Student student : studentsInOrder) {
             studentNamesById.put(student.id(), student.fullName());
@@ -62,7 +72,8 @@ public record CollectionDetailsResponse(
         return new CollectionDetailsResponse(
                 CollectionResponse.from(details.collection(), myStudentStatus),
                 orderedRequirements,
-                details.contributions().stream().map(c -> ContributionResponse.from(c, studentNamesById)).toList());
+                details.contributions().stream().map(c -> ContributionResponse.from(c, studentNamesById)).toList(),
+                removedStudentsCount);
     }
 
     public record RequirementResponse(

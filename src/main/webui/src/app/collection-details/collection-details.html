@@ -167,6 +167,12 @@
               <span>{{ 'collectionDetails.totalExpected' | translate }}</span>
               <strong>{{ totalExpected() }} zł</strong>
             </div>
+            @if (removedStudentsCount() > 0) {
+              <div class="summary-stat">
+                <span>{{ 'collectionDetails.removedStudentsCount' | translate }}</span>
+                <strong>{{ removedStudentsCount() }}</strong>
+              </div>
+            }
           </div>
           <mat-form-field appearance="outline">
             <mat-label>{{ 'collectionDetails.actualCost' | translate }}</mat-label>

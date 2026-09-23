@@ -8,6 +8,8 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListCollecti
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RecordManualContributionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RemoveStudentFromCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
+import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.GetFullLedgerUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
 import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
@@ -65,6 +67,9 @@ public class CollectionResource {
     ListStudentsUseCase listStudentsUseCase;
 
     @Inject
+    GetFullLedgerUseCase getFullLedgerUseCase;
+
+    @Inject
     AuthorizationSupport authorizationSupport;
 
     @Inject
@@ -119,7 +124,7 @@ public class CollectionResource {
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
         String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
-        return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents(), myStudentId);
+        return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents(), myStudentId, removedStudentsCountFor(id));
     }
 
     @POST
@@ -165,8 +170,18 @@ public class CollectionResource {
         // regular parent does (see CollectionResponse#myStudentStatus's javadoc).
         String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
         if (authorizationSupport.isTreasurer(identity)) {
-            return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents(), myStudentId);
+            return CollectionDetailsResponse.from(
+                    details, listStudentsUseCase.listStudents(), myStudentId, removedStudentsCountFor(id));
         }
         return CollectionProgressResponse.from(details, myStudentId);
+    }
+
+    /** See {@link CollectionDetailsResponse}'s own javadoc on {@code removedStudentsCount}
+     *  for why this has to come from the ledger rather than {@code CollectionDetails} itself. */
+    private int removedStudentsCountFor(String collectionId) {
+        return (int) getFullLedgerUseCase.getFullLedger().stream()
+                .filter(entry -> entry.eventType() == LedgerEventType.REMOVED_FROM_COLLECTION)
+                .filter(entry -> collectionId.equals(entry.params().get("collectionId")))
+                .count();
     }
 }

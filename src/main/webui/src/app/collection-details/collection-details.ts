@@ -323,6 +323,18 @@ export class CollectionDetails {
     return current.requirements.length;
   }
 
+  /** How many students were opted out of this collection before it settled - see backend
+   *  CollectionDetailsResponse.removedStudentsCount's javadoc for why this can't be derived
+   *  from `requirements`/`contributions` (a removal deletes them outright) and has to come
+   *  from the backend's own ledger-derived count instead. */
+  removedStudentsCount(): number {
+    const current = this.view();
+    if (!current || !isCollectionDetails(current)) {
+      return 0;
+    }
+    return current.removedStudentsCount;
+  }
+
   /** The nominal full value of the collection (every included student's base amount, before
    *  any piggy-bank discount) - what the treasurer was originally asking for in total,
    *  regardless of how much of it ended up pre-covered from savings. */

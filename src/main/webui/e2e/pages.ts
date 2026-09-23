@@ -96,6 +96,17 @@ export class SettleSummary {
     await expect(this.root.locator('.summary-stat').nth(2)).toContainText(`${amountZl} zł`);
   }
 
+  /** Only rendered at all once at least one student has been removed from this collection -
+   *  see CollectionDetails.removedStudentsCount's javadoc for why 0 is deliberately hidden
+   *  rather than shown as "0". */
+  async expectRemovedStudentsCount(count: number): Promise<void> {
+    await expect(this.root.locator('.summary-stat').nth(3)).toContainText(String(count));
+  }
+
+  async expectRemovedStudentsCountAbsent(): Promise<void> {
+    await expect(this.root.locator('.summary-stat')).toHaveCount(3);
+  }
+
   /** The cost input starts pre-filled with what's actually been collected so far (see
    *  CollectionDetails.reload), not left at 0 for the treasurer to fill in by hand. */
   async expectActualCostPrefilled(amountZl: string): Promise<void> {
