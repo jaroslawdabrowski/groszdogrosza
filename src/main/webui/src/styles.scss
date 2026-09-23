@@ -336,7 +336,7 @@ mat-progress-bar {
   // gets a report with a real class-sized roster (15-20+ students) down to one page instead
   // of spilling onto a second.
   html {
-    font-size: 9px;
+    font-size: 9.5px;
   }
 
   body {
@@ -350,6 +350,7 @@ mat-progress-bar {
 
   .gg-card {
     box-shadow: none !important;
+    background: none !important;
     border: 1px solid #ccc;
     break-inside: avoid;
   }

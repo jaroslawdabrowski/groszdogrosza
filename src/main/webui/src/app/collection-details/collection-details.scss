@@ -284,18 +284,20 @@ mat-form-field {
     margin-top: 0.35rem;
   }
 
+  // A touch more breathing room than the very first pass - flush against the card's own
+  // border looked like the border was clipping the header/last row rather than framing them.
   mat-card-header {
-    padding: 0.5rem 0.75rem 0 !important;
+    padding: 0.6rem 0.9rem 0.2rem !important;
   }
 
   .mat-mdc-card-content {
-    padding: 0.25rem 0.75rem 0.5rem !important;
+    padding: 0.35rem 0.9rem 0.7rem !important;
   }
 
   th.mat-mdc-header-cell,
   td.mat-mdc-cell {
-    padding: 0.1rem 0.35rem !important;
-    line-height: 1.2;
+    padding: 0.15rem 0.45rem !important;
+    line-height: 1.25;
   }
 
   // Material's MDC table sets an explicit row height (52px by default, sized for a
