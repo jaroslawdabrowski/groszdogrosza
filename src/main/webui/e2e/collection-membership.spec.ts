@@ -328,5 +328,27 @@ test.describe('collection membership: exclude a student, or remove one mid-colle
     await collection.settleSummary.expectTotalCollected('16');
     await collection.settleSummary.expectTotalExpected('16');
     await collection.settleSummary.expectActualCostPrefilled('16');
+
+    // Regression check for a real production report (2026-09-23): the settle card said "3
+    // wypisanych" for a collection where only 1 student was actually excluded at the time -
+    // removedStudentsCountFor was counting raw REMOVED_FROM_COLLECTION ledger EVENTS, not
+    // distinct currently-excluded students, so a remove -> add back -> remove cycle on the
+    // SAME student counted as 2 instead of 1. Reproduce that exact cycle on Jasio here: no
+    // removal yet -> stat hidden; remove him -> 1; add him back -> hidden again (he's back
+    // in requirements(), even though his own REMOVED_FROM_COLLECTION entry from a moment ago
+    // still exists in the ledger); remove him again -> still 1, not 2.
+    await collection.settleSummary.expectRemovedStudentsCountAbsent();
+
+    await collection.removeStudent(jasioFullName);
+    await collection.requirements.expectNotIncluded(jasioFullName);
+    await collection.settleSummary.expectRemovedStudentsCount(1);
+
+    await collection.addStudentBack(jasioFullName);
+    await collection.requirements.expectStatus(jasioFullName, 'Zapłacone');
+    await collection.settleSummary.expectRemovedStudentsCountAbsent();
+
+    await collection.removeStudent(jasioFullName);
+    await collection.requirements.expectNotIncluded(jasioFullName);
+    await collection.settleSummary.expectRemovedStudentsCount(1);
   });
 });

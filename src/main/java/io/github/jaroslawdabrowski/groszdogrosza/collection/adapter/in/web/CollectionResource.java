@@ -25,6 +25,8 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * {@code list}/{@code get} are available to any authenticated parent, but {@code get}
@@ -124,7 +126,8 @@ public class CollectionResource {
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
         String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
-        return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents(), myStudentId, removedStudentsCountFor(id));
+        return CollectionDetailsResponse.from(
+                details, listStudentsUseCase.listStudents(), myStudentId, removedStudentsCountFor(details));
     }
 
     @POST
@@ -171,17 +174,33 @@ public class CollectionResource {
         String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
         if (authorizationSupport.isTreasurer(identity)) {
             return CollectionDetailsResponse.from(
-                    details, listStudentsUseCase.listStudents(), myStudentId, removedStudentsCountFor(id));
+                    details, listStudentsUseCase.listStudents(), myStudentId, removedStudentsCountFor(details));
         }
         return CollectionProgressResponse.from(details, myStudentId);
     }
 
-    /** See {@link CollectionDetailsResponse}'s own javadoc on {@code removedStudentsCount}
-     *  for why this has to come from the ledger rather than {@code CollectionDetails} itself. */
-    private int removedStudentsCountFor(String collectionId) {
+    /**
+     * See {@link CollectionDetailsResponse}'s own javadoc on {@code removedStudentsCount} for
+     * why this has to come from the ledger rather than {@code CollectionDetails} itself.
+     * Counts DISTINCT students, not raw ledger entries - a student added back after being
+     * removed (see {@code AddStudentToCollectionUseCase}) writes no ledger entry of its own
+     * to "undo" the earlier {@code REMOVED_FROM_COLLECTION} one, so a student removed, added
+     * back, then removed again would otherwise be counted twice for what's really one
+     * currently-excluded student. Excludes anyone who's back in {@code details.requirements()}
+     * right now - a real bug hit in production: a student removed once then re-added still
+     * had a stale REMOVED_FROM_COLLECTION entry, inflating the count past how many were
+     * actually excluded at the moment this was viewed.
+     */
+    private int removedStudentsCountFor(CollectionDetails details) {
+        Set<String> currentlyIncluded = details.requirements().stream()
+                .map(requirement -> requirement.studentId())
+                .collect(Collectors.toSet());
         return (int) getFullLedgerUseCase.getFullLedger().stream()
                 .filter(entry -> entry.eventType() == LedgerEventType.REMOVED_FROM_COLLECTION)
-                .filter(entry -> collectionId.equals(entry.params().get("collectionId")))
+                .filter(entry -> details.collection().id().equals(entry.params().get("collectionId")))
+                .map(entry -> entry.studentId())
+                .distinct()
+                .filter(studentId -> !currentlyIncluded.contains(studentId))
                 .count();
     }
 }
