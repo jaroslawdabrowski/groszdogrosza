@@ -80,7 +80,11 @@
       </mat-card-content>
     </mat-card>
 
-    <mat-card class="gg-card gg-card--sky gg-fade-up" style="--gg-stagger: 60ms">
+    <!-- Screen-only - the printed report shows who owes what (the table above), not the
+         raw payment-by-payment list, to keep the handed-over report short (see the
+         requirements table's own print styling for why this matters when there are no
+         attachments to also fit). -->
+    <mat-card class="gg-card gg-card--sky gg-fade-up no-print" style="--gg-stagger: 60ms">
       <mat-card-header>
         <mat-card-title>{{ 'collectionDetails.contributions' | translate }}</mat-card-title>
       </mat-card-header>
@@ -176,8 +180,14 @@
   <!-- Visible to anyone with access to the collection (any authenticated parent) - only
        upload/delete are treasurer-only, gated the same way every other treasurer-only
        control on this page is (isCollectionDetails(v) is true only for a treasurer, see
-       backend CollectionResource.get). -->
-  <mat-card class="gg-card gg-fade-up attachments-card" style="--gg-stagger: 180ms">
+       backend CollectionResource.get). An empty section printed nothing but a heading
+       anyway, so it's skipped on paper entirely when there's nothing to show - the whole
+       point is fitting a report with no attachments on one page. -->
+  <mat-card
+    class="gg-card gg-fade-up attachments-card"
+    [class.no-print]="attachments().length === 0"
+    style="--gg-stagger: 180ms"
+  >
     <mat-card-header>
       <mat-card-title class="title-with-icon no-print"><mat-icon>attachment</mat-icon>{{ 'collectionDetails.attachments' | translate }}</mat-card-title>
       <mat-card-title class="print-only">{{ 'collectionDetails.attachments' | translate }}</mat-card-title>

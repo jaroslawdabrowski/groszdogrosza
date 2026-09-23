@@ -322,6 +322,15 @@ mat-progress-bar {
     display: block;
   }
 
+  // Every size on the page is in rem, so shrinking the root font-size scales the whole
+  // report down proportionally (headings, table text, card padding via em-based Material
+  // spacing) rather than needing to hand-tune each one - this, together with dropping the
+  // "Wpłaty" list and the empty "Załączniki" section (see collection-details.html), is what
+  // gets a report with no attachments down to one page instead of three.
+  html {
+    font-size: 12px;
+  }
+
   body {
     background: #fff;
   }

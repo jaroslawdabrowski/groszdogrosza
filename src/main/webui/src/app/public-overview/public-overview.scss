@@ -113,10 +113,30 @@
   margin-top: 0;
 }
 
+// The description sat directly under the title with Material's own tight, small, muted
+// subtitle spacing - fine for a one-line caption, cramped for a real sentence. Giving it
+// its own soft-tinted box (same "content living on its own surface" convention as
+// .payment-row/.title-hint above) separates it visually from the title and gives it room
+// to breathe before the progress bar starts.
+.collection-list mat-card-subtitle {
+  display: block;
+  margin: 0.6rem 0 0.9rem;
+  padding: 0.55rem 0.75rem;
+  // The card itself is --gg-cream-elevated (pure white) - this needs the page's own
+  // slightly-tinted off-white to actually read as a distinct surface, not another white
+  // rectangle on top of a white one. Same "recessed box inside a white card" convention as
+  // TreasurerPanel's .student-item.
+  background: var(--gg-cream);
+  border-radius: var(--gg-radius-sm);
+  color: var(--gg-ink-soft);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .percent {
   font-weight: 800;
   font-family: "Nunito", sans-serif;
-  margin: 0.4rem 0 0.75rem;
+  margin: 0.5rem 0 0.85rem;
   color: var(--gg-blush);
 }
 

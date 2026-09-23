@@ -1,10 +1,22 @@
 .detail-header h1 {
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.4rem;
 }
 
+// Boxed, not plain text directly under the title - matches the same treatment given to
+// PublicOverview's collection cards (see that page's own comment) for the same reason: a
+// real sentence sitting right under a heading with no visual separation reads as cramped.
 .description {
   color: var(--gg-ink-soft);
-  margin: 0 0 0.75rem;
+  margin: 0.5rem 0 1rem;
+  padding: 0.6rem 0.8rem;
+  // Not --gg-cream-elevated - this header sits directly on the page background (--gg-cream),
+  // not inside a .gg-card, so the elevated white here is what actually gives it a distinct
+  // "boxed" surface instead of blending into the page.
+  background: var(--gg-cream-elevated);
+  border: 1px solid var(--gg-coin-soft);
+  border-radius: var(--gg-radius-sm);
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .amount-chip {
@@ -202,10 +214,39 @@ mat-form-field {
     font-weight: 700;
   }
 
+  // Same reasoning as .req-status above - the on-screen "soft box" behind the description
+  // is a screen-only nicety, not something worth spending toner on.
+  .description {
+    background: none !important;
+    padding: 0;
+    color: var(--gg-ink) !important;
+  }
+
   .contribution-list li {
     background: none;
     border-bottom: 1px solid #ccc;
     border-radius: 0;
+  }
+
+  // Tighter than the on-screen card rhythm (mat-card's own comfortable padding/margins are
+  // sized for a mouse/finger, not a printed page) - stacked with the smaller root font-size
+  // in styles.scss, this is what lets the requirements table fit under the header on a
+  // single page instead of spilling a card or two onto a second one.
+  mat-card {
+    margin-top: 0.6rem;
+  }
+
+  mat-card-header {
+    padding-bottom: 0 !important;
+  }
+
+  .mat-mdc-card-content {
+    padding-top: 0.4rem !important;
+  }
+
+  th.mat-mdc-header-cell,
+  td.mat-mdc-cell {
+    padding: 0.3rem 0.5rem !important;
   }
 }
 
