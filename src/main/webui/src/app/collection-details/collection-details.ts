@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -125,8 +125,20 @@ export class CollectionDetails {
    *  out, with an "add back" action instead of the usual columns. Only meaningful while
    *  ACTIVE (see reload, which only fetches allStudents in that state) - once SETTLED, this
    *  collapses back to exactly the real historical requirements, matching how the table
-   *  already behaved before this existed. */
-  rosterRows(): RosterRow[] {
+   *  already behaved before this existed.
+   *
+   *  A `computed` on purpose, not a plain method: `mat-table`'s `[dataSource]` uses the
+   *  bound array's own identity to decide which rows to add/remove/keep, and a plain method
+   *  called directly in the template re-runs (and returns a brand-new array + brand-new row
+   *  objects) on EVERY change-detection tick, not just when the underlying data changes. In
+   *  practice that made the table destroy and rebuild every row on the tick right after a
+   *  button's `mousedown` (which itself triggers change detection) - so by the time the
+   *  browser fired the `click`, the original button element was already gone and nothing
+   *  happened. `removeStudent`/`addStudent`'s click handlers looked correctly wired but
+   *  silently never fired. `computed` only recomputes (and only produces a new array) when
+   *  `view`/`allStudents` themselves actually change, keeping a stable reference across
+   *  every unrelated change-detection cycle. */
+  readonly rosterRows = computed<RosterRow[]>(() => {
     const current = this.view();
     if (!current || !isCollectionDetails(current)) {
       return [];
@@ -154,7 +166,7 @@ export class CollectionDetails {
         status: '',
       }));
     return [...included, ...excluded];
-  }
+  });
 
   /** Puts a student back into the collection - see backend AddStudentToCollectionUseCase:
    *  immediately sweeps in whatever their current piggy bank balance covers, exactly like
