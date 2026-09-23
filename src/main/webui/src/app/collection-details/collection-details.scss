@@ -19,13 +19,6 @@
   line-height: 1.5;
 }
 
-.card-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
 .amount-chip {
   --mat-chip-elevated-container-color: var(--gg-coin-soft);
   --mat-chip-label-text-color: var(--gg-coin-deep);
@@ -196,8 +189,13 @@ mat-form-field {
   color: var(--gg-ink);
 }
 
+// Now lives in the shared header (see detail-header) - same "own child" affordance for
+// everyone (treasurer included), not just a non-treasurer's progress card.
 .self-service-actions {
-  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
 }
 
 .print-button {

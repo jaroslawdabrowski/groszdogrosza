@@ -19,6 +19,13 @@ import { Api, AppShell, CollectionDetailsPage, Dashboard, LoginPage, TreasurerPa
  * already paid is refunded to her piggy bank (unchanged RemoveStudentFromCollectionUseCase
  * behavior, just reached through a new, self-service door). A second, unrelated parent
  * trying to act on Kasia's id directly via the API is rejected with 403.
+ *
+ * The same self-service widget also shows for the TREASURER's own account, for their own
+ * child - a treasurer is also a Parent, and shouldn't have to hunt their own row out of the
+ * full requirements table just to opt their own kid out (see CollectionResource.collectionResponseFor,
+ * which now computes myStudentStatus for the treasurer branch too, not just the regular
+ * parent one). The final part of this test proves it: the treasurer leaves their own child
+ * (Jasio, included in this collection from the start) via the exact same widget/button.
  */
 test.describe('a parent can add/remove their own child from an ACTIVE collection', () => {
   let api: Api | undefined;
@@ -121,5 +128,14 @@ test.describe('a parent can add/remove their own child from an ACTIVE collection
     await dashboard.openCollection(collectionTitle);
     const treasurerView = new CollectionDetailsPage(page);
     await treasurerView.requirements.expectNotIncluded(kasiaFullName);
+
+    // --- The treasurer sees the exact same self-service widget for their OWN child, right
+    //     here on the collection page - Jasio was never excluded, so he owes the full 15 zł
+    //     and hasn't paid, hence "not paid yet". Using it works exactly like the treasurer's
+    //     own per-row "remove" action in the table below - same use case, just a shortcut. ---
+    await treasurerView.expectMyStudentStatus('cancel');
+    await treasurerView.leaveMyStudent();
+    await treasurerView.expectMyStudentStatus('do_not_disturb_on');
+    await treasurerView.requirements.expectNotIncluded('Jasio Skarbnik');
   });
 });

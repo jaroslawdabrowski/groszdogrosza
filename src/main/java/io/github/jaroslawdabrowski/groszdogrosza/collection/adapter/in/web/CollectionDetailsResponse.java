@@ -16,13 +16,21 @@ public record CollectionDetailsResponse(
         List<RequirementResponse> requirements,
         List<ContributionResponse> contributions) {
 
-    /** @param studentsInOrder resolved by the caller (see CollectionResource), already
+    /**
+     * @param studentsInOrder resolved by the caller (see CollectionResource), already
      *  sorted lastName-then-firstName (see {@code ListStudentsUseCase.listStudents}) - this
      *  DTO layer has no DI access of its own. Used both to resolve names (a per-collection
      *  breakdown reads much better with names than raw ids - the "TODO: show names, not
      *  UUIDs" note this closes) and to put the requirements table in that same roster order
-     *  instead of whatever order the underlying DynamoDB Query happened to return. */
-    static CollectionDetailsResponse from(CollectionDetails details, List<Student> studentsInOrder) {
+     *  instead of whatever order the underlying DynamoDB Query happened to return.
+     * @param myStudentId the treasurer's OWN child's id (see
+     *  {@code CollectionResponse#myStudentStatus}'s javadoc) - a treasurer is also a Parent
+     *  with a linked Student, and wants the same quick join/leave affordance on their own
+     *  collection page a regular parent gets, not just the full per-student table (which
+     *  works, but means hunting their own row out of a potentially long roster). {@code null}
+     *  if the treasurer's own account has no linked Student yet.
+     */
+    static CollectionDetailsResponse from(CollectionDetails details, List<Student> studentsInOrder, String myStudentId) {
         Map<String, String> studentNamesById = new LinkedHashMap<>();
         for (Student student : studentsInOrder) {
             studentNamesById.put(student.id(), student.fullName());
@@ -45,8 +53,14 @@ public record CollectionDetailsResponse(
             orderedRequirements.add(RequirementResponse.from(requirement, studentNamesById));
         }
 
+        String myStudentStatus = myStudentId == null ? null : details.requirements().stream()
+                .filter(r -> r.studentId().equals(myStudentId))
+                .findFirst()
+                .map(r -> r.status().name())
+                .orElse("NOT_INCLUDED");
+
         return new CollectionDetailsResponse(
-                CollectionResponse.from(details.collection()),
+                CollectionResponse.from(details.collection(), myStudentStatus),
                 orderedRequirements,
                 details.contributions().stream().map(c -> ContributionResponse.from(c, studentNamesById)).toList());
     }

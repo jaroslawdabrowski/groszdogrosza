@@ -118,7 +118,8 @@ public class CollectionResource {
         recordManualContributionUseCase.recordManualContribution(id, request.studentId(), request.amount());
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
-        return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());
+        String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
+        return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents(), myStudentId);
     }
 
     @POST
@@ -159,10 +160,13 @@ public class CollectionResource {
     private Object collectionResponseFor(String id) {
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
-        if (authorizationSupport.isTreasurer(identity)) {
-            return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());
-        }
+        // Computed regardless of role - the treasurer is also a Parent, possibly with their
+        // OWN linked Student, and gets the same join/leave affordance on their own page a
+        // regular parent does (see CollectionResponse#myStudentStatus's javadoc).
         String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
+        if (authorizationSupport.isTreasurer(identity)) {
+            return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents(), myStudentId);
+        }
         return CollectionProgressResponse.from(details, myStudentId);
     }
 }

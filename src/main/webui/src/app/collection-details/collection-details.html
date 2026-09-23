@@ -23,6 +23,30 @@
     <p class="print-only">
       {{ ('collection.status.' + v.collection.status) | translate }} · {{ 'dashboard.baseAmount' | translate }}: {{ v.collection.baseAmountPerStudent }} zł
     </p>
+
+    <!-- Self-service opt-in/opt-out for the caller's OWN child - shown to EVERYONE with a
+         linked Student, treasurer included (a treasurer is also a Parent, and wants this same
+         quick affordance for their own child instead of having to find their own row in the
+         full requirements table below). Only while ACTIVE - see backend
+         AuthorizationSupport.requireSelfOrTreasurerForStudent, the rule this relies on
+         server-side, not just this template check. myStudentStatus is null when there's no
+         linked child to act on at all. -->
+    @if (v.collection.status === 'ACTIVE' && v.collection.myStudentStatus) {
+      <div class="self-service-actions no-print">
+        <app-my-student-status-badge [status]="v.collection.myStudentStatus" />
+        @if (v.collection.myStudentStatus === 'NOT_INCLUDED') {
+          <button mat-stroked-button (click)="addMyStudent()">
+            <mat-icon>person_add</mat-icon>
+            {{ 'collectionDetails.joinMyStudentButton' | translate }}
+          </button>
+        } @else {
+          <button mat-stroked-button color="warn" (click)="removeMyStudent()">
+            <mat-icon>person_remove</mat-icon>
+            {{ 'collectionDetails.leaveMyStudentButton' | translate }}
+          </button>
+        }
+      </div>
+    }
   </header>
 
   @if (isCollectionDetails(v)) {
@@ -193,10 +217,7 @@
   } @else {
     <mat-card class="gg-card gg-fade-up">
       <mat-card-header>
-        <mat-card-title class="card-title-row">
-          {{ 'collectionDetails.progress' | translate }}
-          <app-my-student-status-badge [status]="v.collection.myStudentStatus" />
-        </mat-card-title>
+        <mat-card-title>{{ 'collectionDetails.progress' | translate }}</mat-card-title>
       </mat-card-header>
       <mat-card-content>
         <mat-progress-bar mode="determinate" [value]="v.percentComplete"></mat-progress-bar>
@@ -209,26 +230,6 @@
           <span>{{ 'collectionDetails.totalPaid' | translate }}</span>
           <strong>{{ v.totalPaid }} zł / {{ v.totalRequired }} zł</strong>
         </div>
-
-        <!-- Self-service opt-in/opt-out for the caller's OWN child, only while this
-             collection is still ACTIVE (see backend AuthorizationSupport.requireSelfOrTreasurerForStudent
-             - the same rule this relies on server-side, not just this template check) -
-             myStudentStatus is null when there's no linked child to act on at all. -->
-        @if (v.collection.status === 'ACTIVE' && v.collection.myStudentStatus) {
-          <div class="self-service-actions">
-            @if (v.collection.myStudentStatus === 'NOT_INCLUDED') {
-              <button mat-stroked-button (click)="addMyStudent()">
-                <mat-icon>person_add</mat-icon>
-                {{ 'collectionDetails.joinMyStudentButton' | translate }}
-              </button>
-            } @else {
-              <button mat-stroked-button color="warn" (click)="removeMyStudent()">
-                <mat-icon>person_remove</mat-icon>
-                {{ 'collectionDetails.leaveMyStudentButton' | translate }}
-              </button>
-            }
-          </div>
-        }
       </mat-card-content>
     </mat-card>
   }
