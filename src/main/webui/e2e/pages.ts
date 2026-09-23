@@ -111,6 +111,33 @@ export class Dashboard {
   }
 }
 
+/** The unauthenticated landing page ("/") - shows every active collection's aggregate
+ *  progress, with no login required. See PublicOverview's own javadoc for why a logged-in
+ *  visitor's card here is clickable through to the same /collections/:id detail view
+ *  Dashboard's own cards use, while an anonymous visitor's isn't (kept off a route behind
+ *  authGuard entirely). */
+export class PublicOverviewPage {
+  constructor(private readonly page: Page) {}
+
+  async goto(): Promise<void> {
+    await this.page.goto('/');
+  }
+
+  async openCollection(title: string): Promise<void> {
+    await Promise.all([
+      this.page.waitForURL(/\/collections\//),
+      this.page.getByRole('link', { name: new RegExp(title) }).click(),
+    ]);
+  }
+
+  /** For an anonymous visitor, the card must render as plain (non-navigating) content, not
+   *  a link into a route that would just bounce them to a login wall. */
+  async expectCollectionNotClickable(title: string): Promise<void> {
+    await expect(this.page.getByRole('link', { name: new RegExp(title) })).toHaveCount(0);
+    await expect(this.page.getByText(title)).toBeVisible();
+  }
+}
+
 /** One `<li class="student-item">` in the treasurer panel's student list, with its own
  *  nested parent rows - mirrors the nesting in treasurer-panel.html. */
 export class StudentItem {

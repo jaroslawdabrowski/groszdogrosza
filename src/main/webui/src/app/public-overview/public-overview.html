@@ -66,24 +66,34 @@
   } @else {
     <div class="collection-list">
       @for (c of o.activeCollections; track c.collection.id; let i = $index) {
-        <mat-card class="gg-card gg-card--blush gg-fade-up" [style.--gg-stagger.ms]="i * 70">
-          <mat-card-header>
-            <mat-card-title>{{ c.collection.title }}</mat-card-title>
-            <mat-card-subtitle>{{ c.collection.description }}</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <mat-progress-bar mode="determinate" [value]="c.percentComplete"></mat-progress-bar>
-            <p class="percent">{{ c.percentComplete }}%</p>
-            <div class="stat-row">
-              <span>{{ 'publicOverview.parentsPaid' | translate }}</span>
-              <strong>{{ c.studentsPaidCount }} / {{ c.studentsCount }}</strong>
-            </div>
-            <div class="stat-row">
-              <span>{{ 'publicOverview.totalPaid' | translate }}</span>
-              <strong>{{ c.totalPaid }} zł / {{ c.totalRequired }} zł</strong>
-            </div>
-          </mat-card-content>
-        </mat-card>
+        <!-- Clickable through to the same /collections/:id detail view Dashboard's own
+             cards use, but only for a logged-in visitor - anonymous visitors are
+             deliberately kept off that route entirely (it's behind authGuard, and this
+             page's whole point is working without an account at all), so the card stays
+             a plain, non-interactive summary for them instead of a link into a login wall. -->
+        <a
+          [class.collection-link]="authService.isAuthenticated()"
+          [routerLink]="authService.isAuthenticated() ? ['/collections', c.collection.id] : null"
+        >
+          <mat-card class="gg-card gg-card--blush gg-fade-up" [style.--gg-stagger.ms]="i * 70">
+            <mat-card-header>
+              <mat-card-title>{{ c.collection.title }}</mat-card-title>
+              <mat-card-subtitle>{{ c.collection.description }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <mat-progress-bar mode="determinate" [value]="c.percentComplete"></mat-progress-bar>
+              <p class="percent">{{ c.percentComplete }}%</p>
+              <div class="stat-row">
+                <span>{{ 'publicOverview.parentsPaid' | translate }}</span>
+                <strong>{{ c.studentsPaidCount }} / {{ c.studentsCount }}</strong>
+              </div>
+              <div class="stat-row">
+                <span>{{ 'publicOverview.totalPaid' | translate }}</span>
+                <strong>{{ c.totalPaid }} zł / {{ c.totalRequired }} zł</strong>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </a>
       }
     </div>
   }
