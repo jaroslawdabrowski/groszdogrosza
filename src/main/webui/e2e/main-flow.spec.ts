@@ -150,10 +150,12 @@ test.describe('main flow: collection → payment → settlement → both logins 
     // Collection B: two students, actual cost comes in under the 10 zł ask - "wyszło po
     // 8 zł na głowę" - each contributor's 2 zł surplus is credited back. Also exercises the
     // OTHER piggy-bank interaction: Kasia's now-40-zł balance already covers this
-    // collection's 10 zł base amount on its own, so her requirement here starts already
-    // satisfied (0 zł owed, status PAID) even before anyone pays anything - the fix in
-    // CollectionService.createCollection made this initial status correct instead of
-    // showing "Do zapłaty" ("still owed") for a requirement that's already 0.
+    // collection's 10 zł base amount on its own, so it's swept in immediately at creation -
+    // a real piggy bank debit, a real Contribution, and a real ledger entry (see
+    // CollectionService.createCollection's own comment), not just a silently-discounted
+    // requirement with no money movement or audit trail (the bug this was fixed from,
+    // 2026-09-23 - see ContributionRequirement's javadoc). requiredAmount stays the nominal
+    // 10 zł; it's paidAmount that shows the sweep.
     // ============================================================================
     await treasurer.goto();
     const collectionBTitle = `Wycieczka testowa ${unique}`;
@@ -162,29 +164,41 @@ test.describe('main flow: collection → payment → settlement → both logins 
     await dashboard.goto();
     await dashboard.openCollection(collectionBTitle);
     const collectionB = new CollectionDetailsPage(page);
-    await collectionB.requirements.expectRequiredAmount(kasiaFullName, '0');
+    await collectionB.requirements.expectRequiredAmount(kasiaFullName, '10');
+    await collectionB.requirements.expectPaidAmount(kasiaFullName, '10');
     await collectionB.requirements.expectStatus(kasiaFullName, 'Zapłacone');
     await collectionB.requirements.expectRequiredAmount(jasioFullName, '10');
     await collectionB.requirements.expectStatus(jasioFullName, 'Do zapłaty');
+    // Captured now, while still on the collection's own page - collection.id parses the
+    // CURRENT page URL live (see its getter), which stops being /collections/<id> the
+    // moment we navigate to the piggy bank page below.
+    const collectionBId = collectionB.id;
 
-    // Both families pay the nominal 10 zł anyway (a real family might not know/use an
-    // existing piggy bank credit) - SettlementPolicy only cares who actually contributed
-    // to THIS collection, not what the pre-computed requirement said.
-    await api.recordContribution(collectionB.id, kasiaStudentId, 10);
-    await api.recordContribution(collectionB.id, treasurerKidStudentId, 10);
+    // The sweep is visible on Kasia's own piggy bank straight away, not just on the
+    // collection's requirements table - the whole point of booking it as a real operation.
+    await piggyBank.goto(kasiaStudentId);
+    await piggyBank.expectBalance('30'); // 40 - the 10 zł just swept into collection B
+    await piggyBank.activityLog.containsEntry('10 zł');
+    await piggyBank.activityLog.containsEntry('zbiórkę');
+    await page.goto(`/collections/${collectionBId}`);
+
+    // Jasio still genuinely owes the full 10 zł - he had no prior balance.
+    await api.recordContribution(collectionBId, treasurerKidStudentId, 10);
     await collectionB.reload();
-    await collectionB.requirements.expectStatus(kasiaFullName, 'Nadpłacone');
     await collectionB.requirements.expectStatus(jasioFullName, 'Zapłacone');
 
-    // 20 zł paid in total, the trip actually cost 16 zł -> 4 zł surplus, split evenly two
-    // ways (no odd grosz to worry about here - see SettlementPolicyTest for that case).
+    // 20 zł contributed in total (Kasia's swept 10 + Jasio's paid 10), the trip actually
+    // cost 16 zł -> 4 zł surplus, split evenly two ways (no odd grosz to worry about here -
+    // see SettlementPolicyTest for that case). Kasia's swept contribution counting toward
+    // this split is exactly the point of the fix - previously she'd have been silently
+    // excluded from any surplus since no Contribution record ever existed for her.
     await collectionB.settle('16');
     await collectionB.settlementResult.containsEntry(`${kasiaFullName}: +2 zł`);
     await collectionB.settlementResult.containsEntry(`${jasioFullName}: +2 zł`);
     await collectionB.expectStatus('SETTLED');
 
     await piggyBank.goto(kasiaStudentId);
-    await piggyBank.expectBalance('42');
+    await piggyBank.expectBalance('32'); // 30 after the sweep + 2 zł settlement surplus
 
     // --- Treasurer-only global ledger shows both students' events ---
     await globalLedger.goto();
@@ -204,7 +218,7 @@ test.describe('main flow: collection → payment → settlement → both logins 
 
     await app.openMyPiggyBank();
     await piggyBank.expectStudentName(kasiaFullName);
-    await piggyBank.expectBalance('42');
+    await piggyBank.expectBalance('32');
     await piggyBank.activityLog.containsEntry('Wpłata');
   });
 });

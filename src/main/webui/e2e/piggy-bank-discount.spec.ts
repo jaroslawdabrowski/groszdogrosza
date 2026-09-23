@@ -5,17 +5,16 @@ import { Api, CollectionDetailsPage, Dashboard, LoginPage, PiggyBankPage, Treasu
 /**
  * A student who already has money in their piggy bank when a new collection is created
  * shouldn't be asked for the full base amount again - CollectionService.createCollection
- * computes `requiredAmount = baseAmountPerStudent - piggyBankBalance` (floored at zero) at
- * the moment the collection is created. This is the "partial discount" case: the existing
- * balance covers *some* but not all of the ask, so the requirement is reduced but not zero -
- * the student's own worked example: 10 zł already in the piggy bank, a 30 zł collection ->
- * 20 zł still owed, status PENDING ("Do zapłaty") from the very start, not PAID. It only
- * flips to PAID once contributions actually recorded against *this collection* reach that
- * remaining 20 zł - the pre-existing balance itself is never touched or re-checked again
- * (see ContributionRequirement's own javadoc: fixed at creation time on purpose). The other
- * branch of this same logic - balance covers the ask *entirely*, required = 0 immediately -
- * is already covered by main-flow.spec.ts's Collection B; this is the partial-discount
- * branch, previously untested end to end.
+ * immediately sweeps whatever the existing balance can cover into a real Contribution,
+ * exactly like an incoming bank transfer would (see ContributionRequirement's and
+ * createCollection's own javadoc). This is the "partial coverage" case: the existing balance
+ * covers *some* but not all of the ask - the student's own worked example: 10 zł already in
+ * the piggy bank, a 30 zł collection -> the 10 zł is swept in immediately (piggy bank debited
+ * to 0, a real Contribution + ledger entry recorded), 20 zł still genuinely owed, status
+ * PENDING ("Do zapłaty") until a real payment covers the rest. Fixed 2026-09-23 after a real
+ * collection silently marked students "PAID" with zero money movement and zero ledger entry
+ * whenever their piggy bank fully covered the ask - see CollectionProgressResponseTest for
+ * the aggregate-totals half of that same bug.
  */
 test.describe('piggy bank balance partially covers a new collection', () => {
   let api: Api | undefined;
@@ -27,7 +26,7 @@ test.describe('piggy bank balance partially covers a new collection', () => {
     }
   });
 
-  test('a student with 10 zł already saved owes only the 20 zł difference on a 30 zł collection', async ({
+  test('a student with 10 zł already saved has it swept in immediately, and owes only the 20 zł difference', async ({
     page,
     request,
     baseURL,
@@ -61,34 +60,35 @@ test.describe('piggy bank balance partially covers a new collection', () => {
     await dashboard.openCollection(collectionTitle);
     const collection = new CollectionDetailsPage(page);
 
-    // 30 zł ask - 10 zł already saved = 20 zł still owed, and PENDING (not PAID) because
-    // 20 zł is not zero - this is the whole point of the test.
-    await collection.requirements.expectRequiredAmount(studentFullName, '20');
-    await collection.requirements.expectPaidAmount(studentFullName, '0');
+    // Required stays the nominal 30 zł (not discounted) - the 10 zł already saved shows up
+    // as a real "paid" amount instead, exactly like any other contribution would.
+    await collection.requirements.expectRequiredAmount(studentFullName, '30');
+    await collection.requirements.expectPaidAmount(studentFullName, '10');
     await collection.requirements.expectStatus(studentFullName, 'Do zapłaty');
     // Capture the id now, while still on the collection's own page - `collection.id` reads
     // the CURRENT page URL live, so it must not be read again after navigating to the piggy
     // bank page below (see main-flow.spec.ts/collection-membership.spec.ts for the same gotcha).
     const collectionId = collection.id;
 
-    // The pre-existing 10 zł is a one-time discount applied to the requirement, not money
-    // that moved anywhere - the piggy bank itself is untouched until something is actually
-    // paid in and swept/recorded against this specific collection.
+    // The pre-existing 10 zł was genuinely swept out of the piggy bank at creation time, not
+    // just silently discounted - both the balance and the ledger reflect a real money move.
     await piggyBank.goto(studentId);
-    await piggyBank.expectBalance('10');
+    await piggyBank.expectBalance('0');
+    await piggyBank.activityLog.containsEntry('10 zł');
+    await piggyBank.activityLog.containsEntry('zbiórkę');
 
-    // Only once a payment covering exactly the remaining 20 zł is recorded against this
-    // collection does the status flip to PAID.
+    // Only once a payment covering the remaining 20 zł is recorded against this collection
+    // does the status flip to PAID.
     await api.recordContribution(collectionId, studentId, 20);
     // We navigated to the piggy bank page above - go back to the collection (not
     // collection.reload(), which would just reload whatever page we're currently on).
     await page.goto(`/collections/${collectionId}`);
-    await collection.requirements.expectPaidAmount(studentFullName, '20');
+    await collection.requirements.expectPaidAmount(studentFullName, '30');
     await collection.requirements.expectStatus(studentFullName, 'Zapłacone');
 
     // Recording a contribution never touches the piggy bank on its own (only settling a
-    // collection credits a leftover back to it) - still exactly the original 10 zł.
+    // collection credits a leftover back to it) - still exactly 0, the sweep already happened.
     await piggyBank.goto(studentId);
-    await piggyBank.expectBalance('10');
+    await piggyBank.expectBalance('0');
   });
 });

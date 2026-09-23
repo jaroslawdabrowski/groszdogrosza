@@ -23,6 +23,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.RecordLedgerEntryUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.CreditStudentPiggyBankUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.DebitStudentPiggyBankUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -49,6 +50,9 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
     CreditStudentPiggyBankUseCase creditStudentPiggyBankUseCase;
 
     @Inject
+    DebitStudentPiggyBankUseCase debitStudentPiggyBankUseCase;
+
+    @Inject
     RecordLedgerEntryUseCase recordLedgerEntryUseCase;
 
     @Override
@@ -60,29 +64,47 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
 
         Set<String> included = Set.copyOf(includedStudentIds);
 
-        // Snapshot each INCLUDED student's piggy bank balance NOW and fix the requirement -
-        // see the ContributionRequirement javadoc for why this is deliberately not
-        // recomputed later. A student left unchecked on the "who's in this collection"
-        // checklist gets no requirement at all, not a zero one - see
+        // Snapshot each INCLUDED student's piggy bank balance NOW and fix the requirement at
+        // the collection's nominal per-student amount - see ContributionRequirement's javadoc
+        // for why requiredAmount is the nominal amount (not discounted) and why that's
+        // deliberately not recomputed later. A student left unchecked on the "who's in this
+        // collection" checklist gets no requirement at all, not a zero one - see
         // CreateCollectionUseCase's javadoc for why (an "everyone owes money" collection and
-        // a "whoever's coming on the trip owes money" collection are both real cases here).
+        // a "whoever's coming on the trip owes money" collection are both real cases here) -
+        // and, critically, no piggy bank debit either: nothing below ever runs for them.
         for (Student student : listStudentsUseCase.listStudents()) {
             if (!included.contains(student.id())) {
                 continue;
             }
-            BigDecimal required = baseAmountPerStudent.subtract(student.piggyBankBalance());
-            if (required.signum() < 0) {
-                required = BigDecimal.ZERO;
-            }
-            // A student whose existing piggy bank balance already covers the full base
-            // amount has nothing left to pay - without this, requiredAmount=0 still showed
-            // as PENDING ("Do zapłaty"), misleadingly implying money was still owed.
-            ContributionRequirementStatus initialStatus =
-                    required.signum() == 0 ? ContributionRequirementStatus.PAID : ContributionRequirementStatus.PENDING;
             ContributionRequirement requirement = new ContributionRequirement(
-                    UUID.randomUUID().toString(), collection.id(), student.id(), required, BigDecimal.ZERO,
-                    initialStatus);
+                    UUID.randomUUID().toString(), collection.id(), student.id(), baseAmountPerStudent,
+                    BigDecimal.ZERO, ContributionRequirementStatus.PENDING);
             collectionRepository.saveRequirement(requirement);
+
+            // A student whose existing piggy bank balance can cover some or all of this
+            // requirement immediately gets it swept in right now, exactly like a real
+            // incoming payment would (see ContributionAllocationPolicy's javadoc, which
+            // documents this as the same "landing spot" idea, and
+            // BankStatementProcessingService.bookMatchedTransaction for the pattern this
+            // mirrors) - a real piggy-bank debit, a PIGGY_BANK_APPLIED_TO_COLLECTION ledger
+            // entry, and a real Contribution (so this student is correctly included if the
+            // collection is later settled with a surplus, and correctly refunded if they're
+            // removed from the collection before settlement). Found and fixed after a real
+            // collection silently marked 13 of 16 students PAID with zero money movement and
+            // zero audit trail - a treasurer has no way to trust "already covered" numbers
+            // that don't actually move or log anything.
+            BigDecimal covered = student.piggyBankBalance().min(baseAmountPerStudent);
+            if (covered.signum() > 0) {
+                debitStudentPiggyBankUseCase.debitPiggyBank(student.id(), covered);
+                // Same params shape as BankStatementProcessingService.bookMatchedTransaction's
+                // identical call for the real-payment case - collectionId, amount, no title
+                // (the i18n string for this event type doesn't use one).
+                recordLedgerEntryUseCase.record(student.id(), LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION,
+                        java.util.Map.of(
+                                "collectionId", collection.id(),
+                                "amount", LedgerAmounts.format(covered)));
+                applyContribution(collection.id(), student.id(), covered, ContributionSource.PIGGY_BANK_APPLIED, null);
+            }
         }
 
         return collection;

@@ -14,6 +14,17 @@ import java.math.RoundingMode;
  * picks between the two. Also reused (public {@link #from}) by
  * {@code platform.web.PublicOverviewResource} for the unauthenticated public page, which
  * shows this same aggregate-only shape for every currently ACTIVE collection.
+ *
+ * <p>A plain sum of {@code requiredAmount}/{@code paidAmount} across every requirement is
+ * correct here (unlike an earlier version of this class) because
+ * {@code CollectionService.createCollection} now sweeps a pre-existing piggy bank balance
+ * into a real {@code Contribution} at creation time, rather than just silently discounting
+ * {@code requiredAmount} with no corresponding {@code paidAmount} - see
+ * {@code ContributionRequirement}'s javadoc. {@code requiredAmount} is always the
+ * collection's nominal {@code baseAmountPerStudent}, so summing it across every included
+ * student naturally gives the collection's true total value, and {@code paidAmount} already
+ * reflects everything genuinely covered (from an existing balance, a bank transfer, or a
+ * manual entry) - no separate reconstruction needed.
  */
 public record CollectionProgressResponse(
         CollectionResponse collection,

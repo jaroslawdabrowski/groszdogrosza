@@ -4,13 +4,19 @@ import java.math.BigDecimal;
 
 /**
  * How much one specific student's family actually owes for one specific collection, and how
- * much of that they've paid so far. {@code requiredAmount} is
- * {@code Collection.baseAmountPerStudent} minus whatever piggy bank balance that student had
- * available at the moment the collection was activated (floored at zero - a student's piggy
- * bank can cover a collection entirely, but a requirement is never negative). Fixed at
- * creation time on purpose: if the student's piggy bank balance changes later (e.g. from an
- * unrelated transfer), it does not retroactively change what THIS collection asks of them -
- * it simply gets applied via {@code ContributionAllocationPolicy} the next time money comes in.
+ * much of that they've paid so far. {@code requiredAmount} is the collection's nominal
+ * {@code Collection.baseAmountPerStudent}, fixed at creation time and never recomputed later
+ * (if the student's piggy bank balance changes afterwards for an unrelated reason, it does
+ * not retroactively change what THIS collection asks of them). {@link #outstandingAmount()}
+ * ({@code requiredAmount - paidAmount}) is what's actually still owed "at a glance" - it
+ * starts below {@code requiredAmount} whenever the student already had some piggy bank
+ * balance at creation time, because {@code CollectionService.createCollection} immediately
+ * sweeps whatever it can cover into a real {@code Contribution} (see that method's own
+ * comment) exactly like a genuine incoming payment would, rather than just discounting the
+ * requirement and leaving no money movement or audit trail behind. This is deliberately the
+ * SAME mechanism a real bank transfer uses ({@code ContributionAllocationPolicy}), not a
+ * separate "silent" path - so a student whose entire share came from an already-full piggy
+ * bank is a genuine contributor for settlement purposes too, not a bookkeeping fiction.
  */
 public record ContributionRequirement(
         String id,
