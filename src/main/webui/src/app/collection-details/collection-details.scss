@@ -233,13 +233,6 @@ mat-form-field {
     display: none;
   }
 
-  // A student not part of this collection has nothing to report - on screen the greyed row
-  // is a genuinely useful "add them back" shortcut, but on a printed handout (who owes what,
-  // what's been collected) it's a dead row that only pushes real rows onto a second page.
-  tr.excluded-row {
-    display: none;
-  }
-
   // styles.scss gives every .gg-card `break-inside: avoid` so a small card (e.g. the
   // settlement result) never splits awkwardly - but for a full class roster that's actively
   // harmful: the browser can't fit the ENTIRE table+header on whatever's left of the current
