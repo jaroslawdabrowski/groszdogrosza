@@ -1,3 +1,11 @@
+/** `myStudentStatus` is the CALLER's OWN child's status in this collection - never another
+ *  family's (see backend CollectionResponse's javadoc): one of ContributionRequirement's
+ *  statuses if the child is included, `'NOT_INCLUDED'` if the collection exists but the
+ *  child isn't in it, or `null`/undefined if there's no logged-in parent (or no linked
+ *  Student) to resolve "own child" for in the first place - see MyStudentStatusBadge, which
+ *  renders nothing in that last case. */
+export type MyStudentStatus = 'NOT_INCLUDED' | 'PENDING' | 'PAID' | 'OVERPAID';
+
 export interface CollectionSummary {
   id: string;
   title: string;
@@ -5,6 +13,7 @@ export interface CollectionSummary {
   status: 'DRAFT' | 'ACTIVE' | 'SETTLED';
   baseAmountPerStudent: number;
   createdAt: string;
+  myStudentStatus?: MyStudentStatus | null;
 }
 
 export interface RequirementView {

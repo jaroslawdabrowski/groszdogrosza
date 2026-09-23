@@ -7,10 +7,11 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { CollectionApiService } from '../core/collection-api.service';
 import { CollectionSummary } from '../core/models';
 import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
+import { MyStudentStatusBadge } from '../shared/my-student-status-badge/my-student-status-badge';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, MatCardModule, MatChipsModule, MatProgressBarModule, TranslatePipe, LoadingSpinner],
+  imports: [RouterLink, MatCardModule, MatChipsModule, MatProgressBarModule, TranslatePipe, LoadingSpinner, MyStudentStatusBadge],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })

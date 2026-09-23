@@ -12,6 +12,7 @@ import { PublicApiService } from '../core/public-api.service';
 import { PublicOverview as PublicOverviewModel } from '../core/models';
 import { Logo } from '../shared/logo/logo';
 import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
+import { MyStudentStatusBadge } from '../shared/my-student-status-badge/my-student-status-badge';
 
 /**
  * The unauthenticated landing page (route "/") - shows every currently active collection's
@@ -21,7 +22,7 @@ import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
  */
 @Component({
   selector: 'app-public-overview',
-  imports: [RouterLink, ClipboardModule, MatCardModule, MatProgressBarModule, MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, Logo, LoadingSpinner],
+  imports: [RouterLink, ClipboardModule, MatCardModule, MatProgressBarModule, MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, Logo, LoadingSpinner, MyStudentStatusBadge],
   templateUrl: './public-overview.html',
   styleUrl: './public-overview.scss',
 })

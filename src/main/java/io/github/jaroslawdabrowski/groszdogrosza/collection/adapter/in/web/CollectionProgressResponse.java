@@ -35,14 +35,28 @@ public record CollectionProgressResponse(
         int percentComplete) {
 
     public static CollectionProgressResponse from(CollectionDetails details) {
+        return from(details, null);
+    }
+
+    /**
+     * @param myStudentId the caller's own child's id (from {@code Parent.studentId}), or
+     *     {@code null} if there's no logged-in parent (or no linked Student) to resolve "own
+     *     child" for - see {@code CollectionResponse.myStudentStatus}'s javadoc for what the
+     *     resulting field means in each case.
+     */
+    public static CollectionProgressResponse from(CollectionDetails details, String myStudentId) {
         BigDecimal totalRequired = BigDecimal.ZERO;
         BigDecimal totalPaid = BigDecimal.ZERO;
         int paidCount = 0;
+        String myStudentStatus = myStudentId == null ? null : "NOT_INCLUDED";
         for (ContributionRequirement requirement : details.requirements()) {
             totalRequired = totalRequired.add(requirement.requiredAmount());
             totalPaid = totalPaid.add(requirement.paidAmount());
             if (requirement.status() != ContributionRequirementStatus.PENDING) {
                 paidCount++;
+            }
+            if (requirement.studentId().equals(myStudentId)) {
+                myStudentStatus = requirement.status().name();
             }
         }
         int percent = totalRequired.signum() == 0
@@ -50,7 +64,7 @@ public record CollectionProgressResponse(
                 : totalPaid.min(totalRequired).multiply(BigDecimal.valueOf(100))
                         .divide(totalRequired, 0, RoundingMode.DOWN)
                         .intValue();
-        return new CollectionProgressResponse(CollectionResponse.from(details.collection()),
+        return new CollectionProgressResponse(CollectionResponse.from(details.collection(), myStudentStatus),
                 details.requirements().size(), paidCount, totalRequired, totalPaid, percent);
     }
 }

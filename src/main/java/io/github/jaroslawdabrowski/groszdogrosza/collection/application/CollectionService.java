@@ -9,6 +9,8 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.ContributionR
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.ContributionSource;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.SettlementPolicy;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.SettlementResult;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.StudentAlreadyInCollectionException;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.AddStudentToCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ApplyAutomaticContributionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.CreateCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetActiveRequirementsForStudentUseCase;
@@ -24,6 +26,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.RecordLedgerEntr
 import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.CreditStudentPiggyBankUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.DebitStudentPiggyBankUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.GetStudentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -38,13 +41,16 @@ import java.util.UUID;
 @ApplicationScoped
 public class CollectionService implements CreateCollectionUseCase, GetCollectionUseCase, ListCollectionsUseCase,
         RecordManualContributionUseCase, ApplyAutomaticContributionUseCase, GetActiveRequirementsForStudentUseCase,
-        SettleCollectionUseCase, RemoveStudentFromCollectionUseCase {
+        SettleCollectionUseCase, RemoveStudentFromCollectionUseCase, AddStudentToCollectionUseCase {
 
     @Inject
     CollectionRepositoryPort collectionRepository;
 
     @Inject
     ListStudentsUseCase listStudentsUseCase;
+
+    @Inject
+    GetStudentUseCase getStudentUseCase;
 
     @Inject
     CreditStudentPiggyBankUseCase creditStudentPiggyBankUseCase;
@@ -71,43 +77,61 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
         // collection" checklist gets no requirement at all, not a zero one - see
         // CreateCollectionUseCase's javadoc for why (an "everyone owes money" collection and
         // a "whoever's coming on the trip owes money" collection are both real cases here) -
-        // and, critically, no piggy bank debit either: nothing below ever runs for them.
+        // and, critically, no piggy bank debit either: addRequirementForStudent never runs
+        // for them.
         for (Student student : listStudentsUseCase.listStudents()) {
-            if (!included.contains(student.id())) {
-                continue;
-            }
-            ContributionRequirement requirement = new ContributionRequirement(
-                    UUID.randomUUID().toString(), collection.id(), student.id(), baseAmountPerStudent,
-                    BigDecimal.ZERO, ContributionRequirementStatus.PENDING);
-            collectionRepository.saveRequirement(requirement);
-
-            // A student whose existing piggy bank balance can cover some or all of this
-            // requirement immediately gets it swept in right now, exactly like a real
-            // incoming payment would (see ContributionAllocationPolicy's javadoc, which
-            // documents this as the same "landing spot" idea, and
-            // BankStatementProcessingService.bookMatchedTransaction for the pattern this
-            // mirrors) - a real piggy-bank debit, a PIGGY_BANK_APPLIED_TO_COLLECTION ledger
-            // entry, and a real Contribution (so this student is correctly included if the
-            // collection is later settled with a surplus, and correctly refunded if they're
-            // removed from the collection before settlement). Found and fixed after a real
-            // collection silently marked 13 of 16 students PAID with zero money movement and
-            // zero audit trail - a treasurer has no way to trust "already covered" numbers
-            // that don't actually move or log anything.
-            BigDecimal covered = student.piggyBankBalance().min(baseAmountPerStudent);
-            if (covered.signum() > 0) {
-                debitStudentPiggyBankUseCase.debitPiggyBank(student.id(), covered);
-                // Same params shape as BankStatementProcessingService.bookMatchedTransaction's
-                // identical call for the real-payment case - collectionId, amount, no title
-                // (the i18n string for this event type doesn't use one).
-                recordLedgerEntryUseCase.record(student.id(), LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION,
-                        java.util.Map.of(
-                                "collectionId", collection.id(),
-                                "amount", LedgerAmounts.format(covered)));
-                applyContribution(collection.id(), student.id(), covered, ContributionSource.PIGGY_BANK_APPLIED, null);
+            if (included.contains(student.id())) {
+                addRequirementForStudent(collection, student);
             }
         }
 
         return collection;
+    }
+
+    @Override
+    public void addStudentToCollection(String collectionId, String studentId) {
+        Collection collection = collectionRepository.findCollectionById(collectionId)
+                .orElseThrow(() -> new NoSuchElementException("No such collection: " + collectionId));
+        if (collection.status() != CollectionStatus.ACTIVE) {
+            // Same reasoning as removeStudentFromCollection's guard - a settled collection's
+            // numbers are already final.
+            throw new CollectionNotActiveException(collectionId, collection.status());
+        }
+        if (collectionRepository.findRequirement(collectionId, studentId).isPresent()) {
+            throw new StudentAlreadyInCollectionException(collectionId, studentId);
+        }
+        Student student = getStudentUseCase.getStudent(studentId)
+                .orElseThrow(() -> new NoSuchElementException("No such student: " + studentId));
+        addRequirementForStudent(collection, student);
+    }
+
+    /**
+     * Adds a requirement for one student on one collection and immediately sweeps in
+     * whatever their CURRENT piggy bank balance can cover - the shared "landing spot" logic
+     * both {@code createCollection} (once per included student) and
+     * {@code addStudentToCollection} (putting a student back in, e.g. after they were
+     * removed by mistake or a trip participant confirms after all) need. See
+     * {@code createCollection}'s own comment for why this is a real piggy-bank debit, ledger
+     * entry and Contribution, not a silent discount.
+     */
+    private void addRequirementForStudent(Collection collection, Student student) {
+        ContributionRequirement requirement = new ContributionRequirement(
+                UUID.randomUUID().toString(), collection.id(), student.id(), collection.baseAmountPerStudent(),
+                BigDecimal.ZERO, ContributionRequirementStatus.PENDING);
+        collectionRepository.saveRequirement(requirement);
+
+        BigDecimal covered = student.piggyBankBalance().min(collection.baseAmountPerStudent());
+        if (covered.signum() > 0) {
+            debitStudentPiggyBankUseCase.debitPiggyBank(student.id(), covered);
+            // Same params shape as BankStatementProcessingService.bookMatchedTransaction's
+            // identical call for the real-payment case - collectionId, amount, no title
+            // (the i18n string for this event type doesn't use one).
+            recordLedgerEntryUseCase.record(student.id(), LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION,
+                    java.util.Map.of(
+                            "collectionId", collection.id(),
+                            "amount", LedgerAmounts.format(covered)));
+            applyContribution(collection.id(), student.id(), covered, ContributionSource.PIGGY_BANK_APPLIED, null);
+        }
     }
 
     @Override

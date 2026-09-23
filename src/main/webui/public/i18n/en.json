@@ -13,6 +13,12 @@
     "backToTreasurerPanel": "Back to treasurer panel",
     "backToHome": "Back to homepage"
   },
+  "myStudentStatus": {
+    "NOT_INCLUDED": "Your child isn't part of this collection",
+    "PENDING": "Your child hasn't paid yet",
+    "PAID": "Your child has paid",
+    "OVERPAID": "Your child has paid (overpaid)"
+  },
   "login": {
     "subtitle": "Log in to manage class collections",
     "submit": "Log in"
@@ -78,6 +84,9 @@
     "totalPaid": "Collected",
     "removeStudentTooltip": "Remove student from the collection (refund to piggy bank)",
     "removeStudentConfirm": "Remove {{name}} from this collection? Any money they paid will be refunded to their piggy bank. This can't be undone.",
+    "addStudentTooltip": "Add student back to the collection (draws from their piggy bank if available)",
+    "notIncluded": "Not included",
+    "totalExpected": "Total expected",
     "printButton": "Print report",
     "printedOn": "Printed: {{date}}",
     "totalCollectedLabel": "Total collected",

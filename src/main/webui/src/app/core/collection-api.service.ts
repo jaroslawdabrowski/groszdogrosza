@@ -38,4 +38,11 @@ export class CollectionApiService {
   removeStudent(collectionId: string, studentId: string): Observable<CollectionDetails> {
     return this.http.delete<CollectionDetails>(`/api/collections/${collectionId}/students/${studentId}`);
   }
+
+  /** Puts a student back into an ACTIVE collection they weren't part of - immediately sweeps
+   *  in whatever their current piggy bank balance covers, same as when the collection was
+   *  first created (see the backend AddStudentToCollectionUseCase). */
+  addStudent(collectionId: string, studentId: string): Observable<CollectionDetails> {
+    return this.http.post<CollectionDetails>(`/api/collections/${collectionId}/students/${studentId}`, {});
+  }
 }

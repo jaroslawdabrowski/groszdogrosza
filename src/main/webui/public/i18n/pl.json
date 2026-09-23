@@ -13,6 +13,12 @@
     "backToTreasurerPanel": "Powrót do panelu skarbnika",
     "backToHome": "Powrót na stronę główną"
   },
+  "myStudentStatus": {
+    "NOT_INCLUDED": "Twoje dziecko nie bierze udziału w tej zbiórce",
+    "PENDING": "Twoje dziecko jeszcze nie wpłaciło",
+    "PAID": "Twoje dziecko wpłaciło",
+    "OVERPAID": "Twoje dziecko wpłaciło (nadpłata)"
+  },
   "login": {
     "subtitle": "Zaloguj się, aby zarządzać zbiórkami klasowymi",
     "submit": "Zaloguj się"
@@ -78,6 +84,9 @@
     "totalPaid": "Zebrano",
     "removeStudentTooltip": "Usuń ucznia ze zbiórki (wpłacone pieniądze wrócą do skarbonki)",
     "removeStudentConfirm": "Na pewno usunąć {{name}} z tej zbiórki? Wpłacone przez niego/nią pieniądze wrócą do skarbonki. Tej operacji nie można cofnąć.",
+    "addStudentTooltip": "Dodaj ucznia z powrotem do zbiórki (pobierze pieniądze ze skarbonki, jeśli są dostępne)",
+    "notIncluded": "Nie w zbiórce",
+    "totalExpected": "Powinniśmy zebrać",
     "printButton": "Drukuj raport",
     "printedOn": "Wydrukowano: {{date}}",
     "totalCollectedLabel": "Łącznie zebrano",

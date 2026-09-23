@@ -113,6 +113,23 @@
   margin-top: 0;
 }
 
+// Cards became clickable (wrapped in <a>) so a logged-in visitor can open the same detail
+// view Dashboard's own cards link to - without this reset, every bit of text inside picks up
+// the browser's default link underline/blue, which the anonymous (non-.collection-link,
+// non-navigating) case never had. Same reset as Dashboard's own .collection-link.
+.collection-list a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 // The description sat directly under the title with Material's own tight, small, muted
 // subtitle spacing - fine for a one-line caption, cramped for a real sentence. Giving it
 // its own soft-tinted box (same "content living on its own surface" convention as

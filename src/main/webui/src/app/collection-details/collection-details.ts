@@ -12,15 +12,32 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { CollectionApiService } from '../core/collection-api.service';
+import { StudentApiService } from '../core/student-api.service';
 import { ALLOWED_ATTACHMENT_TYPES, AttachmentApiService, MAX_ATTACHMENT_SIZE_BYTES } from '../core/attachment-api.service';
 import {
   Attachment,
   CollectionDetails as CollectionDetailsModel,
   CollectionProgress,
   SettlementResult,
+  Student,
   isCollectionDetails,
 } from '../core/models';
 import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
+import { MyStudentStatusBadge } from '../shared/my-student-status-badge/my-student-status-badge';
+
+/** One row of the requirements table - either a student genuinely included in the
+ *  collection (backed by a real ContributionRequirement) or one who isn't (backed by
+ *  nothing - shown greyed out with an "add back" action instead of the usual
+ *  required/paid/status columns, which don't apply to them at all). Only ever built while
+ *  the collection is ACTIVE - see CollectionDetails.rosterRows. */
+interface RosterRow {
+  studentId: string;
+  studentName: string;
+  included: boolean;
+  requiredAmount: number;
+  paidAmount: number;
+  status: string;
+}
 
 /**
  * Renders one of two shapes depending on the caller's role, as returned by the backend
@@ -44,6 +61,7 @@ import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
     MatProgressBarModule,
     TranslatePipe,
     LoadingSpinner,
+    MyStudentStatusBadge,
   ],
   templateUrl: './collection-details.html',
   styleUrl: './collection-details.scss',
@@ -51,10 +69,16 @@ import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
 export class CollectionDetails {
   private readonly route = inject(ActivatedRoute);
   private readonly collectionApi = inject(CollectionApiService);
+  private readonly studentApi = inject(StudentApiService);
   private readonly attachmentApi = inject(AttachmentApiService);
   private readonly translate = inject(TranslateService);
 
   readonly view = signal<CollectionDetailsModel | CollectionProgress | null>(null);
+  /** The full class roster - only ever fetched for a treasurer viewing an ACTIVE collection
+   *  (StudentResource.list is treasurer-only, and there's no point offering "add back" on a
+   *  SETTLED collection - see rosterRows). Used to show students NOT in this collection as
+   *  greyed-out rows with an "add" action, alongside the ones that are. */
+  readonly allStudents = signal<Student[]>([]);
   readonly attachments = signal<Attachment[]>([]);
   readonly uploadingAttachment = signal(false);
   readonly attachmentError = signal<string | null>(null);
@@ -82,9 +106,61 @@ export class CollectionDetails {
       next: (view) => {
         this.view.set(view);
         this.loading.set(false);
+        if (isCollectionDetails(view)) {
+          // Pre-filled with what's actually been collected so far, not left at 0 - the
+          // treasurer almost always wants to settle at exactly that amount, and can still
+          // edit it if the real invoice/cost differs.
+          this.actualCostSpent.set(this.totalCollected());
+          if (view.collection.status === 'ACTIVE') {
+            this.studentApi.list().subscribe((students) => this.allStudents.set(students));
+          }
+        }
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  /** Every student in the class, merged with this collection's own requirements - a student
+   *  with no requirement (never included, or removed earlier) still shows up here, greyed
+   *  out, with an "add back" action instead of the usual columns. Only meaningful while
+   *  ACTIVE (see reload, which only fetches allStudents in that state) - once SETTLED, this
+   *  collapses back to exactly the real historical requirements, matching how the table
+   *  already behaved before this existed. */
+  rosterRows(): RosterRow[] {
+    const current = this.view();
+    if (!current || !isCollectionDetails(current)) {
+      return [];
+    }
+    const included: RosterRow[] = current.requirements.map((r) => ({
+      studentId: r.studentId,
+      studentName: r.studentName,
+      included: true,
+      requiredAmount: r.requiredAmount,
+      paidAmount: r.paidAmount,
+      status: r.status,
+    }));
+    if (current.collection.status !== 'ACTIVE') {
+      return included;
+    }
+    const includedIds = new Set(included.map((r) => r.studentId));
+    const excluded: RosterRow[] = this.allStudents()
+      .filter((s) => !includedIds.has(s.id))
+      .map((s) => ({
+        studentId: s.id,
+        studentName: `${s.firstName} ${s.lastName}`,
+        included: false,
+        requiredAmount: 0,
+        paidAmount: 0,
+        status: '',
+      }));
+    return [...included, ...excluded];
+  }
+
+  /** Puts a student back into the collection - see backend AddStudentToCollectionUseCase:
+   *  immediately sweeps in whatever their current piggy bank balance covers, exactly like
+   *  when the collection was first created, with a real ledger entry either way. */
+  addStudent(studentId: string): void {
+    this.collectionApi.addStudent(this.collectionId, studentId).subscribe(() => this.reload());
   }
 
   reloadAttachments(): void {
@@ -175,6 +251,38 @@ export class CollectionDetails {
       }
     }
     return studentId;
+  }
+
+  /** How many included students' requirements are no longer PENDING (paid in full or
+   *  overpaid), out of how many are included in total - shown on the settle card so the
+   *  treasurer can see at a glance who's still outstanding before committing to a final
+   *  cost. Status-based, not amount-based, matching CollectionProgressResponse's own
+   *  studentsPaidCount on the backend. */
+  paidStudentsCount(): number {
+    const current = this.view();
+    if (!current || !isCollectionDetails(current)) {
+      return 0;
+    }
+    return current.requirements.filter((r) => r.status !== 'PENDING').length;
+  }
+
+  totalStudentsCount(): number {
+    const current = this.view();
+    if (!current || !isCollectionDetails(current)) {
+      return 0;
+    }
+    return current.requirements.length;
+  }
+
+  /** The nominal full value of the collection (every included student's base amount, before
+   *  any piggy-bank discount) - what the treasurer was originally asking for in total,
+   *  regardless of how much of it ended up pre-covered from savings. */
+  totalExpected(): number {
+    const current = this.view();
+    if (!current || !isCollectionDetails(current)) {
+      return 0;
+    }
+    return current.collection.baseAmountPerStudent * current.requirements.length;
   }
 
   /** Money actually received for this collection - the sum of every recorded Contribution,

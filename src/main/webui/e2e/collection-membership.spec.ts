@@ -94,8 +94,10 @@ test.describe('collection membership: exclude a student, or remove one mid-colle
     const trip = new CollectionDetailsPage(page);
     await trip.requirements.expectRequiredAmount(jasioFullName, '8');
     await trip.requirements.expectStatus(jasioFullName, 'Do zapłaty');
-    // The whole point of requirement 1: Zosia has no row at all, not a 0 zł one.
-    await trip.requirements.expectAbsent(zosiaFullName);
+    // The whole point of requirement 1: Zosia has no real requirement, shown as a distinct
+    // greyed-out "not included" row (not a 0 zł one) - see the roster-merge test further
+    // down for the dedicated add-her-back coverage.
+    await trip.requirements.expectNotIncluded(zosiaFullName);
     // Capture the id now, only after the assertions above have proven the SPA navigation
     // from dashboard.openCollection has actually landed - `trip.id` reads the CURRENT page
     // URL live (see its getter), which would otherwise still be "/dashboard" (openCollection
@@ -114,9 +116,10 @@ test.describe('collection membership: exclude a student, or remove one mid-colle
     await trip.requirements.expectStatus(jasioFullName, 'Zapłacone');
 
     await trip.removeStudent(jasioFullName);
-    // Gone from the breakdown entirely - not a 0 zł / cancelled row.
-    await trip.requirements.expectAbsent(jasioFullName);
-    await trip.requirements.expectAbsent(zosiaFullName);
+    // No real requirement left for either of them - both now shown as "not included" greyed
+    // rows (the collection is still ACTIVE), not gone from the table or a 0 zł/cancelled row.
+    await trip.requirements.expectNotIncluded(jasioFullName);
+    await trip.requirements.expectNotIncluded(zosiaFullName);
 
     await piggyBank.goto(jasioStudentId);
     await piggyBank.expectBalance('8');
@@ -205,7 +208,7 @@ test.describe('collection membership: exclude a student, or remove one mid-colle
     await collection.requirements.expectRequiredAmount(jasioFullName, '8');
     await collection.requirements.expectPaidAmount(jasioFullName, '8');
     await collection.requirements.expectStatus(jasioFullName, 'Zapłacone');
-    await collection.requirements.expectAbsent(zosiaFullName);
+    await collection.requirements.expectNotIncluded(zosiaFullName);
     const collectionId = collection.id;
 
     await piggyBank.goto(jasioStudentId);
@@ -217,11 +220,108 @@ test.describe('collection membership: exclude a student, or remove one mid-colle
     //     refund, exactly the same as requirement 2 in the test above ---
     await page.goto(`/collections/${collectionId}`);
     await collection.removeStudent(jasioFullName);
-    await collection.requirements.expectAbsent(jasioFullName);
+    await collection.requirements.expectNotIncluded(jasioFullName);
 
     await piggyBank.goto(jasioStudentId);
     await piggyBank.expectBalance('8');
     await piggyBank.activityLog.containsEntry(collectionTitle);
     await piggyBank.activityLog.containsEntry('8 zł');
+  });
+
+  /**
+   * The other direction from requirement 2 above, and the feature the user asked for next:
+   * a student left off a collection (or removed from it) isn't a dead end - the treasurer
+   * can put them back from the very same table, shown greyed out with an "add back" action
+   * instead of vanishing from view entirely. Adding them back re-runs the exact same
+   * automatic piggy-bank sweep as collection creation (see CollectionService.addRequirementForStudent,
+   * shared by both paths). Also covers the settle card's own live summary (paid-count,
+   * collected, expected) and its actual-cost input auto-filling with what's actually been
+   * collected, instead of defaulting to 0.
+   */
+  test('adding a student back sweeps their piggy bank like at creation; the settle card shows live totals and pre-fills the cost', async ({
+    page,
+    request,
+    baseURL,
+  }) => {
+    const unique = Date.now();
+    const studentLastName = `Dolaczana${unique}`;
+    const jasioFullName = 'Jasio Skarbnik';
+    const zosiaFullName = `Zosia ${studentLastName}`;
+
+    const login = new LoginPage(page);
+    const treasurer = new TreasurerPanel(page);
+    const dashboard = new Dashboard(page);
+    const piggyBank = new PiggyBankPage(page);
+
+    const seeded = seedTreasurer('skarbnik@example.com', 'Jarek', 'Skarbnik', 'Jasio', 'Skarbnik');
+    jasioStudentId = seeded.studentId;
+
+    await login.loginAs('skarbnik', 'skarbnik');
+    const treasurerIdToken = await page.evaluate(() => localStorage.getItem('id_token'));
+    expect(treasurerIdToken, 'expected an id_token in localStorage right after login').toBeTruthy();
+    api = new Api(request, baseURL!, treasurerIdToken!);
+
+    await treasurer.goto();
+    const zosia = await treasurer.addStudent('Zosia', studentLastName);
+    await zosia.addParent({
+      firstName: 'Ewa',
+      lastName: studentLastName,
+      email: `ewa.${unique}@example.com`,
+      expectedSenderName: `Ewa ${studentLastName}`,
+    });
+    zosiaStudentId = await api.studentIdByLastName(studentLastName);
+
+    // Both already have exactly the base amount saved up before the collection exists -
+    // Jasio is included from the start (so his own sweep happens at creation, as a
+    // baseline), Zosia is excluded so her sweep only happens later, via the "add back" button.
+    await api.creditPiggyBank(jasioStudentId, 8);
+    await api.creditPiggyBank(zosiaStudentId, 8);
+
+    const collectionTitle = `Skladka klasowa ${unique}`;
+    await treasurer.goto();
+    await treasurer.excludeStudentFromNewCollection(zosiaFullName);
+    await treasurer.createCollection(collectionTitle, 'Test dodania ucznia z powrotem', '8');
+
+    await dashboard.goto();
+    await dashboard.openCollection(collectionTitle);
+    const collection = new CollectionDetailsPage(page);
+    await collection.requirements.expectRequiredAmount(jasioFullName, '8');
+    await collection.requirements.expectStatus(jasioFullName, 'Zapłacone');
+    await collection.requirements.expectNotIncluded(zosiaFullName);
+    // Captured now, before navigating away to the piggy bank page below - CollectionDetailsPage.id
+    // reads the CURRENT page URL live (see its getter), so it must never be read again after
+    // that navigation.
+    const collectionId = collection.id;
+
+    // Before adding her back: Zosia's 8 zł is completely untouched, and the settle card's
+    // own summary only counts the one real (Jasio's) requirement.
+    await collection.settleSummary.expectStudentsPaid(1, 1);
+    await collection.settleSummary.expectTotalCollected('8');
+    await collection.settleSummary.expectTotalExpected('8');
+    await collection.settleSummary.expectActualCostPrefilled('8');
+
+    await piggyBank.goto(zosiaStudentId);
+    await piggyBank.expectBalance('8');
+    await expect(page.locator('.timeline li')).toHaveCount(1);
+    await expect(page.locator('.timeline')).not.toContainText('zbiórkę');
+
+    // --- Put Zosia back - same sweep as at creation, no confirmation dialog needed ---
+    await page.goto(`/collections/${collectionId}`);
+    await collection.addStudentBack(zosiaFullName);
+    await collection.requirements.expectRequiredAmount(zosiaFullName, '8');
+    await collection.requirements.expectPaidAmount(zosiaFullName, '8');
+    await collection.requirements.expectStatus(zosiaFullName, 'Zapłacone');
+
+    await piggyBank.goto(zosiaStudentId);
+    await piggyBank.expectBalance('0');
+    await piggyBank.activityLog.containsEntry(collectionTitle);
+    await piggyBank.activityLog.containsEntry('8 zł');
+
+    // --- The settle card's summary now reflects both students ---
+    await page.goto(`/collections/${collectionId}`);
+    await collection.settleSummary.expectStudentsPaid(2, 2);
+    await collection.settleSummary.expectTotalCollected('16');
+    await collection.settleSummary.expectTotalExpected('16');
+    await collection.settleSummary.expectActualCostPrefilled('16');
   });
 });

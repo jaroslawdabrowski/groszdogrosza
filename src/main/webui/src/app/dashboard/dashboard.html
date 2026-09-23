@@ -17,7 +17,10 @@
             <mat-chip-set>
               <mat-chip [class]="'status-chip status-chip--' + collection.status">{{ ('collection.status.' + collection.status) | translate }}</mat-chip>
             </mat-chip-set>
-            <p class="base-amount">{{ 'dashboard.baseAmount' | translate }}: <strong>{{ collection.baseAmountPerStudent }} zł</strong></p>
+            <div class="card-footer-row">
+              <p class="base-amount">{{ 'dashboard.baseAmount' | translate }}: <strong>{{ collection.baseAmountPerStudent }} zł</strong></p>
+              <app-my-student-status-badge [status]="collection.myStudentStatus" />
+            </div>
           </mat-card-content>
         </mat-card>
       </a>

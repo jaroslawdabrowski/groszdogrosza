@@ -45,16 +45,61 @@ export class RequirementsTable {
     await expect(this.row(studentFullName).locator('td').nth(3)).toContainText(statusText);
   }
 
-  /** A student who was never included in this collection, or who was removed from it (see
-   *  CollectionDetailsPage.removeStudent), has no row here at all - not a row showing 0 zł. */
+  /** A student truly absent from the table altogether - not even shown greyed out. Since
+   *  CollectionDetails.rosterRows merges in the full roster while ACTIVE (see
+   *  expectNotIncluded below), this now only really applies to a SETTLED collection, where
+   *  the table collapses back to just the real historical requirements. */
   async expectAbsent(studentFullName: string): Promise<void> {
     await expect(this.table).not.toContainText(studentFullName);
+  }
+
+  /** A student NOT part of this collection (never added, or removed earlier) still shows up
+   *  as a row while the collection is ACTIVE - greyed out, with dashes instead of amounts and
+   *  an "add back" action instead of "remove" (see CollectionDetails.rosterRows). */
+  async expectNotIncluded(studentFullName: string): Promise<void> {
+    const row = this.row(studentFullName);
+    await expect(row.locator('td').nth(1)).toHaveText('–');
+    await expect(row.locator('td').nth(2)).toHaveText('–');
+    await expect(row.locator('td').nth(3)).toContainText('Nie w zbiórce');
   }
 
   /** The 5th ("actions") column only exists while the collection is ACTIVE - see
    *  CollectionDetails.visibleRequirementColumns. */
   removeButton(studentFullName: string): Locator {
     return this.row(studentFullName).getByRole('button');
+  }
+
+  /** The counterpart to removeButton, for a row currently shown as not-included (see
+   *  expectNotIncluded) - same single-button-in-the-row pattern. */
+  addButton(studentFullName: string): Locator {
+    return this.row(studentFullName).getByRole('button');
+  }
+}
+
+/** The "Rozliczenie zbiórki" card's own at-a-glance summary (paid-count, collected, expected)
+ *  plus the actual-cost input it auto-fills - see CollectionDetails.paidStudentsCount /
+ *  totalStudentsCount / totalExpected and reload()'s actualCostSpent pre-fill. Scoped to this
+ *  specific card (matched by its title) since the post-settle "Wynik rozliczenia" card reuses
+ *  the same `.summary-stat` class for its own, differently-shaped numbers. */
+export class SettleSummary {
+  constructor(private readonly root: Locator) {}
+
+  async expectStudentsPaid(paid: number, total: number): Promise<void> {
+    await expect(this.root.locator('.summary-stat').nth(0)).toContainText(`${paid} / ${total}`);
+  }
+
+  async expectTotalCollected(amountZl: string): Promise<void> {
+    await expect(this.root.locator('.summary-stat').nth(1)).toContainText(`${amountZl} zł`);
+  }
+
+  async expectTotalExpected(amountZl: string): Promise<void> {
+    await expect(this.root.locator('.summary-stat').nth(2)).toContainText(`${amountZl} zł`);
+  }
+
+  /** The cost input starts pre-filled with what's actually been collected so far (see
+   *  CollectionDetails.reload), not left at 0 for the treasurer to fill in by hand. */
+  async expectActualCostPrefilled(amountZl: string): Promise<void> {
+    await expect(this.root.locator('input[type="number"]')).toHaveValue(amountZl);
   }
 }
 
@@ -109,6 +154,21 @@ export class Dashboard {
       this.page.getByRole('link', { name: new RegExp(title) }).click(),
     ]);
   }
+
+  /** The "does my child take part / have they paid" icon on a collection's card - see
+   *  MyStudentStatusBadge. `icon` is the mat-icon ligature name (e.g. 'check_circle'), not
+   *  the translated tooltip text (icon-only buttons/badges expose no accessible name). */
+  async expectMyStudentStatus(title: string, icon: string): Promise<void> {
+    const card = this.page.locator('mat-card').filter({ hasText: title });
+    await expect(card.locator('app-my-student-status-badge mat-icon')).toHaveText(icon);
+  }
+
+  /** No logged-in parent resolvable to a child - see MyStudentStatusBadge, which renders
+   *  nothing at all in that case rather than an empty/disabled icon. */
+  async expectMyStudentStatusAbsent(title: string): Promise<void> {
+    const card = this.page.locator('mat-card').filter({ hasText: title });
+    await expect(card.locator('app-my-student-status-badge mat-icon')).toHaveCount(0);
+  }
 }
 
 /** The unauthenticated landing page ("/") - shows every active collection's aggregate
@@ -135,6 +195,20 @@ export class PublicOverviewPage {
   async expectCollectionNotClickable(title: string): Promise<void> {
     await expect(this.page.getByRole('link', { name: new RegExp(title) })).toHaveCount(0);
     await expect(this.page.getByText(title)).toBeVisible();
+  }
+
+  /** Same badge as Dashboard.expectMyStudentStatus - see MyStudentStatusBadge. The public
+   *  endpoint still resolves it for a logged-in visitor (authInterceptor attaches the bearer
+   *  token even to this unauthenticated call - see backend PublicOverviewResource's javadoc). */
+  async expectMyStudentStatus(title: string, icon: string): Promise<void> {
+    const card = this.page.locator('mat-card').filter({ hasText: title });
+    await expect(card.locator('app-my-student-status-badge mat-icon')).toHaveText(icon);
+  }
+
+  /** For an anonymous visitor (or a logged-in one with no linked child), no badge at all. */
+  async expectMyStudentStatusAbsent(title: string): Promise<void> {
+    const card = this.page.locator('mat-card').filter({ hasText: title });
+    await expect(card.locator('app-my-student-status-badge mat-icon')).toHaveCount(0);
   }
 }
 
@@ -247,11 +321,13 @@ export class CollectionDetailsPage {
   readonly requirements: RequirementsTable;
   readonly contributions: EntryList;
   readonly settlementResult: EntryList;
+  readonly settleSummary: SettleSummary;
 
   constructor(private readonly page: Page) {
     this.requirements = new RequirementsTable(page.locator('table'));
     this.contributions = new EntryList(page.locator('.contribution-list'));
     this.settlementResult = new EntryList(page.locator('.settlement-list'));
+    this.settleSummary = new SettleSummary(page.locator('mat-card').filter({ hasText: 'Rozliczenie zbiórki' }));
   }
 
   /** The id DynamoDB assigned, read back out of the current URL (`/collections/<id>`). */
@@ -313,6 +389,12 @@ export class CollectionDetailsPage {
   async removeStudent(studentFullName: string): Promise<void> {
     this.page.once('dialog', (dialog) => dialog.accept());
     await this.requirements.removeButton(studentFullName).click();
+  }
+
+  /** Puts a student back into an ACTIVE collection - see AddStudentToCollectionUseCase: no
+   *  confirmation dialog (unlike removeStudent), since it's the safe/additive direction. */
+  async addStudentBack(studentFullName: string): Promise<void> {
+    await this.requirements.addButton(studentFullName).click();
   }
 
   /** Treasurer-only - the "Add photo or file" control only exists inside the
@@ -412,6 +494,17 @@ export class Api {
     const match = students.find((s) => s.lastName === lastName);
     if (!match) {
       throw new Error(`No student with lastName ${lastName} found via GET /api/students`);
+    }
+    return match.id;
+  }
+
+  /** Same idea as studentIdByLastName, for a collection created through the UI. */
+  async collectionIdByTitle(title: string): Promise<string> {
+    const resp = await this.request.get(`${this.baseURL}/api/collections`, { headers: this.headers });
+    const collections = (await resp.json()) as Array<{ id: string; title: string }>;
+    const match = collections.find((c) => c.title === title);
+    if (!match) {
+      throw new Error(`No collection titled "${title}" found via GET /api/collections`);
     }
     return match.id;
   }

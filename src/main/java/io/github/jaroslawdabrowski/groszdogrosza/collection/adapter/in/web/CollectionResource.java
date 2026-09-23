@@ -1,5 +1,6 @@
 package io.github.jaroslawdabrowski.groszdogrosza.collection.adapter.in.web;
 
+import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.AddStudentToCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.CreateCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetCollectionUseCase.CollectionDetails;
@@ -7,6 +8,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListCollecti
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RecordManualContributionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RemoveStudentFromCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
 import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
 import io.quarkus.security.Authenticated;
@@ -57,6 +59,9 @@ public class CollectionResource {
     RemoveStudentFromCollectionUseCase removeStudentFromCollectionUseCase;
 
     @Inject
+    AddStudentToCollectionUseCase addStudentToCollectionUseCase;
+
+    @Inject
     ListStudentsUseCase listStudentsUseCase;
 
     @Inject
@@ -65,9 +70,32 @@ public class CollectionResource {
     @Inject
     SecurityIdentity identity;
 
+    /**
+     * Every collection's summary, enriched with the caller's OWN child's status in it (see
+     * {@link CollectionResponse#myStudentStatus}) - the one piece of per-student detail a
+     * regular parent is allowed to see here, shown as a small indicator on the Dashboard's
+     * cards. Costs one extra {@code getCollection} per collection (this app's usual "fine at
+     * this scale" tradeoff, same as {@code PublicOverviewResource}), only when the caller
+     * actually resolves to a Parent with a linked Student.
+     */
     @GET
     public List<CollectionResponse> list() {
-        return listCollectionsUseCase.listCollections().stream().map(CollectionResponse::from).toList();
+        String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
+        return listCollectionsUseCase.listCollections().stream()
+                .map(collection -> CollectionResponse.from(collection, myStudentStatusFor(collection.id(), myStudentId)))
+                .toList();
+    }
+
+    private String myStudentStatusFor(String collectionId, String myStudentId) {
+        if (myStudentId == null) {
+            return null;
+        }
+        return getCollectionUseCase.getCollection(collectionId)
+                .flatMap(details -> details.requirements().stream()
+                        .filter(r -> r.studentId().equals(myStudentId))
+                        .findFirst())
+                .map(r -> r.status().name())
+                .orElse("NOT_INCLUDED");
     }
 
     @POST
@@ -82,9 +110,11 @@ public class CollectionResource {
     public Object get(@PathParam("id") String id) {
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
-        return authorizationSupport.isTreasurer(identity)
-                ? CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents())
-                : CollectionProgressResponse.from(details);
+        if (authorizationSupport.isTreasurer(identity)) {
+            return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());
+        }
+        String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
+        return CollectionProgressResponse.from(details, myStudentId);
     }
 
     @POST
@@ -109,6 +139,16 @@ public class CollectionResource {
     public CollectionDetailsResponse removeStudent(@PathParam("id") String id, @PathParam("studentId") String studentId) {
         authorizationSupport.requireTreasurer(identity);
         removeStudentFromCollectionUseCase.removeStudentFromCollection(id, studentId);
+        CollectionDetails details = getCollectionUseCase.getCollection(id)
+                .orElseThrow(() -> new NotFoundException("No such collection: " + id));
+        return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());
+    }
+
+    @POST
+    @Path("/{id}/students/{studentId}")
+    public CollectionDetailsResponse addStudent(@PathParam("id") String id, @PathParam("studentId") String studentId) {
+        authorizationSupport.requireTreasurer(identity);
+        addStudentToCollectionUseCase.addStudentToCollection(id, studentId);
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
         return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());

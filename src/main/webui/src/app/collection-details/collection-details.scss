@@ -19,6 +19,13 @@
   line-height: 1.5;
 }
 
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .amount-chip {
   --mat-chip-elevated-container-color: var(--gg-coin-soft);
   --mat-chip-label-text-color: var(--gg-coin-deep);
@@ -57,6 +64,25 @@ table {
 
 .delete-button {
   color: var(--gg-blush);
+}
+
+.add-button {
+  color: var(--gg-mint);
+}
+
+.req-status--EXCLUDED {
+  background: none;
+  color: var(--gg-ink-soft);
+  font-weight: 500;
+}
+
+// A student not (yet) part of the collection - shown alongside the real requirements so the
+// "add back" action is discoverable, but visually receded so it doesn't read as a real row of
+// money owed.
+tr.excluded-row,
+td.excluded-row {
+  color: var(--gg-ink-soft);
+  opacity: 0.65;
 }
 
 .empty-state {
