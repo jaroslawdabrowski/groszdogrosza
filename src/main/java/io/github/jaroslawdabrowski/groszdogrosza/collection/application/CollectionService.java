@@ -1,5 +1,6 @@
 package io.github.jaroslawdabrowski.groszdogrosza.collection.application;
 
+import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.domain.ContributionAllocationPolicy;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.Collection;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.CollectionNotActiveException;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.CollectionStatus;
@@ -19,6 +20,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListCollecti
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RecordManualContributionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RemoveStudentFromCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SweepPiggyBankIntoActiveCollectionsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.out.CollectionRepositoryPort;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerAmounts;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
@@ -41,7 +43,8 @@ import java.util.UUID;
 @ApplicationScoped
 public class CollectionService implements CreateCollectionUseCase, GetCollectionUseCase, ListCollectionsUseCase,
         RecordManualContributionUseCase, ApplyAutomaticContributionUseCase, GetActiveRequirementsForStudentUseCase,
-        SettleCollectionUseCase, RemoveStudentFromCollectionUseCase, AddStudentToCollectionUseCase {
+        SettleCollectionUseCase, RemoveStudentFromCollectionUseCase, AddStudentToCollectionUseCase,
+        SweepPiggyBankIntoActiveCollectionsUseCase {
 
     @Inject
     CollectionRepositoryPort collectionRepository;
@@ -183,6 +186,34 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
     @Override
     public List<ContributionRequirement> getActivePendingRequirements(String studentId) {
         return collectionRepository.findActivePendingRequirementsForStudent(studentId);
+    }
+
+    /**
+     * See {@link SweepPiggyBankIntoActiveCollectionsUseCase}'s own javadoc for why this
+     * exists - the manual-credit gap it fixes. Reuses {@code ContributionAllocationPolicy}
+     * with {@code incomingAmount} zero, since by the time this runs the balance has already
+     * been updated by the caller - there's nothing "incoming" left to add on top of it,
+     * unlike {@code BankStatementProcessingService.bookMatchedTransaction}'s use of the same
+     * policy, where crediting and allocating happen as two separate steps against the
+     * balance as it stood BEFORE that step's own credit.
+     */
+    @Override
+    public void sweep(String studentId) {
+        Student student = getStudentUseCase.getStudent(studentId)
+                .orElseThrow(() -> new NoSuchElementException("No such student: " + studentId));
+        List<ContributionRequirement> activeRequirements = getActivePendingRequirements(studentId);
+        ContributionAllocationPolicy.AllocationResult allocation = ContributionAllocationPolicy.allocate(
+                BigDecimal.ZERO, student.piggyBankBalance(), activeRequirements);
+
+        for (ContributionAllocationPolicy.RequirementAllocation requirementAllocation : allocation.allocations()) {
+            debitStudentPiggyBankUseCase.debitPiggyBank(studentId, requirementAllocation.amountApplied());
+            recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION,
+                    java.util.Map.of(
+                            "collectionId", requirementAllocation.collectionId(),
+                            "amount", LedgerAmounts.format(requirementAllocation.amountApplied())));
+            applyContribution(requirementAllocation.collectionId(), studentId, requirementAllocation.amountApplied(),
+                    ContributionSource.PIGGY_BANK_APPLIED, null);
+        }
     }
 
     @Override

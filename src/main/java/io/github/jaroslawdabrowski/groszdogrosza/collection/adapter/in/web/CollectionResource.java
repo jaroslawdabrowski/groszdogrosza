@@ -108,13 +108,7 @@ public class CollectionResource {
     @GET
     @Path("/{id}")
     public Object get(@PathParam("id") String id) {
-        CollectionDetails details = getCollectionUseCase.getCollection(id)
-                .orElseThrow(() -> new NotFoundException("No such collection: " + id));
-        if (authorizationSupport.isTreasurer(identity)) {
-            return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());
-        }
-        String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
-        return CollectionProgressResponse.from(details, myStudentId);
+        return collectionResponseFor(id);
     }
 
     @POST
@@ -134,23 +128,41 @@ public class CollectionResource {
         return SettlementResultResponse.from(settleCollectionUseCase.settleCollection(id, request.actualCostSpent()));
     }
 
+    /**
+     * Treasurer-only for any student; a regular parent may also call this, but only for
+     * their OWN child ({@code requireSelfOrTreasurerForStudent} - a 403 if {@code studentId}
+     * isn't the caller's own linked student) - a parent needing to pull their sick/departing
+     * child out of an ACTIVE collection without going through the treasurer. Returns the
+     * same role-dependent shape {@code get} does: the full per-student breakdown for a
+     * treasurer, aggregate-only progress for a regular parent (never another family's
+     * amounts). Only legal on an ACTIVE collection either way -
+     * {@code RemoveStudentFromCollectionUseCase} enforces that regardless of caller.
+     */
     @DELETE
     @Path("/{id}/students/{studentId}")
-    public CollectionDetailsResponse removeStudent(@PathParam("id") String id, @PathParam("studentId") String studentId) {
-        authorizationSupport.requireTreasurer(identity);
+    public Object removeStudent(@PathParam("id") String id, @PathParam("studentId") String studentId) {
+        authorizationSupport.requireSelfOrTreasurerForStudent(identity, studentId);
         removeStudentFromCollectionUseCase.removeStudentFromCollection(id, studentId);
-        CollectionDetails details = getCollectionUseCase.getCollection(id)
-                .orElseThrow(() -> new NotFoundException("No such collection: " + id));
-        return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());
+        return collectionResponseFor(id);
     }
 
+    /** Same self-or-treasurer rule as {@link #removeStudent} - a parent opting their own
+     *  child back into an ACTIVE collection they'd been left off or removed from. */
     @POST
     @Path("/{id}/students/{studentId}")
-    public CollectionDetailsResponse addStudent(@PathParam("id") String id, @PathParam("studentId") String studentId) {
-        authorizationSupport.requireTreasurer(identity);
+    public Object addStudent(@PathParam("id") String id, @PathParam("studentId") String studentId) {
+        authorizationSupport.requireSelfOrTreasurerForStudent(identity, studentId);
         addStudentToCollectionUseCase.addStudentToCollection(id, studentId);
+        return collectionResponseFor(id);
+    }
+
+    private Object collectionResponseFor(String id) {
         CollectionDetails details = getCollectionUseCase.getCollection(id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
-        return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());
+        if (authorizationSupport.isTreasurer(identity)) {
+            return CollectionDetailsResponse.from(details, listStudentsUseCase.listStudents());
+        }
+        String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
+        return CollectionProgressResponse.from(details, myStudentId);
     }
 }

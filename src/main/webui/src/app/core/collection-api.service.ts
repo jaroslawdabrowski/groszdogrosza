@@ -34,15 +34,19 @@ export class CollectionApiService {
   }
 
   /** Takes a student out of an ACTIVE collection - whatever they'd already paid is refunded
-   *  to their piggy bank (see the backend RemoveStudentFromCollectionUseCase). */
-  removeStudent(collectionId: string, studentId: string): Observable<CollectionDetails> {
-    return this.http.delete<CollectionDetails>(`/api/collections/${collectionId}/students/${studentId}`);
+   *  to their piggy bank (see the backend RemoveStudentFromCollectionUseCase). Treasurer-only
+   *  for any student; a regular parent may also call this for their OWN child (backend
+   *  `requireSelfOrTreasurerForStudent` - 403 otherwise), which is why the response is the
+   *  same role-dependent shape `get` returns, not always CollectionDetails. */
+  removeStudent(collectionId: string, studentId: string): Observable<CollectionDetails | CollectionProgress> {
+    return this.http.delete<CollectionDetails | CollectionProgress>(`/api/collections/${collectionId}/students/${studentId}`);
   }
 
   /** Puts a student back into an ACTIVE collection they weren't part of - immediately sweeps
    *  in whatever their current piggy bank balance covers, same as when the collection was
-   *  first created (see the backend AddStudentToCollectionUseCase). */
-  addStudent(collectionId: string, studentId: string): Observable<CollectionDetails> {
-    return this.http.post<CollectionDetails>(`/api/collections/${collectionId}/students/${studentId}`, {});
+   *  first created (see the backend AddStudentToCollectionUseCase). Same self-or-treasurer
+   *  rule and response shape as removeStudent. */
+  addStudent(collectionId: string, studentId: string): Observable<CollectionDetails | CollectionProgress> {
+    return this.http.post<CollectionDetails | CollectionProgress>(`/api/collections/${collectionId}/students/${studentId}`, {});
   }
 }

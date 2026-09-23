@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { seedTreasurer } from './seed';
-import { Api, GlobalLedgerPage, LoginPage, PiggyBankPage, TreasurerPanel } from './pages';
+import { Api, CollectionDetailsPage, Dashboard, GlobalLedgerPage, LoginPage, PiggyBankPage, TreasurerPanel } from './pages';
 
 /**
  * "Doładuj skarbonkę" on a student's row in the treasurer panel - the treasurer's own
@@ -76,5 +76,75 @@ test.describe('treasurer panel: manual piggy bank top-up', () => {
     await globalLedger.activityLog.containsEntry(`Zosia ${studentLastName}`);
     await globalLedger.activityLog.containsEntry('30 zł zasiliła skarbonkę');
     await globalLedger.activityLog.containsEntry('20 zł zasiliła skarbonkę');
+  });
+
+  /**
+   * Regression test for a real production report (2026-09-23): the treasurer credited 100 zł
+   * cash to a student who already owed money on an ACTIVE collection, and the collection's
+   * requirement stayed untouched - the 100 zł just sat in the piggy bank instead of being
+   * swept in immediately, the way the exact same amount arriving via the automatic
+   * bank-statement pipeline already is. Root cause: `StudentService.creditPiggyBankManually`
+   * only credited the balance and logged it, with no equivalent of
+   * `BankStatementProcessingService.bookMatchedTransaction`'s sweep step - fixed via the new
+   * `SweepPiggyBankIntoActiveCollectionsUseCase`, called right after every manual credit.
+   */
+  test('crediting cash for a student who already owes money on an ACTIVE collection sweeps it in immediately', async ({
+    page,
+    request,
+    baseURL,
+  }) => {
+    const unique = Date.now();
+    const studentLastName = `Stolarzowa${unique}`;
+    const studentFullName = `Zosia ${studentLastName}`;
+
+    const login = new LoginPage(page);
+    const treasurer = new TreasurerPanel(page);
+    const dashboard = new Dashboard(page);
+    const piggyBank = new PiggyBankPage(page);
+
+    const seeded = seedTreasurer('skarbnik@example.com', 'Jarek', 'Skarbnik', 'Jasio', 'Skarbnik');
+    jasioStudentId = seeded.studentId;
+
+    await login.loginAs('skarbnik', 'skarbnik');
+    const treasurerIdToken = await page.evaluate(() => localStorage.getItem('id_token'));
+    expect(treasurerIdToken, 'expected an id_token in localStorage right after login').toBeTruthy();
+    api = new Api(request, baseURL!, treasurerIdToken!);
+
+    await treasurer.goto();
+    const zosia = await treasurer.addStudent('Zosia', studentLastName);
+    studentId = await api.studentIdByLastName(studentLastName);
+    await zosia.expectPiggyBankBalance('0');
+
+    // An ACTIVE collection asking 40 zł, created BEFORE any cash arrives - Zosia owes the
+    // full amount, nothing pre-covers it.
+    const collectionTitle = `Wpłata na klasę ${unique}`;
+    await treasurer.goto();
+    await treasurer.createCollection(collectionTitle, 'Test zamiatania gotówki', '40');
+    await dashboard.goto();
+    await dashboard.openCollection(collectionTitle);
+    const collection = new CollectionDetailsPage(page);
+    await collection.requirements.expectRequiredAmount(studentFullName, '40');
+    await collection.requirements.expectPaidAmount(studentFullName, '0');
+    await collection.requirements.expectStatus(studentFullName, 'Do zapłaty');
+
+    // --- The cash top-up: 100 zł, more than enough to cover the 40 zł owed ---
+    await treasurer.goto();
+    await treasurer.student(studentFullName).creditPiggyBank('100');
+
+    // The balance reflects the sweep, not the raw 100 zł just credited - 60 zł left over
+    // after 40 zł was swept into the collection.
+    await treasurer.goto();
+    await treasurer.student(studentFullName).expectPiggyBankBalance('60');
+
+    await dashboard.goto();
+    await dashboard.openCollection(collectionTitle);
+    await collection.requirements.expectPaidAmount(studentFullName, '40');
+    await collection.requirements.expectStatus(studentFullName, 'Zapłacone');
+
+    await piggyBank.goto(studentId);
+    await piggyBank.expectBalance('60');
+    await piggyBank.activityLog.containsEntry('100 zł zasiliła skarbonkę');
+    await piggyBank.activityLog.containsEntry('40 zł');
+    await piggyBank.activityLog.containsEntry('zbiórkę');
   });
 });

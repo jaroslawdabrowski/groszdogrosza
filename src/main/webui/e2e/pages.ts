@@ -348,6 +348,28 @@ export class CollectionDetailsPage {
     await expect(this.page.locator(`.status-chip--${status}`)).toBeVisible();
   }
 
+  /** The "does my child take part / have they paid" icon shown on a non-treasurer's own
+   *  progress card (see MyStudentStatusBadge) - `icon` is the mat-icon ligature name, not
+   *  the translated tooltip text. Same pattern as Dashboard/PublicOverviewPage's own
+   *  expectMyStudentStatus, just scoped to this page's single card instead of a list of them. */
+  async expectMyStudentStatus(icon: string): Promise<void> {
+    await expect(this.page.locator('app-my-student-status-badge mat-icon')).toHaveText(icon);
+  }
+
+  /** Self-service opt-in for a regular parent's OWN child, only visible while ACTIVE and
+   *  only when myStudentStatus is 'NOT_INCLUDED' - see CollectionDetails.addMyStudent /
+   *  backend AuthorizationSupport.requireSelfOrTreasurerForStudent. */
+  async joinMyStudent(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Zapisz swoje dziecko do tej zbiórki' }).click();
+  }
+
+  /** Self-service opt-out, with the same confirm() dialog pattern as the treasurer's own
+   *  removeStudent - see CollectionDetails.removeMyStudent. */
+  async leaveMyStudent(): Promise<void> {
+    this.page.once('dialog', (dialog) => dialog.accept());
+    await this.page.getByRole('button', { name: 'Wypisz swoje dziecko z tej zbiórki' }).click();
+  }
+
   /** Treasurer-only - see CollectionDetails.print's javadoc: it's only rendered inside the
    *  `isCollectionDetails` branch the backend restricts to a treasurer in the first place. */
   async expectPrintButtonVisible(): Promise<void> {

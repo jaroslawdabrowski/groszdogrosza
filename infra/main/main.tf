@@ -306,6 +306,14 @@ resource "aws_lambda_function" "app" {
       GROSZDOGROSZA_BANKSTATEMENT_POLL_SECRET       = var.bankstatement_poll_secret
       GROSZDOGROSZA_BANKSTATEMENT_IMAP_USERNAME     = var.bankstatement_imap_username
       GROSZDOGROSZA_BANKSTATEMENT_IMAP_APP_PASSWORD = var.bankstatement_imap_app_password
+
+      # The daily poll still fetches real mail, parses it, and matches/logs it, but stops
+      # short of actually booking anything (no piggy bank credit/debit, no ledger entry) and
+      # never marks a matched transaction as processed - see
+      # BankStatementProcessingService.dryRun's own comment and application.properties. On
+      # while the first real mBank notification hasn't been observed yet (CLAUDE.md TODO #2)
+      # - flip to "false" once the matching/parsing has been confirmed against genuine mail.
+      GROSZDOGROSZA_BANKSTATEMENT_DRY_RUN = "true"
     }
   }
 

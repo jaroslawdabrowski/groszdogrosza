@@ -13,6 +13,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { CollectionApiService } from '../core/collection-api.service';
 import { StudentApiService } from '../core/student-api.service';
+import { CurrentUserService } from '../core/current-user.service';
 import { ALLOWED_ATTACHMENT_TYPES, AttachmentApiService, MAX_ATTACHMENT_SIZE_BYTES } from '../core/attachment-api.service';
 import {
   Attachment,
@@ -72,6 +73,7 @@ export class CollectionDetails {
   private readonly studentApi = inject(StudentApiService);
   private readonly attachmentApi = inject(AttachmentApiService);
   private readonly translate = inject(TranslateService);
+  private readonly currentUser = inject(CurrentUserService);
 
   readonly view = signal<CollectionDetailsModel | CollectionProgress | null>(null);
   /** The full class roster - only ever fetched for a treasurer viewing an ACTIVE collection
@@ -241,6 +243,41 @@ export class CollectionDetails {
       return;
     }
     this.collectionApi.removeStudent(this.collectionId, studentId).subscribe(() => this.reload());
+  }
+
+  /** The logged-in parent's own linked child - null until CurrentUserService's own load
+   *  (triggered once, from App) resolves, or if this account has no linked Student yet. Used
+   *  to show a self-service opt-out/opt-in button on the non-treasurer progress card below -
+   *  a parent needing to pull their own sick/departing child out of an ACTIVE collection (or
+   *  put them back in) without going through the treasurer (see backend
+   *  AuthorizationSupport.requireSelfOrTreasurerForStudent, which this same button relies on
+   *  server-side, not just this null check). */
+  myStudentId(): string | null {
+    return this.currentUser.studentId();
+  }
+
+  /** Mirrors removeStudent, but for the caller's own child specifically - different
+   *  confirmation copy (no "this family" framing, since the treasurer's audience for that
+   *  message doesn't apply here) and no studentName param, since the parent already knows
+   *  whose collection membership they're changing. */
+  removeMyStudent(): void {
+    const studentId = this.myStudentId();
+    if (!studentId) {
+      return;
+    }
+    const confirmed = window.confirm(this.translate.instant('collectionDetails.removeMyStudentConfirm'));
+    if (!confirmed) {
+      return;
+    }
+    this.collectionApi.removeStudent(this.collectionId, studentId).subscribe(() => this.reload());
+  }
+
+  addMyStudent(): void {
+    const studentId = this.myStudentId();
+    if (!studentId) {
+      return;
+    }
+    this.collectionApi.addStudent(this.collectionId, studentId).subscribe(() => this.reload());
   }
 
   visibleRequirementColumns(): string[] {

@@ -209,6 +209,26 @@
           <span>{{ 'collectionDetails.totalPaid' | translate }}</span>
           <strong>{{ v.totalPaid }} zł / {{ v.totalRequired }} zł</strong>
         </div>
+
+        <!-- Self-service opt-in/opt-out for the caller's OWN child, only while this
+             collection is still ACTIVE (see backend AuthorizationSupport.requireSelfOrTreasurerForStudent
+             - the same rule this relies on server-side, not just this template check) -
+             myStudentStatus is null when there's no linked child to act on at all. -->
+        @if (v.collection.status === 'ACTIVE' && v.collection.myStudentStatus) {
+          <div class="self-service-actions">
+            @if (v.collection.myStudentStatus === 'NOT_INCLUDED') {
+              <button mat-stroked-button (click)="addMyStudent()">
+                <mat-icon>person_add</mat-icon>
+                {{ 'collectionDetails.joinMyStudentButton' | translate }}
+              </button>
+            } @else {
+              <button mat-stroked-button color="warn" (click)="removeMyStudent()">
+                <mat-icon>person_remove</mat-icon>
+                {{ 'collectionDetails.leaveMyStudentButton' | translate }}
+              </button>
+            }
+          </div>
+        }
       </mat-card-content>
     </mat-card>
   }

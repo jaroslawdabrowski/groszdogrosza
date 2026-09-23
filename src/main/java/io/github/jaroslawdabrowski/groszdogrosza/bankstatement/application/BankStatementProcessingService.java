@@ -88,8 +88,17 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
     @ConfigProperty(name = "groszdogrosza.bankstatement.poll-lookback-days", defaultValue = "3")
     int lookbackDays;
 
+    /** See this property's own comment in application.properties. */
+    @ConfigProperty(name = "groszdogrosza.bankstatement.dry-run", defaultValue = "false")
+    boolean dryRun;
+
     @Override
     public PollResult pollAndProcess() {
+        if (dryRun) {
+            LOG.warn("Bank statement poll running in DRY RUN mode (groszdogrosza.bankstatement.dry-run=true) - "
+                    + "matches will be logged but nothing will be booked, and matched transactions will NOT be "
+                    + "marked as processed, so they'll show up again on the next poll.");
+        }
         Instant since = Instant.now().minus(lookbackDays, ChronoUnit.DAYS);
         List<RawStatementAttachment> attachments = fetchPort.fetchNewStatementsSince(since);
         List<Student> students = listStudentsUseCase.listStudents();
@@ -146,6 +155,18 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
                     // Deliberately NOT claimed - an unmatched transaction should be retried
                     // on the next poll in case a student/parent is added/corrected before
                     // then, and it must remain visible for the treasurer to book manually.
+                    continue;
+                }
+
+                if (dryRun) {
+                    // Neither claimed nor booked - see this method's own dry-run log line
+                    // above and the property's comment in application.properties. Counted as
+                    // "matched" in the result since matching genuinely succeeded; it's only
+                    // the booking side effects that are skipped.
+                    matched++;
+                    LOG.infof("[DRY RUN] Would book bank transaction ref=%s as studentId=%s, amount=%s - "
+                                    + "not booked, not marked as processed",
+                            transaction.bankReference(), match.get().studentId(), transaction.amount());
                     continue;
                 }
 

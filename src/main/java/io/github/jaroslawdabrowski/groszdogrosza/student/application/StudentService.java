@@ -1,5 +1,6 @@
 package io.github.jaroslawdabrowski.groszdogrosza.student.application;
 
+import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SweepPiggyBankIntoActiveCollectionsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerAmounts;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.RecordLedgerEntryUseCase;
@@ -42,6 +43,9 @@ public class StudentService implements CreateStudentUseCase, GetStudentUseCase, 
 
     @Inject
     RecordLedgerEntryUseCase recordLedgerEntryUseCase;
+
+    @Inject
+    SweepPiggyBankIntoActiveCollectionsUseCase sweepPiggyBankIntoActiveCollectionsUseCase;
 
     @Override
     public Student createStudent(String firstName, String lastName) {
@@ -114,7 +118,13 @@ public class StudentService implements CreateStudentUseCase, GetStudentUseCase, 
         Student updated = creditPiggyBank(studentId, amount);
         recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_CREDITED,
                 Map.of("amount", LedgerAmounts.format(amount)));
-        return updated;
+        // A manual credit (typically cash handed to the treasurer) gets exactly the same
+        // "sweep into whatever's currently owed on an ACTIVE collection" treatment an
+        // automatic bank-transfer match already gets - see SweepPiggyBankIntoActiveCollectionsUseCase's
+        // javadoc for the production gap this closes. Re-fetch afterwards: the sweep debits
+        // the balance further, so `updated` above is stale the moment it returns.
+        sweepPiggyBankIntoActiveCollectionsUseCase.sweep(studentId);
+        return requireStudent(studentId);
     }
 
     private Student requireStudent(String studentId) {
