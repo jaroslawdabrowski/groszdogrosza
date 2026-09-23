@@ -227,10 +227,32 @@ mat-form-field {
 }
 
 @media print {
-  // The "remove student" action column only makes sense as something to click - on paper
-  // it's just an empty column with nothing in it.
+  // The "remove student"/"add student back" action column only makes sense as something to
+  // click - on paper it's just an empty column with nothing in it.
   .mat-column-actions {
     display: none;
+  }
+
+  // A student not part of this collection has nothing to report - on screen the greyed row
+  // is a genuinely useful "add them back" shortcut, but on a printed handout (who owes what,
+  // what's been collected) it's a dead row that only pushes real rows onto a second page.
+  tr.excluded-row {
+    display: none;
+  }
+
+  // styles.scss gives every .gg-card `break-inside: avoid` so a small card (e.g. the
+  // settlement result) never splits awkwardly - but for a full class roster that's actively
+  // harmful: the browser can't fit the ENTIRE table+header on whatever's left of the current
+  // page, so it shoves the whole card onto a fresh page instead of just continuing where the
+  // header left off, wasting most of page 1. Letting THIS card break, while keeping each row
+  // intact (`tr { break-inside: avoid }` below), gets the natural "header + as many rows as
+  // fit, rest on page 2" behavior a roster table actually needs.
+  .requirements-card {
+    break-inside: auto;
+  }
+
+  tr {
+    break-inside: avoid;
   }
 
   .req-status {
@@ -247,7 +269,12 @@ mat-form-field {
   .description {
     background: none !important;
     padding: 0;
+    margin: 0.2rem 0 0.5rem;
     color: var(--gg-ink) !important;
+  }
+
+  .detail-header h1 {
+    margin: 0 0 0.2rem;
   }
 
   .contribution-list li {
@@ -258,23 +285,41 @@ mat-form-field {
 
   // Tighter than the on-screen card rhythm (mat-card's own comfortable padding/margins are
   // sized for a mouse/finger, not a printed page) - stacked with the smaller root font-size
-  // in styles.scss, this is what lets the requirements table fit under the header on a
-  // single page instead of spilling a card or two onto a second one.
+  // and @page margin in styles.scss, this is what lets a full class-sized roster (15-20+
+  // students) fit under the header on a single page instead of spilling onto a second.
   mat-card {
-    margin-top: 0.6rem;
+    margin-top: 0.35rem;
   }
 
   mat-card-header {
-    padding-bottom: 0 !important;
+    padding: 0.5rem 0.75rem 0 !important;
   }
 
   .mat-mdc-card-content {
-    padding-top: 0.4rem !important;
+    padding: 0.25rem 0.75rem 0.5rem !important;
   }
 
   th.mat-mdc-header-cell,
   td.mat-mdc-cell {
-    padding: 0.3rem 0.5rem !important;
+    padding: 0.1rem 0.35rem !important;
+    line-height: 1.2;
+  }
+
+  // Material's MDC table sets an explicit row height (52px by default, sized for a
+  // mouse/finger target) regardless of cell padding - without overriding it too, the padding
+  // reduction above does almost nothing for how many rows actually fit on the page.
+  .mat-mdc-header-row,
+  .mat-mdc-row {
+    height: auto;
+  }
+
+  .print-header {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .total-collected {
+    margin: 0 0 0.35rem;
   }
 }
 

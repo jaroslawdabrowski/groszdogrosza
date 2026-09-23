@@ -313,6 +313,13 @@ mat-progress-bar {
 }
 
 @media print {
+  // Chrome's own default print margins are generous (~19mm) - reclaiming that space is
+  // worth more than any font/padding tweak below, and costs nothing on screen since @page
+  // only ever applies to a print/PDF render.
+  @page {
+    margin: 10mm 12mm;
+  }
+
   .app-toolbar,
   .no-print {
     display: none !important;
@@ -326,9 +333,10 @@ mat-progress-bar {
   // report down proportionally (headings, table text, card padding via em-based Material
   // spacing) rather than needing to hand-tune each one - this, together with dropping the
   // "Wpłaty" list and the empty "Załączniki" section (see collection-details.html), is what
-  // gets a report with no attachments down to one page instead of three.
+  // gets a report with a real class-sized roster (15-20+ students) down to one page instead
+  // of spilling onto a second.
   html {
-    font-size: 12px;
+    font-size: 9px;
   }
 
   body {
@@ -344,5 +352,16 @@ mat-progress-bar {
     box-shadow: none !important;
     border: 1px solid #ccc;
     break-inside: avoid;
+  }
+
+  // Material's own card title/subtitle sizing is tuned for a screen, not a printed report -
+  // shrunk further here on top of the root font-size drop above.
+  .mat-mdc-card-title {
+    font-size: 1.05rem !important;
+    margin-bottom: 0.15rem !important;
+  }
+
+  .mat-mdc-card-subtitle {
+    margin-bottom: 0.15rem !important;
   }
 }
