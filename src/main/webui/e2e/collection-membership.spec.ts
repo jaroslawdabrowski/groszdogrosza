@@ -140,6 +140,12 @@ test.describe('collection membership: exclude a student, or remove one mid-colle
     await tripAfterRemoval.settleSummary.expectRemovedStudentsCount(1);
     await tripAfterRemoval.settle('0');
     await tripAfterRemoval.expectStatus('SETTLED');
+
+    // Settling doesn't hide who wasn't in it - both stay listed as "not included" on the
+    // settled collection too, just without the (ACTIVE-only) add-back action column.
+    await tripAfterRemoval.requirements.expectNotIncluded(jasioFullName);
+    await tripAfterRemoval.requirements.expectNotIncluded(zosiaFullName);
+    await expect(page.locator('.mat-column-actions')).toHaveCount(0);
   });
 
   /**

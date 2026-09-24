@@ -46,9 +46,8 @@ export class RequirementsTable {
   }
 
   /** A student truly absent from the table altogether - not even shown greyed out. Since
-   *  CollectionDetails.rosterRows merges in the full roster while ACTIVE (see
-   *  expectNotIncluded below), this now only really applies to a SETTLED collection, where
-   *  the table collapses back to just the real historical requirements. */
+   *  CollectionDetails.rosterRows merges in the full class roster (ACTIVE and SETTLED alike -
+   *  see expectNotIncluded below), this only applies to someone not in the class at all. */
   async expectAbsent(studentFullName: string): Promise<void> {
     await expect(this.table).not.toContainText(studentFullName);
   }

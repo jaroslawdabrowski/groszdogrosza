@@ -76,10 +76,9 @@ export class CollectionDetails {
   private readonly currentUser = inject(CurrentUserService);
 
   readonly view = signal<CollectionDetailsModel | CollectionProgress | null>(null);
-  /** The full class roster - only ever fetched for a treasurer viewing an ACTIVE collection
-   *  (StudentResource.list is treasurer-only, and there's no point offering "add back" on a
-   *  SETTLED collection - see rosterRows). Used to show students NOT in this collection as
-   *  greyed-out rows with an "add" action, alongside the ones that are. */
+  /** The full class roster - only ever fetched for a treasurer (StudentResource.list is
+   *  treasurer-only). Used to show students NOT in this collection as greyed-out rows
+   *  alongside the ones that are - see rosterRows. */
   readonly allStudents = signal<Student[]>([]);
   readonly attachments = signal<Attachment[]>([]);
   readonly uploadingAttachment = signal(false);
@@ -113,9 +112,7 @@ export class CollectionDetails {
           // treasurer almost always wants to settle at exactly that amount, and can still
           // edit it if the real invoice/cost differs.
           this.actualCostSpent.set(this.totalCollected());
-          if (view.collection.status === 'ACTIVE') {
-            this.studentApi.list().subscribe((students) => this.allStudents.set(students));
-          }
+          this.studentApi.list().subscribe((students) => this.allStudents.set(students));
         }
       },
       error: () => this.loading.set(false),
@@ -124,10 +121,11 @@ export class CollectionDetails {
 
   /** Every student in the class, merged with this collection's own requirements - a student
    *  with no requirement (never included, or removed earlier) still shows up here, greyed
-   *  out, with an "add back" action instead of the usual columns. Only meaningful while
-   *  ACTIVE (see reload, which only fetches allStudents in that state) - once SETTLED, this
-   *  collapses back to exactly the real historical requirements, matching how the table
-   *  already behaved before this existed.
+   *  out - with an "add back" action while ACTIVE, and as a plain record once SETTLED (the
+   *  actions column only exists while ACTIVE, see visibleRequirementColumns). Nothing records
+   *  who was left off at creation time, so for a SETTLED collection this compares against
+   *  TODAY's roster: a student who joined the class after it settled also shows as not
+   *  included - an accepted approximation, confirmed with the treasurer.
    *
    *  A `computed` on purpose, not a plain method: `mat-table`'s `[dataSource]` uses the
    *  bound array's own identity to decide which rows to add/remove/keep, and a plain method
@@ -153,9 +151,6 @@ export class CollectionDetails {
       paidAmount: r.paidAmount,
       status: r.status,
     }));
-    if (current.collection.status !== 'ACTIVE') {
-      return included;
-    }
     const includedIds = new Set(included.map((r) => r.studentId));
     const excluded: RosterRow[] = this.allStudents()
       .filter((s) => !includedIds.has(s.id))
