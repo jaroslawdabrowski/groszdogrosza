@@ -72,6 +72,12 @@ test.describe('main flow: collection → payment → settlement → both logins 
     request,
     baseURL,
   }) => {
+    // Two real logins and around a dozen full page loads - it normally takes ~25s, right at
+    // the default 30s limit, and tipped over it on a local dev DB that had accumulated
+    // collections from earlier runs (every list/overview call fetches each collection). Same
+    // override as the other multi-login specs.
+    test.setTimeout(60_000);
+
     const unique = Date.now();
     const studentLastName = `Testowa${unique}`;
     const kasiaFullName = `Kasia ${studentLastName}`;

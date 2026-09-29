@@ -18,8 +18,109 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Grosz do Grosza">
+  <!-- Launch splash (#gg-splash below). Deliberately plain inline CSS, not part of the Angular
+       bundle: Angular renders nothing until its app initializer finishes (fetching
+       /api/auth-config - a Lambda cold start can take seconds - plus the OIDC discovery
+       document and, when returning from login, the code exchange), so the page used to sit
+       completely blank for that whole time. This paints on the very first frame instead, and
+       core/splash.ts fades it out once the first route has rendered. -->
+  <style>
+    html:has(#gg-splash) { background: #1f2e4d; }
+    #gg-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+      background: radial-gradient(130% 75% at 50% 0%, #3a5b8e 0%, #1f2e4d 65%);
+      color: #f1f3f8;
+      text-align: center;
+      font-family: "Nunito", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      transition: opacity 0.35s ease, visibility 0.35s;
+    }
+    /* pointer-events: the page underneath is already rendered by the time the fade starts,
+       so taps go straight through instead of being swallowed for the length of the fade. */
+    #gg-splash.gg-splash--leaving { opacity: 0; visibility: hidden; pointer-events: none; }
+    .gg-splash__mark { width: 128px; height: 128px; overflow: visible; margin-bottom: 6px; }
+    /* The coin falls into the slot cut out of the pig's back and vanishes through it - the
+       app's own "grosz do grosza" mark, animated as the loading indicator. CSS lengths on an
+       SVG child are in the SVG's own user units (viewBox is 960 wide), not screen pixels. */
+    .gg-splash__coin {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: gg-splash-coin 1.7s cubic-bezier(0.5, 0, 0.75, 0.3) infinite;
+    }
+    @keyframes gg-splash-coin {
+      0% { transform: translateY(0); opacity: 0; }
+      12% { opacity: 1; }
+      58% { transform: translateY(205px) scale(1, 1); opacity: 1; }
+      74% { transform: translateY(232px) scale(0.9, 0.08); opacity: 0; }
+      100% { transform: translateY(232px) scale(0.9, 0.08); opacity: 0; }
+    }
+    .gg-splash__name { margin: 0; font-size: 30px; font-weight: 900; letter-spacing: 0.01em; line-height: 1.1; }
+    .gg-splash__tagline {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #e8b74a;
+    }
+    .gg-splash__error { display: none; margin-top: 18px; max-width: 30ch; }
+    .gg-splash__error p {
+      margin: 0 0 14px;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      color: #d7dcea;
+    }
+    .gg-splash__error strong { display: block; margin-bottom: 4px; color: #f1f3f8; font-size: 16px; }
+    .gg-splash__retry {
+      font: inherit;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 11px 24px;
+      border: 0;
+      border-radius: 999px;
+      background: #e8b74a;
+      color: #1f2e4d;
+      cursor: pointer;
+    }
+    .gg-splash__retry:focus-visible { outline: 3px solid #f1f3f8; outline-offset: 3px; }
+    #gg-splash.gg-splash--error .gg-splash__error { display: block; }
+    #gg-splash.gg-splash--error .gg-splash__coin { animation: none; opacity: 0; }
+    @media (prefers-reduced-motion: reduce) {
+      .gg-splash__coin { animation: none; }
+    }
+  </style>
 </head>
 <body>
+  <div id="gg-splash" role="status" aria-label="Ładowanie Grosz do Grosza">
+    <svg class="gg-splash__mark" viewBox="0 -960 960 960" aria-hidden="true">
+      <!-- Same Material Symbols "savings" silhouette as shared/logo/logo.ts; the eye and the
+           coin slot are cut out of it, so the navy background shows through the slot. -->
+      <path
+        d="M230-120q-21 0-39.49-13.96Q172.02-147.93 166-168q-25-86-41.54-148.46-16.54-62.46-26.37-109.68-9.82-47.22-13.95-83.79Q80-546.49 80-580q0-92 64-156t156-64h200q27-36 68.5-58t91.5-22q25 0 42.5 17.5T720-820q0 6-1.5 12t-3.5 11q-4 11-7.5 22t-5.5 24l91 91h57q12.75 0 21.38 8.62Q880-642.75 880-630v227q0 10.24-5.5 18.12Q869-377 859-374l-91.93 30.3L713-163q-6.03 19.61-21.84 31.31Q675.34-120 655-120H540q-24.75 0-42.37-17.63Q480-155.25 480-180v-20h-80v20q0 24.75-17.62 42.37Q364.75-120 340-120H230Zm410-400q17 0 28.5-11.5T680-560q0-17-11.5-28.5T640-600q-17 0-28.5 11.5T600-560q0 17 11.5 28.5T640-520ZM490-620q12.75 0 21.38-8.68 8.62-8.67 8.62-21.5 0-12.82-8.62-21.32-8.63-8.5-21.38-8.5H350q-12.75 0-21.37 8.68-8.63 8.67-8.63 21.5 0 12.82 8.63 21.32 8.62 8.5 21.37 8.5h140Z"
+        fill="#f1f3f8"
+      />
+      <g class="gg-splash__coin">
+        <circle cx="420" cy="-860" r="56" fill="#e8b74a" stroke="#c6942a" stroke-width="12" />
+        <path d="M420 -892v64M388 -860h64" stroke="#c6942a" stroke-width="11" stroke-linecap="round" />
+      </g>
+    </svg>
+    <p class="gg-splash__name">Grosz do Grosza</p>
+    <p class="gg-splash__tagline">Skarbnik klasowy</p>
+    <div class="gg-splash__error">
+      <p><strong>Nie udało się uruchomić aplikacji</strong>Sprawdź połączenie z internetem i spróbuj ponownie.</p>
+      <button type="button" class="gg-splash__retry" onclick="location.reload()">Spróbuj ponownie</button>
+    </div>
+  </div>
   <app-root></app-root>
   <noscript>Please enable JavaScript to continue using this application.</noscript>
 </body>
