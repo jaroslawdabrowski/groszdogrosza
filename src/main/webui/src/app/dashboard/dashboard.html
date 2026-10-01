@@ -1,29 +1,45 @@
-<h1 class="gg-heading">{{ 'dashboard.title' | translate }}</h1>
-
-@if (loading()) {
-  <app-loading-spinner [label]="'common.loading' | translate" />
-} @else if (collections().length === 0) {
-  <p class="empty-state">{{ 'dashboard.empty' | translate }}</p>
-} @else {
-  <div class="collection-list">
-    @for (collection of collections(); track collection.id; let i = $index) {
-      <a class="collection-link" [routerLink]="['/collections', collection.id]">
-        <mat-card [class]="cardClassFor(collection.status)" class="gg-fade-up" [style.--gg-stagger.ms]="i * 70">
-          <mat-card-header>
-            <mat-card-title>{{ collection.title }}</mat-card-title>
-            <mat-card-subtitle>{{ collection.description }}</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <mat-chip-set>
-              <mat-chip [class]="'status-chip status-chip--' + collection.status">{{ ('collection.status.' + collection.status) | translate }}</mat-chip>
-            </mat-chip-set>
-            <div class="card-footer-row">
-              <p class="base-amount">{{ 'dashboard.baseAmount' | translate }}: <strong>{{ collection.baseAmountPerStudent }} zł</strong></p>
-              <app-my-student-status-badge [status]="collection.myStudentStatus" />
-            </div>
-          </mat-card-content>
-        </mat-card>
+<div class="page">
+  <header class="page-head page-head-row">
+    <h1>{{ 'dashboard.title' | translate }}</h1>
+    @if (isTreasurer()) {
+      <a class="btn btn--primary btn--sm" routerLink="/treasurer" [queryParams]="{ tab: 'new' }">
+        <mat-icon>add</mat-icon>{{ 'dashboard.newCollection' | translate }}
       </a>
     }
-  </div>
-}
+  </header>
+
+  @if (loading()) {
+    <app-loading-spinner [label]="'common.loading' | translate" />
+  } @else if (collections().length === 0) {
+    <div class="panel empty-state">{{ 'dashboard.empty' | translate }}</div>
+  } @else {
+    @for (group of [{ key: 'dashboard.activeGroup', items: active() }, { key: 'dashboard.finishedGroup', items: finished() }]; track group.key) {
+      @if (group.items.length > 0) {
+        <div class="section-head"><h2>{{ group.key | translate }}</h2></div>
+        <div class="panel panel--flush">
+          <div class="list">
+            @for (c of group.items; track c.id) {
+              <a class="list-row" [routerLink]="['/collections', c.id]" data-testid="collection-row" [attr.data-title]="c.title">
+                <span class="list-icon" [class.list-icon--blue]="c.status === 'ACTIVE'">
+                  <mat-icon>{{ c.status === 'ACTIVE' ? 'receipt_long' : 'task_alt' }}</mat-icon>
+                </span>
+                <span class="list-main">
+                  <span class="list-title">{{ c.title }}</span>
+                  <span class="list-sub">{{ 'start.perChild' | translate: { amount: (c.baseAmountPerStudent | money) } }}</span>
+                </span>
+                <span class="list-end">
+                  <span
+                    [class]="'pill ' + pill(c).tone"
+                    data-testid="my-status"
+                    [attr.data-status]="c.myStudentStatus ?? null"
+                  >{{ pill(c).key | translate }}</span>
+                  <mat-icon class="list-chevron">chevron_right</mat-icon>
+                </span>
+              </a>
+            }
+          </div>
+        </div>
+      }
+    }
+  }
+</div>

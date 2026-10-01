@@ -7,8 +7,8 @@
   "lang": "pl",
   "scope": "/",
   "start_url": "/",
-  "background_color": "#1F2E4D",
-  "theme_color": "#1F2E4D",
+  "background_color": "#F6F8FC",
+  "theme_color": "#F6F8FC",
   "icons": [
     {
       "src": "icons/icon-72x72.png",

@@ -3,9 +3,14 @@
     "dashboard": "Collections",
     "myWallet": "My piggy bank",
     "ledger": "Activity log",
-    "treasurer": "Treasurer panel",
+    "treasurer": "Class",
     "login": "Log in",
-    "howItWorks": "How it works"
+    "howItWorks": "How it works",
+    "start": "Home",
+    "piggyShort": "Piggy bank",
+    "classShort": "Class",
+    "more": "More",
+    "logout": "Log out"
   },
   "common": {
     "loading": "Loading...",
@@ -17,16 +22,24 @@
     "NOT_INCLUDED": "Your child isn't part of this collection",
     "PENDING": "Your child hasn't paid yet",
     "PAID": "Your child has paid",
-    "OVERPAID": "Your child has paid (overpaid)"
+    "OVERPAID": "Your child has paid (overpaid)",
+    "short": {
+      "PENDING": "To pay",
+      "PAID": "Paid",
+      "NOT_INCLUDED": "Not taking part"
+    }
   },
   "login": {
     "subtitle": "Log in to manage class collections",
     "submit": "Log in"
   },
   "dashboard": {
-    "title": "Class collections",
+    "title": "Collections",
     "empty": "There are no collections yet.",
-    "baseAmount": "Base amount"
+    "baseAmount": "Base amount",
+    "newCollection": "New collection",
+    "activeGroup": "In progress",
+    "finishedGroup": "Finished"
   },
   "publicOverview": {
     "eyebrow": "Class treasurer",
@@ -43,9 +56,10 @@
     "howItWorksLink": "How does this work?"
   },
   "globalLedger": {
-    "title": "Full activity log",
+    "title": "Activity log",
     "noEntries": "No entries yet.",
-    "forbidden": "This view is only available to the treasurer."
+    "forbidden": "This view is only available to the treasurer.",
+    "sub": "Every payment and piggy bank movement, newest first."
   },
   "collection": {
     "status": {
@@ -102,16 +116,29 @@
     "deleteAttachmentConfirm": "Delete \"{{name}}\"? This can't be undone.",
     "attachmentTypeError": "Only images (jpg/png/heic) and PDF files are allowed.",
     "attachmentSizeError": "File is too large - the limit is 10MB.",
-    "attachmentUploadFailed": "Couldn't upload this file. Please try again."
+    "attachmentUploadFailed": "Couldn't upload this file. Please try again.",
+    "students": "Students",
+    "filterLabel": "Show students",
+    "filter": {
+      "all": "All",
+      "owe": "To pay",
+      "paid": "Paid"
+    },
+    "filterEmpty": "Nobody here.",
+    "of": "of",
+    "settleHint": "What was actually spent. Any surplus goes back equally to the piggy banks of children who paid.",
+    "settleConfirm": "Settle this collection? Cost: {{cost}} zł, collected: {{collected}} zł. Any surplus goes equally to the piggy banks of children who paid. This can't be undone."
   },
   "studentView": {
     "piggyBank": "Piggy bank",
     "parents": "Parents",
     "ledger": "Event journal",
-    "noEntries": "No entries yet."
+    "noEntries": "No entries yet.",
+    "balanceLabel": "Balance",
+    "balanceHint": "Piggy bank money pays for the next collection automatically."
   },
   "treasurer": {
-    "title": "Treasurer panel",
+    "title": "Class",
     "totalPiggyBankBalance": "Total in piggy banks",
     "students": "Students",
     "noStudents": "There are no students yet.",
@@ -161,7 +188,17 @@
     "paymentInfo": "Payment info",
     "paymentInfoHint": "Visible to anyone on the public homepage, no login required.",
     "savePaymentInfoButton": "Save",
-    "paymentInfoSaved": "Saved."
+    "paymentInfoSaved": "Saved.",
+    "tab": {
+      "students": "Students",
+      "new": "New collection",
+      "payment": "Payment details"
+    },
+    "totalPiggyBankHint": "Parents' money you hold in {{count}} students' piggy banks.",
+    "parentsCount": "Parents: {{count}}",
+    "baseAmountHint": "Each child's piggy bank covers what it can right away.",
+    "seeCollections": "See collections",
+    "noParent": "No parent yet"
   },
   "howItWorks": {
     "eyebrow": "For parents",
@@ -182,5 +219,40 @@
     "PIGGY_BANK_CREDITED": "{{amount}} PLN credited to piggy bank",
     "PIGGY_BANK_APPLIED_TO_COLLECTION": "{{amount}} PLN applied from piggy bank to a collection",
     "REMOVED_FROM_COLLECTION": "Removed from \"{{collectionTitle}}\", {{refundedAmount}} PLN refunded to piggy bank"
+  },
+  "more": {
+    "title": "More",
+    "language": "Language",
+    "account": "Signed in as {{email}}"
+  },
+  "roster": {
+    "label": "{{paid}} of {{total}} children have paid"
+  },
+  "start": {
+    "hello": "Hi, {{name}}",
+    "title": "Class collections",
+    "anonIntro": "See how the collections are going and how to chip in. No login needed.",
+    "noActive": "Nothing is being collected right now. A new collection will show up here.",
+    "yourChild": "Your child",
+    "childPaid": "{{name}} has paid",
+    "childNotIncluded": "{{name}} isn't part of this collection",
+    "ofAmount": "of {{amount}} zł",
+    "collected": "Collected",
+    "legendPaid": "{{paid}} of {{total}} children have paid.",
+    "howToPay": "How to pay",
+    "details": "Details",
+    "loginPrompt": "Have an account? Log in to see your child and their piggy bank.",
+    "earlier": "Earlier collections",
+    "all": "All",
+    "perChild": "{{amount}} zł per child",
+    "piggyBank": "Piggy bank",
+    "piggyBankSub": "{{name}} – kept for the next collections",
+    "noPaymentInfo": "The treasurer hasn't added an account number or BLIK yet. Ask in the class group.",
+    "transferTitle": "Transfer title",
+    "titleHintChild": "The child's surname in the title lets the payment be booked automatically.",
+    "prepayTitle": "Pay ahead, e.g.",
+    "prepayBody": "Whatever is left waits in your child's piggy bank and pays for the next collections by itself. One transfer instead of one per collection.",
+    "dueNow": "Current collections still need {{amount}} zł.",
+    "childDue": "{{name}}: {{amount}} zł to go"
   }
 }

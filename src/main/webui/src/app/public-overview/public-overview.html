@@ -1,103 +1,195 @@
-<section class="hero">
-  <div class="hero-mark"><app-logo [size]="34" /></div>
-  <span class="gg-eyebrow">{{ 'publicOverview.eyebrow' | translate }}</span>
-  <h1 class="gg-heading">{{ 'publicOverview.title' | translate }}</h1>
+<div class="page">
+  <header class="page-head">
+    @if (isLoggedIn() && parentName(); as name) {
+      <p class="eyebrow">{{ 'start.hello' | translate: { name: name } }}</p>
+    }
+    <h1>{{ 'start.title' | translate }}</h1>
+    @if (!isLoggedIn()) {
+      <p class="intro">{{ 'start.anonIntro' | translate }}</p>
+    }
+  </header>
 
-  @if (!authService.isAuthenticated()) {
-    <p class="login-hint">
-      {{ 'publicOverview.loginHint' | translate }}
-      <button mat-stroked-button color="primary" (click)="login()">{{ 'nav.login' | translate }}</button>
-    </p>
-  }
-</section>
+  @if (loading()) {
+    <app-loading-spinner [label]="'common.loading' | translate" />
+  } @else if (overview(); as o) {
+    @if (o.activeCollections.length === 0) {
+      <div class="panel empty-state">{{ 'start.noActive' | translate }}</div>
+    }
 
-@if (loading()) {
-  <app-loading-spinner [label]="'common.loading' | translate" />
-} @else if (overview(); as o) {
-  @if (o.paymentInfo && (o.paymentInfo.bankAccountNumber || o.paymentInfo.blikPhoneNumber)) {
-    <mat-card class="gg-card gg-card--sky gg-fade-up payment-card">
-      <mat-card-header>
-        <mat-card-title class="title-with-icon"><mat-icon class="payment-icon">payments</mat-icon>{{ 'publicOverview.howToPay' | translate }}</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="payment-grid">
-          @if (o.paymentInfo.bankAccountNumber) {
-            <div class="payment-row">
-              <span class="payment-label">{{ 'publicOverview.bankAccountNumber' | translate }}</span>
-              <span class="payment-value">{{ o.paymentInfo.bankAccountNumber }}</span>
-              <button
-                mat-icon-button
-                class="copy-button"
-                [matTooltip]="'publicOverview.copy' | translate"
-                [cdkCopyToClipboard]="o.paymentInfo.bankAccountNumber"
-                (cdkCopyToClipboardCopied)="onCopied('bank')"
-              >
-                <mat-icon>{{ justCopied() === 'bank' ? 'check' : 'content_copy' }}</mat-icon>
-              </button>
-            </div>
-          }
-          @if (o.paymentInfo.blikPhoneNumber) {
-            <div class="payment-row">
-              <span class="payment-label">{{ 'publicOverview.blikPhoneNumber' | translate }}</span>
-              <span class="payment-value">{{ o.paymentInfo.blikPhoneNumber }}</span>
-              <button
-                mat-icon-button
-                class="copy-button"
-                [matTooltip]="'publicOverview.copy' | translate"
-                [cdkCopyToClipboard]="o.paymentInfo.blikPhoneNumber"
-                (cdkCopyToClipboardCopied)="onCopied('blik')"
-              >
-                <mat-icon>{{ justCopied() === 'blik' ? 'check' : 'content_copy' }}</mat-icon>
-              </button>
-            </div>
+    @if (o.activeCollections.length > 0) {
+      <section class="pay-card" id="how-to-pay" aria-labelledby="how-to-pay-heading" data-testid="payment-info">
+        <div class="pay-card-head">
+          <h2 id="how-to-pay-heading">{{ 'publicOverview.howToPay' | translate }}</h2>
+          <mat-icon aria-hidden="true">account_balance</mat-icon>
+        </div>
+        <div class="prepay">
+          <p class="prepay-title">{{ 'start.prepayTitle' | translate }} <strong class="num">{{ suggestedPrepay(o) | money }} zł</strong></p>
+          <p class="prepay-body">{{ 'start.prepayBody' | translate }}</p>
+          @if (isLoggedIn() && totalOwed(o) > 0) {
+            <p class="prepay-due" data-testid="total-owed">{{ 'start.dueNow' | translate: { amount: (totalOwed(o) | money) } }}</p>
           }
         </div>
-        <p class="title-hint">{{ 'publicOverview.titleHint' | translate }}</p>
-      </mat-card-content>
-    </mat-card>
-  }
+        @if (hasPaymentInfo(o)) {
+          <ng-container [ngTemplateOutlet]="payment" [ngTemplateOutletContext]="{ $implicit: o }" />
+        } @else {
+          <p class="notice"><mat-icon>info</mat-icon>{{ 'start.noPaymentInfo' | translate }}</p>
+        }
+      </section>
+    }
 
-  <p class="how-it-works-hint">
-    <a routerLink="/jak-to-dziala">{{ 'publicOverview.howItWorksLink' | translate }}</a>
-  </p>
+    @for (c of o.activeCollections; track c.collection.id) {
+      <article class="sheet sheet--hero collection-sheet" data-testid="collection-sheet" [attr.data-title]="c.collection.title">
+        <div class="sheet-head">
+          @if (isLoggedIn()) {
+            <h2><a class="sheet-link" [routerLink]="['/collections', c.collection.id]">{{ c.collection.title }}</a></h2>
+          } @else {
+            <h2>{{ c.collection.title }}</h2>
+          }
+          @if (c.collection.description) {
+            <p class="meta">{{ c.collection.description }}</p>
+          }
+        </div>
 
-  @if (o.activeCollections.length === 0) {
-    <p class="empty-state">{{ 'publicOverview.noActiveCollections' | translate }}</p>
-  } @else {
-    <div class="collection-list">
-      @for (c of o.activeCollections; track c.collection.id; let i = $index) {
-        <!-- Clickable through to the same /collections/:id detail view Dashboard's own
-             cards use, but only for a logged-in visitor - anonymous visitors are
-             deliberately kept off that route entirely (it's behind authGuard, and this
-             page's whole point is working without an account at all), so the card stays
-             a plain, non-interactive summary for them instead of a link into a login wall. -->
-        <a
-          [class.collection-link]="authService.isAuthenticated()"
-          [routerLink]="authService.isAuthenticated() ? ['/collections', c.collection.id] : null"
-        >
-          <mat-card class="gg-card gg-card--blush gg-fade-up" [style.--gg-stagger.ms]="i * 70">
-            <mat-card-header>
-              <mat-card-title class="card-title-row">
-                {{ c.collection.title }}
-                <app-my-student-status-badge [status]="c.collection.myStudentStatus" />
-              </mat-card-title>
-              <mat-card-subtitle>{{ c.collection.description }}</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <mat-progress-bar mode="determinate" [value]="c.percentComplete"></mat-progress-bar>
-              <p class="percent">{{ c.percentComplete }}%</p>
-              <div class="stat-row">
-                <span>{{ 'publicOverview.parentsPaid' | translate }}</span>
-                <strong>{{ c.studentsPaidCount }} / {{ c.studentsCount }}</strong>
-              </div>
-              <div class="stat-row">
-                <span>{{ 'publicOverview.totalPaid' | translate }}</span>
-                <strong>{{ c.totalPaid }} zł / {{ c.totalRequired }} zł</strong>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </a>
+        <div class="due">
+          <div>
+            <p class="meta">{{ 'start.collected' | translate }}</p>
+            <p class="amount amount--md num">{{ c.totalPaid | money }}<small>zł</small></p>
+          </div>
+          <p class="meta due-meta">{{ 'start.ofAmount' | translate: { amount: (c.totalRequired | money) } }}</p>
+        </div>
+        <app-roster-dots [paid]="c.studentsPaidCount" [partial]="c.studentsPartialCount" [total]="c.studentsCount" />
+        <p class="roster-legend">
+          {{ 'start.legendPaid' | translate: { paid: c.studentsPaidCount, total: c.studentsCount } }}
+        </p>
+
+        @if (isLoggedIn() && c.collection.myStudentStatus; as status) {
+          <div class="my-child" data-testid="my-status" [attr.data-status]="status">
+            @switch (status) {
+              @case ('NOT_INCLUDED') {
+                <p class="child-line child-line--muted">
+                  <mat-icon>do_not_disturb_on</mat-icon>{{ 'start.childNotIncluded' | translate: { name: child()?.firstName ?? ('start.yourChild' | translate) } }}
+                </p>
+              }
+              @case ('PENDING') {
+                <p class="child-line child-line--owe">
+                  <mat-icon>schedule</mat-icon>{{ 'start.childDue' | translate: { name: child()?.firstName ?? ('start.yourChild' | translate), amount: (owed(c) | money) } }}
+                </p>
+              }
+              @default {
+                <p class="child-line child-line--ok">
+                  <mat-icon>check_circle</mat-icon>{{ 'start.childPaid' | translate: { name: child()?.firstName ?? ('start.yourChild' | translate) } }}
+                </p>
+              }
+            }
+          </div>
+        }
+
+        @if (isLoggedIn()) {
+          <a class="btn btn--text btn--sm details-link" [routerLink]="['/collections', c.collection.id]">
+            {{ 'start.details' | translate }}<mat-icon>chevron_right</mat-icon>
+          </a>
+        }
+      </article>
+    }
+
+
+    @if (!isLoggedIn()) {
+      <div class="login-prompt panel">
+        <p>{{ 'start.loginPrompt' | translate }}</p>
+        <button type="button" class="btn btn--secondary" (click)="login()">{{ 'nav.login' | translate }}</button>
+      </div>
+      <a class="how-link" routerLink="/jak-to-dziala">{{ 'publicOverview.howItWorksLink' | translate }}</a>
+    } @else {
+      @if (earlierCollections().length > 0) {
+        <div class="section-head">
+          <h2>{{ 'start.earlier' | translate }}</h2>
+          <a routerLink="/dashboard">{{ 'start.all' | translate }}</a>
+        </div>
+        <div class="panel panel--flush">
+          <div class="list">
+            @for (e of earlierCollections(); track e.id) {
+              <a class="list-row" [routerLink]="['/collections', e.id]">
+                <span class="list-icon list-icon--blue"><mat-icon>receipt_long</mat-icon></span>
+                <span class="list-main">
+                  <span class="list-title">{{ e.title }}</span>
+                  <span class="list-sub">{{ 'start.perChild' | translate: { amount: (e.baseAmountPerStudent | money) } }}</span>
+                </span>
+                <span class="pill">{{ ('collection.status.' + e.status) | translate }}</span>
+              </a>
+            }
+          </div>
+        </div>
       }
-    </div>
+
+      @if (child(); as kid) {
+        <div class="panel panel--flush">
+          <a class="list-row" [routerLink]="['/students', kid.id]">
+            <span class="list-icon list-icon--gold"><mat-icon>savings</mat-icon></span>
+            <span class="list-main">
+              <span class="list-title">{{ 'start.piggyBank' | translate }}</span>
+              <span class="list-sub">{{ 'start.piggyBankSub' | translate: { name: kid.firstName } }}</span>
+            </span>
+            <span class="list-amount num" data-testid="child-piggy-balance">{{ kid.piggyBankBalance | money }} zł</span>
+          </a>
+        </div>
+      }
+    }
   }
-}
+</div>
+
+<ng-template #payment let-o>
+  <div class="payment-rows">
+    @if (o.paymentInfo.bankAccountNumber) {
+      <div class="payment-row">
+        <div class="payment-text">
+          <span class="payment-label">{{ 'publicOverview.bankAccountNumber' | translate }}</span>
+          <span class="payment-value num">{{ o.paymentInfo.bankAccountNumber }}</span>
+        </div>
+        <button
+          type="button"
+          class="icon-btn icon-btn--add"
+          [attr.aria-label]="'publicOverview.copy' | translate"
+          [cdkCopyToClipboard]="o.paymentInfo.bankAccountNumber"
+          (cdkCopyToClipboardCopied)="onCopied('bank')"
+        >
+          @if (justCopied() === 'bank') { <mat-icon class="icon-pop">check</mat-icon> } @else { <mat-icon>content_copy</mat-icon> }
+        </button>
+      </div>
+    }
+    @if (o.paymentInfo.blikPhoneNumber) {
+      <div class="payment-row">
+        <div class="payment-text">
+          <span class="payment-label">{{ 'publicOverview.blikPhoneNumber' | translate }}</span>
+          <span class="payment-value num">{{ o.paymentInfo.blikPhoneNumber }}</span>
+        </div>
+        <button
+          type="button"
+          class="icon-btn icon-btn--add"
+          [attr.aria-label]="'publicOverview.copy' | translate"
+          [cdkCopyToClipboard]="o.paymentInfo.blikPhoneNumber"
+          (cdkCopyToClipboardCopied)="onCopied('blik')"
+        >
+          @if (justCopied() === 'blik') { <mat-icon class="icon-pop">check</mat-icon> } @else { <mat-icon>content_copy</mat-icon> }
+        </button>
+      </div>
+    }
+    @if (child(); as kid) {
+      <div class="payment-row">
+        <div class="payment-text">
+          <span class="payment-label">{{ 'start.transferTitle' | translate }}</span>
+          <span class="payment-value" data-testid="transfer-title">{{ kid.lastName }}</span>
+        </div>
+        <button
+          type="button"
+          class="icon-btn icon-btn--add"
+          [attr.aria-label]="'publicOverview.copy' | translate"
+          [cdkCopyToClipboard]="kid.lastName"
+          (cdkCopyToClipboardCopied)="onCopied('title')"
+        >
+          @if (justCopied() === 'title') { <mat-icon class="icon-pop">check</mat-icon> } @else { <mat-icon>content_copy</mat-icon> }
+        </button>
+      </div>
+    }
+  </div>
+  <p class="hint">{{ (child() ? 'start.titleHintChild' : 'publicOverview.titleHint') | translate }}</p>
+</ng-template>

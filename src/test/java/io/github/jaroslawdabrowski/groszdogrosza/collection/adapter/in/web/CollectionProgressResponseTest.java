@@ -85,4 +85,38 @@ class CollectionProgressResponseTest {
         assertEquals(0, response.percentComplete());
         assertEquals(0, response.studentsPaidCount());
     }
+
+    @Test
+    void partlyPaidStudentsAreCountedSeparatelyFromPaidAndUnpaidOnes() {
+        CollectionDetails details = new CollectionDetails(collection("45"), List.of(
+                requirement("paid", "45", "45", ContributionRequirementStatus.PAID),
+                requirement("partial", "45", "20", ContributionRequirementStatus.PENDING),
+                requirement("nothing", "45", "0", ContributionRequirementStatus.PENDING)), List.of());
+
+        CollectionProgressResponse response = CollectionProgressResponse.from(details);
+
+        assertEquals(1, response.studentsPaidCount());
+        assertEquals(1, response.studentsPartialCount());
+        assertEquals(3, response.studentsCount());
+    }
+
+    @Test
+    void theViewersOwnChildGetsItsAmountsAndNobodyElsesAreExposed() {
+        CollectionDetails details = new CollectionDetails(collection("45"), List.of(
+                requirement("mine", "45", "18", ContributionRequirementStatus.PENDING),
+                requirement("someone-else", "45", "45", ContributionRequirementStatus.PAID)), List.of());
+
+        CollectionResponse mine = CollectionProgressResponse.from(details, "mine").collection();
+        assertEquals("PENDING", mine.myStudentStatus());
+        assertEquals(new BigDecimal("45"), mine.myStudentRequiredAmount());
+        assertEquals(new BigDecimal("18"), mine.myStudentPaidAmount());
+
+        CollectionResponse notIncluded = CollectionProgressResponse.from(details, "not-in-it").collection();
+        assertEquals("NOT_INCLUDED", notIncluded.myStudentStatus());
+        assertEquals(null, notIncluded.myStudentRequiredAmount());
+
+        CollectionResponse anonymous = CollectionProgressResponse.from(details, null).collection();
+        assertEquals(null, anonymous.myStudentStatus());
+        assertEquals(null, anonymous.myStudentPaidAmount());
+    }
 }

@@ -145,7 +145,7 @@ test.describe('collection membership: exclude a student, or remove one mid-colle
     // settled collection too, just without the (ACTIVE-only) add-back action column.
     await tripAfterRemoval.requirements.expectNotIncluded(jasioFullName);
     await tripAfterRemoval.requirements.expectNotIncluded(zosiaFullName);
-    await expect(page.locator('.mat-column-actions')).toHaveCount(0);
+    await expect(page.locator('[data-testid="remove-student"], [data-testid="add-student"]')).toHaveCount(0);
   });
 
   /**
@@ -209,8 +209,8 @@ test.describe('collection membership: exclude a student, or remove one mid-colle
     //     referencing this collection, and the balance never moved.
     await piggyBank.goto(zosiaStudentId);
     await piggyBank.expectBalance('8');
-    await expect(page.locator('.timeline li')).toHaveCount(1);
-    await expect(page.locator('.timeline')).not.toContainText('zbiórkę');
+    await expect(page.getByTestId('ledger-entry')).toHaveCount(1);
+    await expect(page.locator('.ledger-list')).not.toContainText('zbiórkę');
 
     // --- Jasio (included): his 8 zł was swept in immediately, as a real operation ---
     await dashboard.goto();
@@ -313,8 +313,8 @@ test.describe('collection membership: exclude a student, or remove one mid-colle
 
     await piggyBank.goto(zosiaStudentId);
     await piggyBank.expectBalance('8');
-    await expect(page.locator('.timeline li')).toHaveCount(1);
-    await expect(page.locator('.timeline')).not.toContainText('zbiórkę');
+    await expect(page.getByTestId('ledger-entry')).toHaveCount(1);
+    await expect(page.locator('.ledger-list')).not.toContainText('zbiórkę');
 
     // --- Put Zosia back - same sweep as at creation, no confirmation dialog needed ---
     await page.goto(`/collections/${collectionId}`);

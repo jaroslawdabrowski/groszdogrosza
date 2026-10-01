@@ -97,10 +97,10 @@ test.describe('a parent can add/remove their own child from an ACTIVE collection
     await login.loginAs('rodzic1', 'rodzic1');
     await page.goto(`/collections/${collectionId}`);
     const collection = new CollectionDetailsPage(page);
-    await collection.expectMyStudentStatus('do_not_disturb_on');
+    await collection.expectMyStudentStatus('NOT_INCLUDED');
 
     await collection.joinMyStudent();
-    await collection.expectMyStudentStatus('cancel');
+    await collection.expectMyStudentStatus('PENDING');
     await app.logout();
 
     // --- A second, unrelated parent cannot touch Kasia's membership directly via the API ---
@@ -116,10 +116,10 @@ test.describe('a parent can add/remove their own child from an ACTIVE collection
     await login.loginAs('rodzic1', 'rodzic1');
     await api.recordContribution(collectionId, kasiaStudentId, 15);
     await page.goto(`/collections/${collectionId}`);
-    await collection.expectMyStudentStatus('check_circle');
+    await collection.expectMyStudentStatus('PAID');
 
     await collection.leaveMyStudent();
-    await collection.expectMyStudentStatus('do_not_disturb_on');
+    await collection.expectMyStudentStatus('NOT_INCLUDED');
 
     // Confirm the refund independently, via the treasurer's own full breakdown.
     await app.logout();
@@ -133,9 +133,9 @@ test.describe('a parent can add/remove their own child from an ACTIVE collection
     //     here on the collection page - Jasio was never excluded, so he owes the full 15 zł
     //     and hasn't paid, hence "not paid yet". Using it works exactly like the treasurer's
     //     own per-row "remove" action in the table below - same use case, just a shortcut. ---
-    await treasurerView.expectMyStudentStatus('cancel');
+    await treasurerView.expectMyStudentStatus('PENDING');
     await treasurerView.leaveMyStudent();
-    await treasurerView.expectMyStudentStatus('do_not_disturb_on');
+    await treasurerView.expectMyStudentStatus('NOT_INCLUDED');
     await treasurerView.requirements.expectNotIncluded('Jasio Skarbnik');
   });
 });

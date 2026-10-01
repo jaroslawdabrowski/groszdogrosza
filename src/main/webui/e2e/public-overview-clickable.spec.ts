@@ -52,7 +52,7 @@ test.describe('public overview: collection cards are clickable only when logged 
     await collection.requirements.expectRequiredAmount('Jasio Skarbnik', '8');
 
     // --- Logged out: the same card on the same page is no longer a link at all ---
-    await page.getByRole('button', { name: 'Log out' }).click();
+    await page.getByRole('button', { name: 'Wyloguj się' }).click();
     await page.waitForLoadState('networkidle');
     await publicOverview.goto();
     await publicOverview.expectCollectionNotClickable(collectionTitle);

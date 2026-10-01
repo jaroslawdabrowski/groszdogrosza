@@ -1,308 +1,361 @@
 @if (loading()) {
-  <app-loading-spinner [label]="'common.loading' | translate" />
+  <div class="page">
+    <app-loading-spinner [label]="'common.loading' | translate" />
+  </div>
 } @else if (view(); as v) {
-  <a class="back-link no-print" routerLink="/dashboard">
-    <mat-icon>arrow_back</mat-icon>{{ 'common.backToDashboard' | translate }}
-  </a>
+  <div class="page">
+    <a class="back-link no-print" routerLink="/dashboard">
+      <mat-icon>arrow_back</mat-icon>{{ 'nav.dashboard' | translate }}
+    </a>
 
-  <!-- Only shown when printed (see the @media print rules in styles.scss) - the on-screen
-       header above already says all of this, but a printed page needs its own header since
-       the toolbar/back-link around it are hidden. -->
-  <header class="print-only print-header">
-    <p class="print-brand">Grosz do Grosza</p>
-    <p class="print-date">{{ 'collectionDetails.printedOn' | translate: { date: printedOnLabel() } }}</p>
-  </header>
+    <!-- Only shown when printed: the toolbar and back link are hidden on paper, so the report
+         needs its own header. -->
+    <header class="print-only print-header">
+      <p class="print-brand">Grosz do Grosza</p>
+      <p class="print-date">{{ 'collectionDetails.printedOn' | translate: { date: printedOnLabel() } }}</p>
+    </header>
 
-  <header class="detail-header">
-    <h1 class="gg-heading">{{ v.collection.title }}</h1>
-    <p class="description">{{ v.collection.description }}</p>
-    <mat-chip-set class="no-print">
-      <mat-chip [class]="'status-chip status-chip--' + v.collection.status">{{ ('collection.status.' + v.collection.status) | translate }}</mat-chip>
-      <mat-chip class="amount-chip">{{ 'dashboard.baseAmount' | translate }}: {{ v.collection.baseAmountPerStudent }} zł</mat-chip>
-    </mat-chip-set>
-    <p class="print-only">
-      {{ ('collection.status.' + v.collection.status) | translate }} · {{ 'dashboard.baseAmount' | translate }}: {{ v.collection.baseAmountPerStudent }} zł
-    </p>
+    <header class="page-head detail-head">
+      <h1>{{ v.collection.title }}</h1>
+      @if (v.collection.description) {
+        <p class="description">{{ v.collection.description }}</p>
+      }
+      <div class="head-pills no-print">
+        <span class="pill" [class.pill--blue]="v.collection.status === 'ACTIVE'" data-testid="collection-status">
+          {{ ('collection.status.' + v.collection.status) | translate }}
+        </span>
+        <span class="pill">{{ 'start.perChild' | translate: { amount: (v.collection.baseAmountPerStudent | money) } }}</span>
+      </div>
+      <p class="print-only">
+        {{ ('collection.status.' + v.collection.status) | translate }},
+        {{ 'start.perChild' | translate: { amount: (v.collection.baseAmountPerStudent | money) } }}
+      </p>
+    </header>
 
-    <!-- Self-service opt-in/opt-out for the caller's OWN child - shown to EVERYONE with a
-         linked Student, treasurer included (a treasurer is also a Parent, and wants this same
-         quick affordance for their own child instead of having to find their own row in the
-         full requirements table below). Only while ACTIVE - see backend
-         AuthorizationSupport.requireSelfOrTreasurerForStudent, the rule this relies on
-         server-side, not just this template check. myStudentStatus is null when there's no
-         linked child to act on at all. -->
-    @if (v.collection.status === 'ACTIVE' && v.collection.myStudentStatus) {
-      <div class="self-service-actions no-print">
-        <app-my-student-status-badge [status]="v.collection.myStudentStatus" />
-        @if (v.collection.myStudentStatus === 'NOT_INCLUDED') {
-          <button mat-stroked-button (click)="addMyStudent()">
-            <mat-icon>person_add</mat-icon>
-            {{ 'collectionDetails.joinMyStudentButton' | translate }}
+    <!-- The sheet: how far the collection got, and where the viewer's own child stands. -->
+    <section class="sheet sheet--hero hero no-print" data-testid="collection-hero">
+      @if (isCollectionDetails(v)) {
+        <div class="due">
+          <div>
+            <p class="meta">{{ 'start.collected' | translate }}</p>
+            <p class="amount num" data-testid="total-collected">{{ totalCollected() | money }}<small>zł</small></p>
+          </div>
+          <p class="meta due-meta">{{ 'start.ofAmount' | translate: { amount: (totalExpected() | money) } }}</p>
+        </div>
+        <app-roster-dots
+          [paid]="paidStudentsCount()"
+          [partial]="partlyPaidStudentsCount()"
+          [total]="totalStudentsCount()"
+          [out]="excludedStudentsCount()"
+        />
+        <p class="roster-legend">{{ 'start.legendPaid' | translate: { paid: paidStudentsCount(), total: totalStudentsCount() } }}</p>
+      } @else {
+        <div class="due">
+          <div>
+            <p class="meta">{{ 'start.collected' | translate }}</p>
+            <p class="amount num" data-testid="total-collected">{{ v.totalPaid | money }}<small>zł</small></p>
+          </div>
+          <p class="meta due-meta">
+            {{ 'start.ofAmount' | translate: { amount: (v.totalRequired | money) } }}<br>
+            <span data-testid="percent-complete">{{ v.percentComplete }}%</span>
+          </p>
+        </div>
+        <app-roster-dots [paid]="v.studentsPaidCount" [partial]="v.studentsPartialCount" [total]="v.studentsCount" />
+        <p class="roster-legend">{{ 'start.legendPaid' | translate: { paid: v.studentsPaidCount, total: v.studentsCount } }}</p>
+      }
+
+      <!-- Self-service opt-in/opt-out for the caller's OWN child - shown to everyone with a
+           linked Student, treasurer included, and only while ACTIVE (backend:
+           AuthorizationSupport.requireSelfOrTreasurerForStudent). myStudentStatus is null when
+           there's no linked child to act on. -->
+      @if (v.collection.myStudentStatus; as status) {
+        <div class="my-child" data-testid="my-status" [attr.data-status]="status">
+          <p class="child-line" [class]="'child-line child-line--' + (status === 'PENDING' ? 'owe' : status === 'NOT_INCLUDED' ? 'muted' : 'ok')">
+            <mat-icon>{{ status === 'PENDING' ? 'schedule' : status === 'NOT_INCLUDED' ? 'do_not_disturb_on' : 'check_circle' }}</mat-icon>
+            {{ ('myStudentStatus.' + status) | translate }}
+          </p>
+          @if (v.collection.status === 'ACTIVE') {
+            @if (status === 'NOT_INCLUDED') {
+              <button type="button" class="btn btn--secondary btn--sm" (click)="addMyStudent()">
+                <mat-icon>person_add</mat-icon>{{ 'collectionDetails.joinMyStudentButton' | translate }}
+              </button>
+            } @else {
+              <button type="button" class="btn btn--text btn--sm leave-btn" (click)="removeMyStudent()">
+                <mat-icon>person_remove</mat-icon>{{ 'collectionDetails.leaveMyStudentButton' | translate }}
+              </button>
+            }
+          }
+        </div>
+      }
+    </section>
+
+    @if (isCollectionDetails(v)) {
+      <p class="print-only total-collected">
+        {{ 'collectionDetails.totalCollectedLabel' | translate }}: <strong>{{ totalCollected() | money }} zł</strong>
+      </p>
+
+      <!-- Students: one row each, filterable. Screen only - paper gets the plain table below. -->
+      <section class="no-print roster-section" aria-labelledby="roster-heading">
+        <div class="section-head">
+          <h2 id="roster-heading">{{ 'collectionDetails.students' | translate }}</h2>
+          <button type="button" class="btn btn--text btn--sm" data-testid="print-button" (click)="print()">
+            <mat-icon>print</mat-icon>{{ 'collectionDetails.printButton' | translate }}
           </button>
-        } @else {
-          <button mat-stroked-button color="warn" (click)="removeMyStudent()">
-            <mat-icon>person_remove</mat-icon>
-            {{ 'collectionDetails.leaveMyStudentButton' | translate }}
+        </div>
+
+        <div class="segmented" role="group" [attr.aria-label]="'collectionDetails.filterLabel' | translate"
+             [style.--seg-count]="filters.length" [style.--seg-index]="filters.indexOf(filter())">
+          <span class="segmented-indicator" aria-hidden="true"></span>
+          @for (f of filters; track f) {
+            <button type="button" [attr.aria-pressed]="filter() === f" (click)="filter.set(f)">
+              {{ ('collectionDetails.filter.' + f) | translate }} <span class="num seg-count">{{ filterCount(f) }}</span>
+            </button>
+          }
+        </div>
+
+        <div class="panel panel--flush">
+          @if (filteredRows().length === 0) {
+            <p class="empty-state">{{ 'collectionDetails.filterEmpty' | translate }}</p>
+          }
+          <div class="list" data-testid="student-list">
+            @for (r of filteredRows(); track r.studentId) {
+              <div
+                animate.enter="row-in"
+                animate.leave="row-out"
+                class="list-row student-row"
+                [class.list-row--muted]="!r.included"
+                data-testid="student-row"
+                [attr.data-name]="r.studentName"
+                [attr.data-status]="r.included ? r.status : 'NOT_INCLUDED'"
+              >
+                <span class="avatar" [class]="'avatar avatar--' + tone(r)" aria-hidden="true">{{ initials(r.studentName) }}</span>
+                <span class="list-main">
+                  <span class="list-title">{{ r.studentName }}</span>
+                  <span class="list-sub num">
+                    @if (r.included) {
+                      <span data-testid="paid-amount">{{ r.paidAmount | money }}</span>
+                      {{ 'collectionDetails.of' | translate }}
+                      <span data-testid="required-amount">{{ r.requiredAmount | money }}</span> zł
+                    } @else {
+                      <span data-testid="paid-amount">–</span>
+                      <span data-testid="required-amount" hidden>–</span>
+                    }
+                  </span>
+                </span>
+                <span class="list-end">
+                  <span class="pill" [class]="'pill pill--' + tone(r)" data-testid="student-status">
+                    {{ r.included ? (('requirementStatus.' + r.status) | translate) : ('collectionDetails.notIncluded' | translate) }}
+                  </span>
+                  @if (v.collection.status === 'ACTIVE') {
+                    @if (r.included) {
+                      <button
+                        type="button"
+                        class="icon-btn icon-btn--quiet"
+                        data-testid="remove-student"
+                        [attr.aria-label]="'collectionDetails.removeStudentTooltip' | translate"
+                        [title]="'collectionDetails.removeStudentTooltip' | translate"
+                        (click)="removeStudent(r.studentId, r.studentName)"
+                      >
+                        <mat-icon>person_remove</mat-icon>
+                      </button>
+                    } @else {
+                      <button
+                        type="button"
+                        class="icon-btn icon-btn--add"
+                        data-testid="add-student"
+                        [attr.aria-label]="'collectionDetails.addStudentTooltip' | translate"
+                        [title]="'collectionDetails.addStudentTooltip' | translate"
+                        (click)="addStudent(r.studentId)"
+                      >
+                        <mat-icon>person_add</mat-icon>
+                      </button>
+                    }
+                  }
+                </span>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- The printed report: a plain black-and-white table, sized to fit a class on one page. -->
+      <section class="print-only print-roster">
+        <h2>{{ 'collectionDetails.requirements' | translate }}</h2>
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th>{{ 'collectionDetails.student' | translate }}</th>
+              <th>{{ 'collectionDetails.required' | translate }}</th>
+              <th>{{ 'collectionDetails.paid' | translate }}</th>
+              <th>{{ 'collectionDetails.requirementStatus' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of rosterRows(); track r.studentId) {
+              <tr [class.excluded-row]="!r.included">
+                <td>{{ r.studentName }}</td>
+                <td>@if (r.included) { {{ r.requiredAmount | money }} zł } @else { – }</td>
+                <td>@if (r.included) { {{ r.paidAmount | money }} zł } @else { – }</td>
+                <td>{{ r.included ? (('requirementStatus.' + r.status) | translate) : ('collectionDetails.notIncluded' | translate) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+
+      <section class="no-print" aria-labelledby="contributions-heading">
+        <div class="section-head"><h2 id="contributions-heading">{{ 'collectionDetails.contributions' | translate }}</h2></div>
+        <div class="panel panel--flush">
+          @if (v.contributions.length === 0) {
+            <p class="empty-state">{{ 'collectionDetails.noContributions' | translate }}</p>
+          } @else {
+            <div class="list" data-testid="contribution-list">
+              @for (c of v.contributions; track c.id) {
+                <div class="list-row" data-testid="contribution-row">
+                  <span class="list-icon" [class]="'list-icon list-icon--' + (c.source === 'PIGGY_BANK_APPLIED' ? 'gold' : 'ok')">
+                    <mat-icon>{{ c.source === 'PIGGY_BANK_APPLIED' ? 'savings' : c.source === 'MANUAL' ? 'payments' : 'account_balance' }}</mat-icon>
+                  </span>
+                  <span class="list-main">
+                    <span class="list-title">{{ c.studentName }}</span>
+                    <span class="list-sub">{{ ('contributionSource.' + c.source) | translate }}</span>
+                  </span>
+                  <span class="list-amount num">+{{ c.amount | money }} zł</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+
+      @if (v.collection.status === 'ACTIVE') {
+        <section class="panel no-print settle-panel" data-testid="settle-panel" aria-labelledby="settle-heading">
+          <h2 id="settle-heading" class="panel-title">{{ 'collectionDetails.settle' | translate }}</h2>
+          <dl class="stats">
+            <div class="stat" data-testid="settle-stat">
+              <dt>{{ 'collectionDetails.studentsPaid' | translate }}</dt>
+              <dd class="num">{{ paidStudentsCount() }} / {{ totalStudentsCount() }}</dd>
+            </div>
+            <div class="stat" data-testid="settle-stat">
+              <dt>{{ 'collectionDetails.totalCollectedLabel' | translate }}</dt>
+              <dd class="num">{{ totalCollected() | money }} zł</dd>
+            </div>
+            <div class="stat" data-testid="settle-stat">
+              <dt>{{ 'collectionDetails.totalExpected' | translate }}</dt>
+              <dd class="num">{{ totalExpected() | money }} zł</dd>
+            </div>
+            @if (removedStudentsCount() > 0) {
+              <div class="stat" data-testid="settle-stat">
+                <dt>{{ 'collectionDetails.removedStudentsCount' | translate }}</dt>
+                <dd class="num">{{ removedStudentsCount() }}</dd>
+              </div>
+            }
+          </dl>
+          <div class="field">
+            <label for="actual-cost">{{ 'collectionDetails.actualCost' | translate }}</label>
+            <div class="input-group">
+              <input
+                id="actual-cost"
+                class="input num"
+                type="number"
+                inputmode="decimal"
+                [ngModel]="actualCostSpent()"
+                (ngModelChange)="actualCostSpent.set($event)"
+              >
+              <span class="suffix">zł</span>
+            </div>
+            <p class="hint">{{ 'collectionDetails.settleHint' | translate }}</p>
+          </div>
+          <button type="button" class="btn btn--primary btn--block" (click)="settle()">
+            <mat-icon>task_alt</mat-icon>{{ 'collectionDetails.settleButton' | translate }}
+          </button>
+        </section>
+      }
+
+      <!-- Deliberately OUTSIDE the ACTIVE-only block above: settle() flips the collection to
+           SETTLED and reloads, so gating this on ACTIVE too would hide the just-computed
+           result the instant it appears. -->
+      @if (settlementPreview(); as result) {
+        <section class="panel settlement-result" data-testid="settlement-result">
+          <h2 class="panel-title title-with-icon"><mat-icon class="celebrate-icon">celebration</mat-icon>{{ 'collectionDetails.settlementResult' | translate }}</h2>
+          <dl class="stats">
+            <div class="stat">
+              <dt>{{ 'collectionDetails.totalSurplus' | translate }}</dt>
+              <dd class="num">{{ result.totalSurplus | money }} zł</dd>
+            </div>
+            @if (result.totalShortfall > 0) {
+              <div class="stat stat--owe">
+                <dt>{{ 'collectionDetails.totalShortfall' | translate }}</dt>
+                <dd class="num">{{ result.totalShortfall | money }} zł</dd>
+              </div>
+            }
+          </dl>
+          <div class="list">
+            @for (s of result.studentSettlements; track s.studentId) {
+              <div class="list-row settlement-row" data-testid="settlement-row" [style.--i]="$index">
+                <span class="list-icon list-icon--gold"><mat-icon>savings</mat-icon></span>
+                <span class="list-main"><span class="list-title">{{ nameForStudent(s.studentId) }}</span></span>
+                <span class="list-amount num">+{{ s.leftoverToCredit | money }} zł {{ 'collectionDetails.toPiggyBank' | translate }}</span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+    }
+
+    <!-- Visible to anyone with access to the collection - only upload/delete are
+         treasurer-only (isCollectionDetails(v) is true only for a treasurer). An empty section
+         is skipped on paper, so a report with no attachments still fits one page. -->
+    <section class="attachments" [class.no-print]="attachments().length === 0" aria-labelledby="attachments-heading">
+      <div class="section-head">
+        <h2 id="attachments-heading">{{ 'collectionDetails.attachments' | translate }}</h2>
+        @if (isCollectionDetails(v)) {
+          <input type="file" #fileInput hidden [accept]="allowedAttachmentTypes" (change)="onFileSelected($event)">
+          <button type="button" class="btn btn--text btn--sm no-print" [disabled]="uploadingAttachment()" (click)="fileInput.click()">
+            <mat-icon>upload_file</mat-icon>
+            {{ (uploadingAttachment() ? 'collectionDetails.attachmentUploading' : 'collectionDetails.uploadAttachmentButton') | translate }}
           </button>
         }
       </div>
-    }
-  </header>
-
-  @if (isCollectionDetails(v)) {
-    <button mat-stroked-button class="no-print print-button" (click)="print()">
-      <mat-icon>print</mat-icon>
-      {{ 'collectionDetails.printButton' | translate }}
-    </button>
-
-    <p class="print-only total-collected">
-      {{ 'collectionDetails.totalCollectedLabel' | translate }}: <strong>{{ totalCollected() }} zł</strong>
-    </p>
-
-    <mat-card class="gg-card gg-fade-up requirements-card">
-      <mat-card-header>
-        <mat-card-title>{{ 'collectionDetails.requirements' | translate }}</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="gg-scroll-x">
-          <table mat-table [dataSource]="rosterRows()">
-            <ng-container matColumnDef="studentName">
-              <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.student' | translate }}</th>
-              <td mat-cell *matCellDef="let r" [class.excluded-row]="!r.included">{{ r.studentName }}</td>
-            </ng-container>
-            <ng-container matColumnDef="requiredAmount">
-              <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.required' | translate }}</th>
-              <td mat-cell *matCellDef="let r" [class.excluded-row]="!r.included">
-                @if (r.included) { {{ r.requiredAmount }} zł } @else { – }
-              </td>
-            </ng-container>
-            <ng-container matColumnDef="paidAmount">
-              <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.paid' | translate }}</th>
-              <td mat-cell *matCellDef="let r" [class.excluded-row]="!r.included">
-                @if (r.included) { {{ r.paidAmount }} zł } @else { – }
-              </td>
-            </ng-container>
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>{{ 'collectionDetails.requirementStatus' | translate }}</th>
-              <td mat-cell *matCellDef="let r">
-                @if (r.included) {
-                  <span [class]="'req-status req-status--' + r.status">{{ ('requirementStatus.' + r.status) | translate }}</span>
-                } @else {
-                  <span class="req-status req-status--EXCLUDED">{{ 'collectionDetails.notIncluded' | translate }}</span>
-                }
-              </td>
-            </ng-container>
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef></th>
-              <td mat-cell *matCellDef="let r">
-                @if (r.included) {
-                  <button
-                    mat-icon-button
-                    class="delete-button"
-                    [matTooltip]="'collectionDetails.removeStudentTooltip' | translate"
-                    (click)="removeStudent(r.studentId, r.studentName)"
-                  >
-                    <mat-icon>person_remove</mat-icon>
-                  </button>
-                } @else {
-                  <button
-                    mat-icon-button
-                    class="add-button"
-                    [matTooltip]="'collectionDetails.addStudentTooltip' | translate"
-                    (click)="addStudent(r.studentId)"
-                  >
-                    <mat-icon>person_add</mat-icon>
-                  </button>
-                }
-              </td>
-            </ng-container>
-            <tr mat-header-row *matHeaderRowDef="visibleRequirementColumns()"></tr>
-            <tr mat-row *matRowDef="let row; columns: visibleRequirementColumns()" [class.excluded-row]="!row.included"></tr>
-          </table>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Screen-only - the printed report shows who owes what (the table above), not the
-         raw payment-by-payment list, to keep the handed-over report short (see the
-         requirements table's own print styling for why this matters when there are no
-         attachments to also fit). -->
-    <mat-card class="gg-card gg-card--sky gg-fade-up no-print" style="--gg-stagger: 60ms">
-      <mat-card-header>
-        <mat-card-title>{{ 'collectionDetails.contributions' | translate }}</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        @if (v.contributions.length === 0) {
-          <p class="empty-state">{{ 'collectionDetails.noContributions' | translate }}</p>
+      @if (attachmentError()) {
+        <p class="notice notice--error no-print gg-enter"><mat-icon>error</mat-icon>{{ attachmentError() }}</p>
+      }
+      <div class="panel panel--flush attachment-panel">
+        @if (attachments().length === 0) {
+          <p class="empty-state no-print">{{ 'collectionDetails.noAttachments' | translate }}</p>
         } @else {
-          <ul class="contribution-list">
-            @for (c of v.contributions; track c.id) {
-              <li>
-                <span class="contribution-parent">{{ c.studentName }}</span>
-                <span class="contribution-amount">{{ c.amount }} zł</span>
-                <span class="contribution-source">{{ ('contributionSource.' + c.source) | translate }}</span>
+          <ul class="list attachment-list">
+            @for (a of attachments(); track a.id) {
+              <li class="list-row attachment-row">
+                @if (isImageAttachment(a.contentType)) {
+                  <a [href]="a.viewUrl" target="_blank" rel="noopener" class="attachment-image-link no-print">
+                    <img [src]="a.viewUrl" [alt]="a.fileName" class="attachment-thumb">
+                  </a>
+                  <!-- Inlined into the printed page itself, so the report can be handed over
+                       on paper without a phone to open a link. -->
+                  <img [src]="a.viewUrl" [alt]="a.fileName" class="print-only attachment-print-image">
+                  <span class="list-main no-print"><span class="list-title attachment-name">{{ a.fileName }}</span></span>
+                } @else {
+                  <span class="list-icon list-icon--blue no-print"><mat-icon>description</mat-icon></span>
+                  <a [href]="a.viewUrl" target="_blank" rel="noopener" class="list-main attachment-file-link">
+                    <span class="list-title attachment-name">{{ a.fileName }}</span>
+                  </a>
+                }
+                @if (isCollectionDetails(v)) {
+                  <button
+                    type="button"
+                    class="icon-btn icon-btn--quiet no-print"
+                    [attr.aria-label]="'collectionDetails.deleteAttachmentTooltip' | translate"
+                    [title]="'collectionDetails.deleteAttachmentTooltip' | translate"
+                    (click)="deleteAttachment(a.id, a.fileName)"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
               </li>
             }
           </ul>
         }
-      </mat-card-content>
-    </mat-card>
-
-    @if (v.collection.status === 'ACTIVE') {
-      <mat-card class="gg-card gg-card--blush gg-fade-up no-print" style="--gg-stagger: 120ms">
-        <mat-card-header>
-          <mat-card-title>{{ 'collectionDetails.settle' | translate }}</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="settlement-summary">
-            <div class="summary-stat">
-              <span>{{ 'collectionDetails.studentsPaid' | translate }}</span>
-              <strong>{{ paidStudentsCount() }} / {{ totalStudentsCount() }}</strong>
-            </div>
-            <div class="summary-stat">
-              <span>{{ 'collectionDetails.totalCollectedLabel' | translate }}</span>
-              <strong>{{ totalCollected() }} zł</strong>
-            </div>
-            <div class="summary-stat">
-              <span>{{ 'collectionDetails.totalExpected' | translate }}</span>
-              <strong>{{ totalExpected() }} zł</strong>
-            </div>
-            @if (removedStudentsCount() > 0) {
-              <div class="summary-stat">
-                <span>{{ 'collectionDetails.removedStudentsCount' | translate }}</span>
-                <strong>{{ removedStudentsCount() }}</strong>
-              </div>
-            }
-          </div>
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'collectionDetails.actualCost' | translate }}</mat-label>
-            <input matInput type="number" [ngModel]="actualCostSpent()" (ngModelChange)="actualCostSpent.set($event)">
-            <span matTextSuffix>zł</span>
-          </mat-form-field>
-          <div>
-            <button mat-flat-button color="primary" (click)="settle()">
-              <mat-icon>task_alt</mat-icon>
-              {{ 'collectionDetails.settleButton' | translate }}
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    }
-
-    <!-- Deliberately OUTSIDE the ACTIVE-only block above: settle() flips the collection to
-         SETTLED and reloads, so gating this on ACTIVE too would hide the just-computed
-         result the instant it appears - the treasurer would never actually see it. -->
-    @if (settlementPreview(); as result) {
-      <mat-card class="gg-card gg-card--mint gg-fade-up">
-        <mat-card-header>
-          <mat-card-title class="title-with-icon"><mat-icon class="result-icon">celebration</mat-icon>{{ 'collectionDetails.settlementResult' | translate }}</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="settlement-result">
-            <div class="settlement-summary">
-              <div class="summary-stat">
-                <span>{{ 'collectionDetails.totalSurplus' | translate }}</span>
-                <strong>{{ result.totalSurplus }} zł</strong>
-              </div>
-              @if (result.totalShortfall > 0) {
-                <div class="summary-stat summary-stat--warn">
-                  <span>{{ 'collectionDetails.totalShortfall' | translate }}</span>
-                  <strong>{{ result.totalShortfall }} zł</strong>
-                </div>
-              }
-            </div>
-            <ul class="settlement-list">
-              @for (s of result.studentSettlements; track s.studentId) {
-                <li>{{ nameForStudent(s.studentId) }}: <strong>+{{ s.leftoverToCredit }} zł</strong> {{ 'collectionDetails.toPiggyBank' | translate }}</li>
-              }
-            </ul>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    }
-  } @else {
-    <mat-card class="gg-card gg-fade-up">
-      <mat-card-header>
-        <mat-card-title>{{ 'collectionDetails.progress' | translate }}</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <mat-progress-bar mode="determinate" [value]="v.percentComplete"></mat-progress-bar>
-        <p class="percent">{{ v.percentComplete }}%</p>
-        <div class="stat-row">
-          <span>{{ 'collectionDetails.studentsPaid' | translate }}</span>
-          <strong>{{ v.studentsPaidCount }} / {{ v.studentsCount }}</strong>
-        </div>
-        <div class="stat-row">
-          <span>{{ 'collectionDetails.totalPaid' | translate }}</span>
-          <strong>{{ v.totalPaid }} zł / {{ v.totalRequired }} zł</strong>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  }
-
-  <!-- Visible to anyone with access to the collection (any authenticated parent) - only
-       upload/delete are treasurer-only, gated the same way every other treasurer-only
-       control on this page is (isCollectionDetails(v) is true only for a treasurer, see
-       backend CollectionResource.get). An empty section printed nothing but a heading
-       anyway, so it's skipped on paper entirely when there's nothing to show - the whole
-       point is fitting a report with no attachments on one page. -->
-  <mat-card
-    class="gg-card gg-fade-up attachments-card"
-    [class.no-print]="attachments().length === 0"
-    style="--gg-stagger: 180ms"
-  >
-    <mat-card-header>
-      <mat-card-title class="title-with-icon no-print"><mat-icon>attachment</mat-icon>{{ 'collectionDetails.attachments' | translate }}</mat-card-title>
-      <mat-card-title class="print-only">{{ 'collectionDetails.attachments' | translate }}</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      @if (isCollectionDetails(v)) {
-        <div class="no-print attachment-upload">
-          <input type="file" #fileInput hidden [accept]="allowedAttachmentTypes" (change)="onFileSelected($event)">
-          <button mat-stroked-button [disabled]="uploadingAttachment()" (click)="fileInput.click()">
-            <mat-icon>upload_file</mat-icon>
-            {{ (uploadingAttachment() ? 'collectionDetails.attachmentUploading' : 'collectionDetails.uploadAttachmentButton') | translate }}
-          </button>
-          @if (attachmentError()) {
-            <p class="attachment-error">{{ attachmentError() }}</p>
-          }
-        </div>
-      }
-
-      @if (attachments().length === 0) {
-        <p class="empty-state no-print">{{ 'collectionDetails.noAttachments' | translate }}</p>
-      } @else {
-        <ul class="attachment-list">
-          @for (a of attachments(); track a.id) {
-            <li>
-              @if (isImageAttachment(a.contentType)) {
-                <a [href]="a.viewUrl" target="_blank" rel="noopener" class="attachment-image-link no-print">
-                  <img [src]="a.viewUrl" [alt]="a.fileName" class="attachment-thumb">
-                </a>
-                <!-- Inlined into the printed page itself, per the user's request - the
-                     whole point is a document that can be handed over on paper without
-                     also handing over a phone to open a link. -->
-                <img [src]="a.viewUrl" [alt]="a.fileName" class="print-only attachment-print-image">
-              } @else {
-                <a [href]="a.viewUrl" target="_blank" rel="noopener" class="attachment-file-link">
-                  <mat-icon>description</mat-icon>{{ a.fileName }}
-                </a>
-              }
-              <span class="attachment-name no-print">{{ a.fileName }}</span>
-              @if (isCollectionDetails(v)) {
-                <button
-                  mat-icon-button
-                  class="no-print delete-button"
-                  [matTooltip]="'collectionDetails.deleteAttachmentTooltip' | translate"
-                  (click)="deleteAttachment(a.id, a.fileName)"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
-              }
-            </li>
-          }
-        </ul>
-      }
-    </mat-card-content>
-  </mat-card>
+      </div>
+    </section>
+  </div>
 }

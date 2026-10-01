@@ -91,11 +91,11 @@ test.describe('collection details: attachments', () => {
 
     // --- A regular parent viewing the same collection: sees the remaining document, but
     //     has no way to upload or delete one ---
-    await page.getByRole('button', { name: 'Log out' }).click();
+    await page.getByRole('button', { name: 'Wyloguj się' }).click();
     await page.waitForLoadState('networkidle');
     await login.loginAs('rodzic1', 'rodzic1');
     await page.goto(`/collections/${collectionId}`);
-    await expect(page.locator('.percent')).toBeVisible(); // confirms we're on the real page, not a 404
+    await expect(page.getByTestId('percent-complete')).toBeVisible(); // confirms we're on the real page, not a 404
 
     await collection.expectAttachmentVisible('invoice.pdf');
     await collection.expectUploadAttachmentButtonAbsent();

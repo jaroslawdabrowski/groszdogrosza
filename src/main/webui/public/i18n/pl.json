@@ -3,9 +3,14 @@
     "dashboard": "Zbiórki",
     "myWallet": "Moja skarbonka",
     "ledger": "Dziennik zdarzeń",
-    "treasurer": "Panel skarbnika",
+    "treasurer": "Klasa",
     "login": "Zaloguj się",
-    "howItWorks": "Jak to działa"
+    "howItWorks": "Jak to działa",
+    "start": "Start",
+    "piggyShort": "Skarbonka",
+    "classShort": "Klasa",
+    "more": "Więcej",
+    "logout": "Wyloguj się"
   },
   "common": {
     "loading": "Ładowanie...",
@@ -17,16 +22,24 @@
     "NOT_INCLUDED": "Twoje dziecko nie bierze udziału w tej zbiórce",
     "PENDING": "Twoje dziecko jeszcze nie wpłaciło",
     "PAID": "Twoje dziecko wpłaciło",
-    "OVERPAID": "Twoje dziecko wpłaciło (nadpłata)"
+    "OVERPAID": "Twoje dziecko wpłaciło (nadpłata)",
+    "short": {
+      "PENDING": "Do zapłaty",
+      "PAID": "Opłacone",
+      "NOT_INCLUDED": "Nie bierze udziału"
+    }
   },
   "login": {
     "subtitle": "Zaloguj się, aby zarządzać zbiórkami klasowymi",
     "submit": "Zaloguj się"
   },
   "dashboard": {
-    "title": "Zbiórki klasowe",
-    "empty": "Nie ma jeszcze żadnych zbiórek.",
-    "baseAmount": "Kwota bazowa"
+    "title": "Zbiórki",
+    "empty": "Nie ma jeszcze żadnej zbiórki.",
+    "baseAmount": "Kwota bazowa",
+    "newCollection": "Nowa zbiórka",
+    "activeGroup": "Trwają",
+    "finishedGroup": "Zakończone"
   },
   "publicOverview": {
     "eyebrow": "Skarbnik klasowy",
@@ -43,9 +56,10 @@
     "howItWorksLink": "Jak to działa?"
   },
   "globalLedger": {
-    "title": "Log wszystkich transakcji",
+    "title": "Dziennik zdarzeń",
     "noEntries": "Brak wpisów.",
-    "forbidden": "Ten widok jest dostępny tylko dla skarbnika."
+    "forbidden": "Ten widok jest dostępny tylko dla skarbnika.",
+    "sub": "Każda wpłata i każdy ruch w skarbonkach, od najnowszych."
   },
   "collection": {
     "status": {
@@ -102,16 +116,29 @@
     "deleteAttachmentConfirm": "Na pewno usunąć \"{{name}}\"? Tej operacji nie można cofnąć.",
     "attachmentTypeError": "Dozwolone są tylko zdjęcia (jpg/png/heic) i pliki PDF.",
     "attachmentSizeError": "Plik jest za duży - limit to 10MB.",
-    "attachmentUploadFailed": "Nie udało się wysłać pliku. Spróbuj ponownie."
+    "attachmentUploadFailed": "Nie udało się wysłać pliku. Spróbuj ponownie.",
+    "students": "Uczniowie",
+    "filterLabel": "Pokaż uczniów",
+    "filter": {
+      "all": "Wszyscy",
+      "owe": "Do zapłaty",
+      "paid": "Zapłacone"
+    },
+    "filterEmpty": "Nikogo tu nie ma.",
+    "of": "z",
+    "settleHint": "Ile faktycznie wydaliśmy. Nadwyżka wróci po równo do skarbonek dzieci, które wpłaciły.",
+    "settleConfirm": "Rozliczyć zbiórkę? Koszt: {{cost}} zł, zebrano: {{collected}} zł. Nadwyżka trafi po równo do skarbonek dzieci, które wpłaciły. Tej operacji nie można cofnąć."
   },
   "studentView": {
     "piggyBank": "Skarbonka",
     "parents": "Rodzice",
     "ledger": "Dziennik zdarzeń",
-    "noEntries": "Brak wpisów."
+    "noEntries": "Brak wpisów.",
+    "balanceLabel": "Na koncie",
+    "balanceHint": "Pieniądze ze skarbonki same opłacą kolejną zbiórkę."
   },
   "treasurer": {
-    "title": "Panel skarbnika",
+    "title": "Klasa",
     "totalPiggyBankBalance": "Suma w skarbonkach",
     "students": "Uczniowie",
     "noStudents": "Nie ma jeszcze żadnych uczniów.",
@@ -161,7 +188,17 @@
     "paymentInfo": "Dane do wpłat",
     "paymentInfoHint": "Widoczne dla każdego na stronie głównej, bez logowania.",
     "savePaymentInfoButton": "Zapisz",
-    "paymentInfoSaved": "Zapisano."
+    "paymentInfoSaved": "Zapisano.",
+    "tab": {
+      "students": "Uczniowie",
+      "new": "Nowa zbiórka",
+      "payment": "Dane do wpłat"
+    },
+    "totalPiggyBankHint": "Pieniądze rodziców, które trzymasz w skarbonkach {{count}} uczniów.",
+    "parentsCount": "Rodzice: {{count}}",
+    "baseAmountHint": "Skarbonka dziecka od razu pokryje, ile się da.",
+    "seeCollections": "Zobacz zbiórki",
+    "noParent": "Bez rodzica"
   },
   "howItWorks": {
     "eyebrow": "Dla rodziców",
@@ -182,5 +219,40 @@
     "PIGGY_BANK_CREDITED": "Wpłata {{amount}} zł zasiliła skarbonkę",
     "PIGGY_BANK_APPLIED_TO_COLLECTION": "Ze skarbonki przeniesiono {{amount}} zł na zbiórkę",
     "REMOVED_FROM_COLLECTION": "Usunięto ze zbiórki \"{{collectionTitle}}\", zwrot do skarbonki: {{refundedAmount}} zł"
+  },
+  "more": {
+    "title": "Więcej",
+    "language": "Język",
+    "account": "Zalogowano jako {{email}}"
+  },
+  "roster": {
+    "label": "{{paid}} z {{total}} dzieci wpłaciło"
+  },
+  "start": {
+    "hello": "Cześć, {{name}}",
+    "title": "Zbiórki w klasie",
+    "anonIntro": "Zobacz, jak idą zbiórki i jak dołożyć swoją część. Bez logowania.",
+    "noActive": "Teraz nic nie zbieramy. Nowa zbiórka pojawi się tutaj.",
+    "yourChild": "Twoje dziecko",
+    "childPaid": "{{name}} ma już zapłacone",
+    "childNotIncluded": "{{name}} nie bierze udziału w tej zbiórce",
+    "ofAmount": "z {{amount}} zł",
+    "collected": "Zebrano",
+    "legendPaid": "Wpłaciło {{paid}} z {{total}} dzieci.",
+    "howToPay": "Jak zapłacić",
+    "details": "Szczegóły",
+    "loginPrompt": "Masz konto? Zaloguj się, żeby widzieć swoje dziecko i jego skarbonkę.",
+    "earlier": "Wcześniejsze zbiórki",
+    "all": "Wszystkie",
+    "perChild": "{{amount}} zł od dziecka",
+    "piggyBank": "Skarbonka",
+    "piggyBankSub": "{{name}} – zostaje na kolejne zbiórki",
+    "noPaymentInfo": "Skarbnik nie podał jeszcze numeru konta ani BLIK. Zapytaj na grupie klasowej.",
+    "transferTitle": "Tytuł przelewu",
+    "titleHintChild": "Nazwisko dziecka w tytule pozwala zaksięgować wpłatę automatycznie.",
+    "prepayTitle": "Wpłać z góry, np.",
+    "prepayBody": "Co zostanie, czeka w skarbonce dziecka i samo opłaci kolejne zbiórki. Jeden przelew zamiast przelewu na każdą zbiórkę.",
+    "dueNow": "Na bieżące zbiórki brakuje {{amount}} zł.",
+    "childDue": "{{name}}: brakuje {{amount}} zł"
   }
 }

@@ -1,6 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { StudentApiService } from '../core/student-api.service';
@@ -8,13 +7,15 @@ import { LedgerApiService } from '../core/ledger-api.service';
 import { CurrentUserService } from '../core/current-user.service';
 import { LedgerEntry, Student } from '../core/models';
 import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
+import { MoneyPipe } from '../shared/money.pipe';
+import { ledgerIcon, ledgerTone, localeFor } from '../shared/ledger-format';
 
 /** "Moja skarbonka" for a parent, or a per-student drill-down for the treasurer - a
  *  student's own piggy bank balance and ledger, plus (read-only here) their linked
  *  parents' contact info. Editing a parent's details happens in TreasurerPanel. */
 @Component({
   selector: 'app-student-view',
-  imports: [RouterLink, MatCardModule, MatIconModule, TranslatePipe, LoadingSpinner],
+  imports: [RouterLink, MatIconModule, TranslatePipe, LoadingSpinner, MoneyPipe],
   templateUrl: './student-view.html',
   styleUrl: './student-view.scss',
 })
@@ -55,7 +56,7 @@ export class StudentView {
    *  reasoning as CollectionDetails.printedOnLabel. Includes the time, not just the date -
    *  more than one event can land on the same day. */
   dateLabel(occurredAt: string): string {
-    const locale = this.translate.currentLang() === 'en' ? 'en-US' : 'pl-PL';
+    const locale = localeFor(this.translate.currentLang());
     return new Date(occurredAt).toLocaleString(locale, {
       day: 'numeric',
       month: 'short',
@@ -65,18 +66,6 @@ export class StudentView {
     });
   }
 
-  iconFor(entry: LedgerEntry): string {
-    switch (entry.eventType) {
-      case 'CONTRIBUTION_RECEIVED':
-        return 'south_west';
-      case 'COLLECTION_SETTLED':
-        return 'celebration';
-      case 'PIGGY_BANK_CREDITED':
-        return 'savings';
-      case 'PIGGY_BANK_APPLIED_TO_COLLECTION':
-        return 'north_east';
-      default:
-        return 'receipt_long';
-    }
-  }
+  readonly iconFor = ledgerIcon;
+  readonly toneFor = ledgerTone;
 }

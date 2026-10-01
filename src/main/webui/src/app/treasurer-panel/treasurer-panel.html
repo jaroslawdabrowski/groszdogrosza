@@ -1,315 +1,340 @@
-<a class="back-link" routerLink="/dashboard">
-  <mat-icon>arrow_back</mat-icon>{{ 'common.backToDashboard' | translate }}
-</a>
+<div class="page">
+  <header class="page-head">
+    <h1>{{ 'treasurer.title' | translate }}</h1>
+  </header>
 
-<h1 class="gg-heading">{{ 'treasurer.title' | translate }}</h1>
+  <div class="segmented" role="tablist" [attr.aria-label]="'treasurer.title' | translate"
+       [style.--seg-count]="tabs.length" [style.--seg-index]="tabs.indexOf(tab())">
+    <span class="segmented-indicator" aria-hidden="true"></span>
+    @for (t of tabs; track t) {
+      <button type="button" role="tab" [attr.aria-selected]="tab() === t" [id]="'tab-' + t" (click)="selectTab(t)">
+        {{ ('treasurer.tab.' + t) | translate }}
+      </button>
+    }
+  </div>
 
-<mat-card class="gg-card gg-card--mint gg-fade-up summary-card">
-  <mat-card-content>
-    <div class="summary-stat">
-      <span class="summary-icon"><mat-icon>account_balance_wallet</mat-icon></span>
-      <div>
-        <p class="summary-label">{{ 'treasurer.totalPiggyBankBalance' | translate }}</p>
-        <p class="summary-value">{{ totalPiggyBankBalance() }} zł</p>
-      </div>
-    </div>
-  </mat-card-content>
-</mat-card>
+  @switch (tab()) {
+    @case ('students') {
+      <div class="tab-body" role="tabpanel" aria-labelledby="tab-students">
+        <section class="sheet sheet--hero piggy-total">
+          <div>
+            <p class="meta">{{ 'treasurer.totalPiggyBankBalance' | translate }}</p>
+            <p class="amount num" data-testid="total-piggy-balance">{{ totalPiggyBankBalance() | money }}<small>zł</small></p>
+            <p class="hint">{{ 'treasurer.totalPiggyBankHint' | translate: { count: students().length } }}</p>
+          </div>
+          <span class="piggy-mark" aria-hidden="true"><mat-icon>savings</mat-icon></span>
+        </section>
 
-<mat-card class="gg-card gg-fade-up" style="--gg-stagger: 40ms">
-  <mat-card-header>
-    <mat-card-title class="title-with-icon"><mat-icon class="section-icon">school</mat-icon>{{ 'treasurer.students' | translate }}</mat-card-title>
-  </mat-card-header>
-  <mat-card-content>
-    @if (loadingStudents()) {
-      <app-loading-spinner [label]="'common.loading' | translate" />
-    } @else if (students().length === 0) {
-      <p class="empty-state">{{ 'treasurer.noStudents' | translate }}</p>
-    } @else {
-      <ul class="student-list">
-        @for (student of students(); track student.id) {
-          <li class="student-item">
-            @if (isEditingStudent(student.id)) {
-              <div class="edit-form">
-                <div class="form-grid">
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'treasurer.firstName' | translate }}</mat-label>
-                    <input matInput [ngModel]="editStudentFirstName()" (ngModelChange)="editStudentFirstName.set($event)">
-                  </mat-form-field>
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'treasurer.lastName' | translate }}</mat-label>
-                    <input matInput [ngModel]="editStudentLastName()" (ngModelChange)="editStudentLastName.set($event)">
-                  </mat-form-field>
-                </div>
-                <div class="edit-form-actions">
-                  <button mat-flat-button color="primary" (click)="saveEditStudent(student.id)">
-                    <mat-icon>save</mat-icon>{{ 'treasurer.saveEditButton' | translate }}
-                  </button>
-                  <button mat-button (click)="cancelEditStudent()">{{ 'treasurer.cancelEditButton' | translate }}</button>
-                </div>
-              </div>
-            } @else {
-              <div class="student-row">
-                <a class="student-link" [routerLink]="['/students', student.id]">
-                  <span class="avatar avatar--student">{{ initialsFor(student) }}</span>
-                  <span class="student-name-block">
-                    <span class="student-name">{{ student.firstName }} {{ student.lastName }}</span>
-                    <span class="student-balance">
-                      <mat-icon>account_balance_wallet</mat-icon>{{ student.piggyBankBalance }} zł
-                    </span>
-                  </span>
-                </a>
-                <div class="student-actions">
-                  <!-- A single "more" trigger, not one icon per action - three separate
-                       buttons here would widen this block enough to squeeze a long
-                       first+last name into an unreadably short ellipsis, especially on a
-                       phone (~390px). Same overflow-menu pattern as the toolbar's mobile
-                       nav - see app.html. -->
-                  <button mat-icon-button [matMenuTriggerFor]="studentMenu" [matTooltip]="'treasurer.studentActionsTooltip' | translate">
-                    <mat-icon>more_vert</mat-icon>
-                  </button>
-                  <mat-menu #studentMenu="matMenu">
-                    <button mat-menu-item (click)="startCreditPiggyBank(student.id)">
-                      <mat-icon>add_card</mat-icon>
-                      <span>{{ 'treasurer.creditPiggyBankTooltip' | translate }}</span>
-                    </button>
-                    <button mat-menu-item (click)="startEditStudent(student)">
-                      <mat-icon>edit</mat-icon>
-                      <span>{{ 'treasurer.editStudentTooltip' | translate }}</span>
-                    </button>
-                    <button mat-menu-item [disabled]="isOwnStudent(student)" (click)="deleteStudent(student)">
-                      <mat-icon>delete_outline</mat-icon>
-                      <span>{{ (isOwnStudent(student) ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteStudentTooltip') | translate }}</span>
-                    </button>
-                  </mat-menu>
-                </div>
-              </div>
-              @if (isCreditingPiggyBank(student.id)) {
-                <div class="edit-form credit-form">
-                  <p class="hint">{{ 'treasurer.creditPiggyBankHint' | translate }}</p>
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'treasurer.creditAmount' | translate }}</mat-label>
-                    <input matInput type="number" min="0.01" step="0.01" [ngModel]="creditAmount()" (ngModelChange)="creditAmount.set($event)">
-                    <span matTextSuffix>zł</span>
-                  </mat-form-field>
-                  <div class="edit-form-actions">
-                    <button mat-flat-button color="primary" (click)="creditPiggyBank(student.id)">
-                      <mat-icon>add_card</mat-icon>{{ 'treasurer.creditPiggyBankButton' | translate }}
-                    </button>
-                    <button mat-button (click)="cancelCreditPiggyBank()">{{ 'treasurer.cancelEditButton' | translate }}</button>
-                  </div>
-                </div>
-              }
-              @if (accountStatusFor(student.id); as status) {
-                <p class="account-status" [class.account-status--error]="status.kind === 'error'">
-                  {{ status.key | translate }}
-                </p>
-              }
-            }
+        <div class="section-head">
+          <h2>{{ 'treasurer.students' | translate }} <span class="count num">{{ students().length }}</span></h2>
+        </div>
 
-            <ul class="parent-sublist">
-              @for (parent of student.parents; track parent.id) {
-                <li>
-                  @if (isEditing(parent.id)) {
-                    <div class="edit-form">
-                      <div class="form-grid">
-                        <mat-form-field appearance="outline">
-                          <mat-label>{{ 'treasurer.firstName' | translate }}</mat-label>
-                          <input matInput [ngModel]="editFirstName()" (ngModelChange)="editFirstName.set($event)">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline">
-                          <mat-label>{{ 'treasurer.lastName' | translate }}</mat-label>
-                          <input matInput [ngModel]="editLastName()" (ngModelChange)="editLastName.set($event)">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline">
-                          <mat-label>{{ 'treasurer.email' | translate }}</mat-label>
-                          <input matInput [ngModel]="editEmail()" (ngModelChange)="editEmail.set($event)">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline">
-                          <mat-label>{{ 'treasurer.expectedSenderName' | translate }}</mat-label>
-                          <input matInput [ngModel]="editExpectedSenderName()" (ngModelChange)="editExpectedSenderName.set($event)">
-                        </mat-form-field>
+        @if (loadingStudents()) {
+          <app-loading-spinner [label]="'common.loading' | translate" />
+        } @else if (students().length === 0) {
+          <div class="panel empty-state">{{ 'treasurer.noStudents' | translate }}</div>
+        } @else {
+          <div class="panel panel--flush">
+            <ul class="list student-list">
+              @for (student of students(); track student.id) {
+                <li class="student-item" data-testid="student-item" [attr.data-name]="student.firstName + ' ' + student.lastName">
+                  @if (isEditingStudent(student.id)) {
+                    <div class="inline-form gg-enter">
+                      <div class="field-row">
+                        <div class="field">
+                          <label [for]="'es-first-' + student.id">{{ 'treasurer.firstName' | translate }}</label>
+                          <input class="input" [id]="'es-first-' + student.id" [ngModel]="editStudentFirstName()" (ngModelChange)="editStudentFirstName.set($event)">
+                        </div>
+                        <div class="field">
+                          <label [for]="'es-last-' + student.id">{{ 'treasurer.lastName' | translate }}</label>
+                          <input class="input" [id]="'es-last-' + student.id" [ngModel]="editStudentLastName()" (ngModelChange)="editStudentLastName.set($event)">
+                        </div>
                       </div>
-                      <div class="edit-form-actions">
-                        <button mat-flat-button color="primary" (click)="saveEdit(parent.id)">
-                          <mat-icon>save</mat-icon>{{ 'treasurer.saveEditButton' | translate }}
-                        </button>
-                        <button mat-button (click)="cancelEdit()">{{ 'treasurer.cancelEditButton' | translate }}</button>
+                      <div class="actions-row">
+                        <button type="button" class="btn btn--primary btn--sm" (click)="saveEditStudent(student.id)">{{ 'treasurer.saveEditButton' | translate }}</button>
+                        <button type="button" class="btn btn--text btn--sm" (click)="cancelEditStudent()">{{ 'treasurer.cancelEditButton' | translate }}</button>
                       </div>
                     </div>
                   } @else {
-                    <div class="parent-row">
-                      <span class="avatar">{{ initialsFor(parent) }}</span>
-                      <span class="parent-name">{{ parent.firstName }} {{ parent.lastName }}</span>
-                      <span class="parent-email">{{ parent.email }}</span>
-                      <div class="parent-actions">
-                        <!-- Same "more" consolidation as the student row above, for the
-                             same reason - four separate icons here left even less room for
-                             the name/email, and these actions are used rarely. -->
-                        <button mat-icon-button [matMenuTriggerFor]="parentMenu" [matTooltip]="'treasurer.parentActionsTooltip' | translate">
-                          <mat-icon>more_vert</mat-icon>
+                    <div class="list-row student-row">
+                      <a class="student-link" [routerLink]="['/students', student.id]">
+                        <span class="avatar avatar--blue" aria-hidden="true">{{ initialsFor(student) }}</span>
+                        <span class="list-main">
+                          <span class="list-title">{{ student.firstName }} {{ student.lastName }}</span>
+                          @if (student.parents.length === 0) {
+                            <span class="list-sub">{{ 'treasurer.noParent' | translate }}</span>
+                          }
+                        </span>
+                      </a>
+                      <span class="list-amount num" [class.zero]="student.piggyBankBalance === 0" data-testid="student-balance">{{ student.piggyBankBalance | money }} zł</span>
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        data-testid="student-actions"
+                        [attr.aria-expanded]="isActionsOpen(student.id)"
+                        [attr.aria-label]="'treasurer.studentActionsTooltip' | translate"
+                        (click)="toggleActions(student.id)"
+                      >
+                        <mat-icon>more_horiz</mat-icon>
+                      </button>
+                    </div>
+                  }
+
+                  <div class="unfold" [class.unfold--open]="isActionsOpen(student.id) && !isEditingStudent(student.id)">
+                    <div>
+                      <div class="row-actions">
+                        <button type="button" class="btn btn--secondary btn--sm" (click)="startCreditPiggyBank(student.id)">
+                          <mat-icon>add_card</mat-icon>{{ 'treasurer.creditPiggyBankTooltip' | translate }}
                         </button>
-                        <mat-menu #parentMenu="matMenu">
-                          <button mat-menu-item [disabled]="isAccountActionInFlight(parent.id)" (click)="createAccount(parent)">
-                            <mat-icon>person_add</mat-icon>
-                            <span>{{ 'treasurer.createAccountTooltip' | translate }}</span>
+                        @if (student.parents.length < 2) {
+                          <button type="button" class="btn btn--text btn--sm" (click)="startAddParent(student.id)">
+                            <mat-icon>person_add</mat-icon>{{ 'treasurer.addParent' | translate }}
                           </button>
-                          <button mat-menu-item [disabled]="isAccountActionInFlight(parent.id)" (click)="resendInvitation(parent)">
-                            <mat-icon>forward_to_inbox</mat-icon>
-                            <span>{{ 'treasurer.resendInvitationTooltip' | translate }}</span>
-                          </button>
-                          <button mat-menu-item (click)="startEdit(parent)">
-                            <mat-icon>edit</mat-icon>
-                            <span>{{ 'treasurer.editTooltip' | translate }}</span>
-                          </button>
-                          <button mat-menu-item [disabled]="parent.id === me()?.id" (click)="deleteParent(parent)">
-                            <mat-icon>delete_outline</mat-icon>
-                            <span>{{ (parent.id === me()?.id ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteTooltip') | translate }}</span>
-                          </button>
-                        </mat-menu>
+                        }
+                        <button type="button" class="btn btn--text btn--sm" (click)="startEditStudent(student)">
+                          <mat-icon>edit</mat-icon>{{ 'treasurer.editStudentTooltip' | translate }}
+                        </button>
+                        <button type="button" class="btn btn--danger btn--sm" [disabled]="isOwnStudent(student)" (click)="deleteStudent(student)">
+                          <mat-icon>delete</mat-icon>{{ (isOwnStudent(student) ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteStudentTooltip') | translate }}
+                        </button>
                       </div>
                     </div>
-                    @if (accountStatusFor(parent.id); as status) {
-                      <p class="account-status" [class.account-status--error]="status.kind === 'error'">
-                        {{ status.key | translate }}
-                      </p>
-                    }
+                  </div>
+
+                  @if (isCreditingPiggyBank(student.id)) {
+                    <div class="inline-form credit-form gg-enter" data-testid="credit-form">
+                      <div class="field">
+                        <label [for]="'credit-' + student.id">{{ 'treasurer.creditAmount' | translate }}</label>
+                        <div class="input-group">
+                          <input class="input num" type="number" min="0.01" step="0.01" inputmode="decimal" [id]="'credit-' + student.id" [ngModel]="creditAmount()" (ngModelChange)="creditAmount.set($event)">
+                          <span class="suffix">zł</span>
+                        </div>
+                        <p class="hint">{{ 'treasurer.creditPiggyBankHint' | translate }}</p>
+                      </div>
+                      <div class="actions-row">
+                        <button type="button" class="btn btn--primary btn--sm" (click)="creditPiggyBank(student.id)">
+                          <mat-icon>add_card</mat-icon>{{ 'treasurer.creditPiggyBankButton' | translate }}
+                        </button>
+                        <button type="button" class="btn btn--text btn--sm" (click)="cancelCreditPiggyBank()">{{ 'treasurer.cancelEditButton' | translate }}</button>
+                      </div>
+                    </div>
                   }
+                  @if (accountStatusFor(student.id); as status) {
+                    <p class="notice row-notice gg-enter" [class]="'notice row-notice gg-enter notice--' + (status.kind === 'error' ? 'error' : 'ok')">
+                      <mat-icon>{{ status.kind === 'error' ? 'error' : 'check_circle' }}</mat-icon>{{ status.key | translate }}
+                    </p>
+                  }
+
+                  <ul class="parent-sublist">
+                    @for (parent of student.parents; track parent.id) {
+                      <li class="parent-item" data-testid="parent-item">
+                        @if (isEditing(parent.id)) {
+                          <div class="inline-form gg-enter">
+                            <div class="field-row">
+                              <div class="field">
+                                <label [for]="'ep-first-' + parent.id">{{ 'treasurer.firstName' | translate }}</label>
+                                <input class="input" [id]="'ep-first-' + parent.id" [ngModel]="editFirstName()" (ngModelChange)="editFirstName.set($event)">
+                              </div>
+                              <div class="field">
+                                <label [for]="'ep-last-' + parent.id">{{ 'treasurer.lastName' | translate }}</label>
+                                <input class="input" [id]="'ep-last-' + parent.id" [ngModel]="editLastName()" (ngModelChange)="editLastName.set($event)">
+                              </div>
+                              <div class="field">
+                                <label [for]="'ep-email-' + parent.id">{{ 'treasurer.email' | translate }}</label>
+                                <input class="input" type="email" [id]="'ep-email-' + parent.id" [ngModel]="editEmail()" (ngModelChange)="editEmail.set($event)">
+                              </div>
+                              <div class="field">
+                                <label [for]="'ep-sender-' + parent.id">{{ 'treasurer.expectedSenderName' | translate }}</label>
+                                <input class="input" [id]="'ep-sender-' + parent.id" [ngModel]="editExpectedSenderName()" (ngModelChange)="editExpectedSenderName.set($event)">
+                              </div>
+                            </div>
+                            <div class="actions-row">
+                              <button type="button" class="btn btn--primary btn--sm" (click)="saveEdit(parent.id)">{{ 'treasurer.saveEditButton' | translate }}</button>
+                              <button type="button" class="btn btn--text btn--sm" (click)="cancelEdit()">{{ 'treasurer.cancelEditButton' | translate }}</button>
+                            </div>
+                          </div>
+                        } @else {
+                          <div class="parent-row">
+                            <span class="avatar avatar--sm" aria-hidden="true">{{ initialsFor(parent) }}</span>
+                            <span class="list-main">
+                              <span class="parent-name">{{ parent.firstName }} {{ parent.lastName }}</span>
+                              <span class="list-sub parent-email">{{ parent.email }}</span>
+                            </span>
+                            <button
+                              type="button"
+                              class="icon-btn"
+                              data-testid="parent-actions"
+                              [attr.aria-expanded]="isActionsOpen(parent.id)"
+                              [attr.aria-label]="'treasurer.parentActionsTooltip' | translate"
+                              (click)="toggleActions(parent.id)"
+                            >
+                              <mat-icon>more_horiz</mat-icon>
+                            </button>
+                          </div>
+                          <div class="unfold" [class.unfold--open]="isActionsOpen(parent.id)">
+                            <div>
+                              <div class="row-actions">
+                                <button type="button" class="btn btn--secondary btn--sm" [disabled]="isAccountActionInFlight(parent.id)" (click)="createAccount(parent)">
+                                  <mat-icon>person_add</mat-icon>{{ 'treasurer.createAccountTooltip' | translate }}
+                                </button>
+                                <button type="button" class="btn btn--text btn--sm" [disabled]="isAccountActionInFlight(parent.id)" (click)="resendInvitation(parent)">
+                                  <mat-icon>forward_to_inbox</mat-icon>{{ 'treasurer.resendInvitationTooltip' | translate }}
+                                </button>
+                                <button type="button" class="btn btn--text btn--sm" (click)="startEdit(parent)">
+                                  <mat-icon>edit</mat-icon>{{ 'treasurer.editTooltip' | translate }}
+                                </button>
+                                <button type="button" class="btn btn--danger btn--sm" [disabled]="parent.id === me()?.id" (click)="deleteParent(parent)">
+                                  <mat-icon>delete</mat-icon>{{ (parent.id === me()?.id ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteTooltip') | translate }}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          @if (accountStatusFor(parent.id); as status) {
+                            <p [class]="'notice row-notice gg-enter notice--' + (status.kind === 'error' ? 'error' : 'ok')">
+                              <mat-icon>{{ status.kind === 'error' ? 'error' : 'check_circle' }}</mat-icon>{{ status.key | translate }}
+                            </p>
+                          }
+                        }
+                      </li>
+                    }
+
+                    @if (student.parents.length < 2) {
+                      @if (isAddingParentTo(student.id)) {
+                        <li class="parent-item">
+                          <div class="inline-form gg-enter" data-testid="add-parent-form">
+                            <div class="field-row">
+                              <div class="field">
+                                <label [for]="'np-first-' + student.id">{{ 'treasurer.firstName' | translate }}</label>
+                                <input class="input" [id]="'np-first-' + student.id" [ngModel]="newParentFirstName()" (ngModelChange)="newParentFirstName.set($event)">
+                              </div>
+                              <div class="field">
+                                <label [for]="'np-last-' + student.id">{{ 'treasurer.lastName' | translate }}</label>
+                                <input class="input" [id]="'np-last-' + student.id" [ngModel]="newParentLastName()" (ngModelChange)="newParentLastName.set($event)">
+                              </div>
+                              <div class="field">
+                                <label [for]="'np-email-' + student.id">{{ 'treasurer.email' | translate }}</label>
+                                <input class="input" type="email" [id]="'np-email-' + student.id" [ngModel]="newParentEmail()" (ngModelChange)="newParentEmail.set($event)">
+                              </div>
+                              <div class="field">
+                                <label [for]="'np-sender-' + student.id">{{ 'treasurer.expectedSenderName' | translate }}</label>
+                                <input class="input" [id]="'np-sender-' + student.id" [ngModel]="newParentExpectedSenderName()" (ngModelChange)="newParentExpectedSenderName.set($event)">
+                              </div>
+                            </div>
+                            <div class="actions-row">
+                              <button type="button" class="btn btn--primary btn--sm" (click)="addParent(student.id)">
+                                <mat-icon>person_add</mat-icon>{{ 'treasurer.addParentButton' | translate }}
+                              </button>
+                              <button type="button" class="btn btn--text btn--sm" (click)="cancelAddParent()">{{ 'treasurer.cancelEditButton' | translate }}</button>
+                            </div>
+                          </div>
+                        </li>
+                      }
+                    }
+                  </ul>
                 </li>
               }
-
-              @if (student.parents.length < 2) {
-                @if (isAddingParentTo(student.id)) {
-                  <li>
-                    <div class="edit-form">
-                      <div class="form-grid">
-                        <mat-form-field appearance="outline">
-                          <mat-label>{{ 'treasurer.firstName' | translate }}</mat-label>
-                          <input matInput [ngModel]="newParentFirstName()" (ngModelChange)="newParentFirstName.set($event)">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline">
-                          <mat-label>{{ 'treasurer.lastName' | translate }}</mat-label>
-                          <input matInput [ngModel]="newParentLastName()" (ngModelChange)="newParentLastName.set($event)">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline">
-                          <mat-label>{{ 'treasurer.email' | translate }}</mat-label>
-                          <input matInput [ngModel]="newParentEmail()" (ngModelChange)="newParentEmail.set($event)">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline">
-                          <mat-label>{{ 'treasurer.expectedSenderName' | translate }}</mat-label>
-                          <input matInput [ngModel]="newParentExpectedSenderName()" (ngModelChange)="newParentExpectedSenderName.set($event)">
-                        </mat-form-field>
-                      </div>
-                      <div class="edit-form-actions">
-                        <button mat-flat-button color="primary" (click)="addParent(student.id)">
-                          <mat-icon>person_add</mat-icon>{{ 'treasurer.addParentButton' | translate }}
-                        </button>
-                        <button mat-button (click)="cancelAddParent()">{{ 'treasurer.cancelEditButton' | translate }}</button>
-                      </div>
-                    </div>
-                  </li>
-                } @else {
-                  <li>
-                    <button mat-button class="add-parent-button" (click)="startAddParent(student.id)">
-                      <mat-icon>person_add</mat-icon>{{ 'treasurer.addParent' | translate }}
-                    </button>
-                  </li>
-                }
-              }
             </ul>
-          </li>
+          </div>
         }
-      </ul>
-    }
 
-    <h3 class="section-title">{{ 'treasurer.addStudent' | translate }}</h3>
-    <div class="form-grid">
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'treasurer.firstName' | translate }}</mat-label>
-        <input matInput [ngModel]="newStudentFirstName()" (ngModelChange)="newStudentFirstName.set($event)">
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'treasurer.lastName' | translate }}</mat-label>
-        <input matInput [ngModel]="newStudentLastName()" (ngModelChange)="newStudentLastName.set($event)">
-      </mat-form-field>
-    </div>
-    <button mat-flat-button color="primary" (click)="createStudent()">
-      <mat-icon>person_add</mat-icon>
-      {{ 'treasurer.addStudentButton' | translate }}
-    </button>
-    @if (studentCreated()) {
-      <p class="success"><mat-icon>check_circle</mat-icon>{{ 'treasurer.studentCreated' | translate }}</p>
-    }
-  </mat-card-content>
-</mat-card>
-
-<mat-card class="gg-card gg-card--mint gg-fade-up" style="--gg-stagger: 60ms">
-  <mat-card-header>
-    <mat-card-title class="title-with-icon"><mat-icon class="section-icon">payments</mat-icon>{{ 'treasurer.paymentInfo' | translate }}</mat-card-title>
-  </mat-card-header>
-  <mat-card-content>
-    <p class="hint">{{ 'treasurer.paymentInfoHint' | translate }}</p>
-    <div class="form-grid">
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'publicOverview.bankAccountNumber' | translate }}</mat-label>
-        <input matInput [ngModel]="bankAccountNumber()" (ngModelChange)="bankAccountNumber.set($event)">
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'publicOverview.blikPhoneNumber' | translate }}</mat-label>
-        <input matInput [ngModel]="blikPhoneNumber()" (ngModelChange)="blikPhoneNumber.set($event)">
-      </mat-form-field>
-    </div>
-    <button mat-flat-button color="primary" (click)="savePaymentInfo()">
-      <mat-icon>save</mat-icon>
-      {{ 'treasurer.savePaymentInfoButton' | translate }}
-    </button>
-    @if (paymentInfoSaved()) {
-      <p class="success"><mat-icon>check_circle</mat-icon>{{ 'treasurer.paymentInfoSaved' | translate }}</p>
-    }
-  </mat-card-content>
-</mat-card>
-
-<mat-card class="gg-card gg-card--sky gg-fade-up" style="--gg-stagger: 120ms">
-  <mat-card-header>
-    <mat-card-title class="title-with-icon"><mat-icon class="section-icon">add_circle</mat-icon>{{ 'treasurer.newCollection' | translate }}</mat-card-title>
-  </mat-card-header>
-  <mat-card-content>
-    <div class="form-grid">
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'treasurer.collectionTitle' | translate }}</mat-label>
-        <input matInput [ngModel]="newCollectionTitle()" (ngModelChange)="newCollectionTitle.set($event)">
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'treasurer.collectionDescription' | translate }}</mat-label>
-        <input matInput [ngModel]="newCollectionDescription()" (ngModelChange)="newCollectionDescription.set($event)">
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'treasurer.baseAmount' | translate }}</mat-label>
-        <input matInput type="number" [ngModel]="newCollectionBaseAmount()" (ngModelChange)="newCollectionBaseAmount.set($event)">
-        <span matTextSuffix>zł</span>
-      </mat-form-field>
-    </div>
-
-    @if (students().length > 0) {
-      <p class="checklist-label">{{ 'treasurer.collectionStudents' | translate }}</p>
-      <div class="student-checklist">
-        @for (student of students(); track student.id) {
-          <mat-checkbox
-            [checked]="isStudentIncludedInNewCollection(student.id)"
-            (change)="setStudentIncludedInNewCollection(student.id, $event.checked)"
-          >
-            {{ student.firstName }} {{ student.lastName }}
-          </mat-checkbox>
-        }
+        <section class="panel" data-testid="add-student-form" aria-labelledby="add-student-heading">
+          <h2 id="add-student-heading" class="panel-title">{{ 'treasurer.addStudent' | translate }}</h2>
+          <div class="form">
+            <div class="field-row">
+              <div class="field">
+                <label for="new-student-first">{{ 'treasurer.firstName' | translate }}</label>
+                <input class="input" id="new-student-first" autocomplete="off" [ngModel]="newStudentFirstName()" (ngModelChange)="newStudentFirstName.set($event)">
+              </div>
+              <div class="field">
+                <label for="new-student-last">{{ 'treasurer.lastName' | translate }}</label>
+                <input class="input" id="new-student-last" autocomplete="off" [ngModel]="newStudentLastName()" (ngModelChange)="newStudentLastName.set($event)">
+              </div>
+            </div>
+            <button type="button" class="btn btn--primary" (click)="createStudent()">
+              <mat-icon>person_add</mat-icon>{{ 'treasurer.addStudentButton' | translate }}
+            </button>
+            @if (studentCreated()) {
+              <p class="notice notice--ok gg-enter"><mat-icon>check_circle</mat-icon>{{ 'treasurer.studentCreated' | translate }}</p>
+            }
+          </div>
+        </section>
       </div>
     }
 
-    <button mat-flat-button color="primary" (click)="createCollection()">
-      <mat-icon>add</mat-icon>
-      {{ 'treasurer.createCollectionButton' | translate }}
-    </button>
-    @if (collectionCreated()) {
-      <p class="success"><mat-icon>check_circle</mat-icon>{{ 'treasurer.collectionCreated' | translate }}</p>
+    @case ('new') {
+      <section class="panel tab-body" role="tabpanel" aria-labelledby="tab-new" data-testid="new-collection-form">
+        <div class="form">
+          <div class="field">
+            <label for="new-title">{{ 'treasurer.collectionTitle' | translate }}</label>
+            <input class="input" id="new-title" autocomplete="off" [ngModel]="newCollectionTitle()" (ngModelChange)="newCollectionTitle.set($event)">
+          </div>
+          <div class="field">
+            <label for="new-description">{{ 'treasurer.collectionDescription' | translate }}</label>
+            <input class="input" id="new-description" autocomplete="off" [ngModel]="newCollectionDescription()" (ngModelChange)="newCollectionDescription.set($event)">
+          </div>
+          <div class="field amount-field">
+            <label for="new-amount">{{ 'treasurer.baseAmount' | translate }}</label>
+            <div class="input-group">
+              <input class="input num" id="new-amount" type="number" inputmode="decimal" [ngModel]="newCollectionBaseAmount()" (ngModelChange)="newCollectionBaseAmount.set($event)">
+              <span class="suffix">zł</span>
+            </div>
+            <p class="hint">{{ 'treasurer.baseAmountHint' | translate }}</p>
+          </div>
+
+          @if (students().length > 0) {
+            <fieldset class="field checklist">
+              <legend class="field-label">
+                {{ 'treasurer.collectionStudents' | translate }}
+                <span class="num checklist-count">{{ includedInNewCollectionCount() }} / {{ students().length }}</span>
+              </legend>
+              <div class="check-list">
+                @for (student of students(); track student.id) {
+                  <label class="check">
+                    <input
+                      type="checkbox"
+                      [checked]="isStudentIncludedInNewCollection(student.id)"
+                      (change)="setStudentIncludedInNewCollection(student.id, $any($event.target).checked)"
+                    >
+                    {{ student.firstName }} {{ student.lastName }}
+                  </label>
+                }
+              </div>
+            </fieldset>
+          }
+
+          <button type="button" class="btn btn--primary btn--block" (click)="createCollection()">
+            <mat-icon>add</mat-icon>{{ 'treasurer.createCollectionButton' | translate }}
+          </button>
+          @if (collectionCreated()) {
+            <p class="notice notice--ok gg-enter">
+              <mat-icon>check_circle</mat-icon>
+              <span>{{ 'treasurer.collectionCreated' | translate }} <a routerLink="/dashboard">{{ 'treasurer.seeCollections' | translate }}</a></span>
+            </p>
+          }
+        </div>
+      </section>
     }
-  </mat-card-content>
-</mat-card>
+
+    @case ('payment') {
+      <section class="panel tab-body" role="tabpanel" aria-labelledby="tab-payment" data-testid="payment-info-form">
+        <div class="form">
+          <p class="hint">{{ 'treasurer.paymentInfoHint' | translate }}</p>
+          <div class="field">
+            <label for="bank-account">{{ 'publicOverview.bankAccountNumber' | translate }}</label>
+            <input class="input num" id="bank-account" inputmode="numeric" [ngModel]="bankAccountNumber()" (ngModelChange)="bankAccountNumber.set($event)">
+          </div>
+          <div class="field">
+            <label for="blik-phone">{{ 'publicOverview.blikPhoneNumber' | translate }}</label>
+            <input class="input num" id="blik-phone" type="tel" [ngModel]="blikPhoneNumber()" (ngModelChange)="blikPhoneNumber.set($event)">
+          </div>
+          <button type="button" class="btn btn--primary" (click)="savePaymentInfo()">
+            <mat-icon>save</mat-icon>{{ 'treasurer.savePaymentInfoButton' | translate }}
+          </button>
+          @if (paymentInfoSaved()) {
+            <p class="notice notice--ok gg-enter"><mat-icon>check_circle</mat-icon>{{ 'treasurer.paymentInfoSaved' | translate }}</p>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

@@ -31,19 +31,19 @@ import { Logo } from '../logo/logo';
       align-items: center;
       gap: 0.75rem;
       padding: 3rem 0;
-      color: var(--gg-ink-soft);
+      color: var(--ink-3);
     }
     .spinner-wrap--inline {
       flex-direction: row;
       padding: 0;
     }
     .spinner-mark {
-      color: var(--gg-coin-deep);
+      color: var(--ink-blue-500);
       animation: gg-spin 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
     }
     .spinner-label {
       margin: 0;
-      font-size: 0.9rem;
+      font-size: var(--text-sm);
     }
     @keyframes gg-spin {
       to {

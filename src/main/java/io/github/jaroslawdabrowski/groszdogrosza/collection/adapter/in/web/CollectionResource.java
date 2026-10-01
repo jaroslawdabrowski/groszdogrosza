@@ -1,5 +1,7 @@
 package io.github.jaroslawdabrowski.groszdogrosza.collection.adapter.in.web;
 
+import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.Collection;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.ContributionRequirement;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.AddStudentToCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.CreateCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetCollectionUseCase;
@@ -79,7 +81,7 @@ public class CollectionResource {
 
     /**
      * Every collection's summary, enriched with the caller's OWN child's status in it (see
-     * {@link CollectionResponse#myStudentStatus}) - the one piece of per-student detail a
+     * {@link CollectionResponse}) - the one piece of per-student detail a
      * regular parent is allowed to see here, shown as a small indicator on the Dashboard's
      * cards. Costs one extra {@code getCollection} per collection (this app's usual "fine at
      * this scale" tradeoff, same as {@code PublicOverviewResource}), only when the caller
@@ -89,20 +91,18 @@ public class CollectionResource {
     public List<CollectionResponse> list() {
         String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
         return listCollectionsUseCase.listCollections().stream()
-                .map(collection -> CollectionResponse.from(collection, myStudentStatusFor(collection.id(), myStudentId)))
+                .map(collection -> forViewer(collection, myStudentId))
                 .toList();
     }
 
-    private String myStudentStatusFor(String collectionId, String myStudentId) {
+    private CollectionResponse forViewer(Collection collection, String myStudentId) {
         if (myStudentId == null) {
-            return null;
+            return CollectionResponse.from(collection);
         }
-        return getCollectionUseCase.getCollection(collectionId)
-                .flatMap(details -> details.requirements().stream()
-                        .filter(r -> r.studentId().equals(myStudentId))
-                        .findFirst())
-                .map(r -> r.status().name())
-                .orElse("NOT_INCLUDED");
+        List<ContributionRequirement> requirements = getCollectionUseCase.getCollection(collection.id())
+                .map(CollectionDetails::requirements)
+                .orElse(List.of());
+        return CollectionResponse.forViewer(collection, requirements, myStudentId);
     }
 
     @POST
@@ -170,7 +170,7 @@ public class CollectionResource {
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
         // Computed regardless of role - the treasurer is also a Parent, possibly with their
         // OWN linked Student, and gets the same join/leave affordance on their own page a
-        // regular parent does (see CollectionResponse#myStudentStatus's javadoc).
+        // regular parent does (see CollectionResponse's javadoc).
         String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
         if (authorizationSupport.isTreasurer(identity)) {
             return CollectionDetailsResponse.from(

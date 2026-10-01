@@ -63,14 +63,8 @@ public record CollectionDetailsResponse(
             orderedRequirements.add(RequirementResponse.from(requirement, studentNamesById));
         }
 
-        String myStudentStatus = myStudentId == null ? null : details.requirements().stream()
-                .filter(r -> r.studentId().equals(myStudentId))
-                .findFirst()
-                .map(r -> r.status().name())
-                .orElse("NOT_INCLUDED");
-
         return new CollectionDetailsResponse(
-                CollectionResponse.from(details.collection(), myStudentStatus),
+                CollectionResponse.forViewer(details.collection(), details.requirements(), myStudentId),
                 orderedRequirements,
                 details.contributions().stream().map(c -> ContributionResponse.from(c, studentNamesById)).toList(),
                 removedStudentsCount);

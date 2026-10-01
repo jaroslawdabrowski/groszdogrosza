@@ -86,7 +86,7 @@ Frontend (run from `src/main/webui/`, only needed standalone - normally Quinoa d
 - `npm install` - first-time setup.
 - `npm start` / `ng serve` - dev server on `:4200` (no working backend behind `/api` unless Quarkus is also running).
 - `npm test` / `ng test` - Karma/Jasmine unit tests.
-- `npm run build` / `ng build` - production build to `dist/webui/browser`. Verified working during scaffolding (Node 24.14.0, npm 11) - one non-fatal budget warning (initial bundle ~546kB vs. a 500kB soft budget), not fixed yet, see TODO.
+- `npm run build` / `ng build` - production build to `dist/webui/browser`. Verified working during scaffolding (Node 24.14.0, npm 11) - initial bundle ~423kB, under the 500kB budget.
 
 Java 21; Node must satisfy Angular 20's engine check (`^20.19.0 || ^22.12.0 || >=24.0.0`) - Node 24.14.0 was used during scaffolding and works.
 
@@ -647,59 +647,18 @@ hides the Dziennik/Panel skarbnika links for non-treasurers. This is a UX fix, n
 security boundary - `AuthorizationSupport.requireTreasurer` on the backend is and remains
 the only thing that actually matters for data protection.
 
-**Visual style - redesigned from the original scaffolding pass, then re-picked once more**:
-`--gg-*` custom properties on `:root` in `styles.scss` are the "Ocean & Amber" palette
-(`#3A5B8E` steel blue, `#E8B74A` amber gold, `#E4572E` terracotta pop, `#F1F3F8` cool
-off-white, `#1F2E4D` deep navy for ink) - the classic trustworthy-fintech blue family (the
-same one Chase/N26/Revolut lean on). This went through two full replacement rounds before
-landing here, each time from real user feedback, not guessing: (1) a hand-tuned emerald/
-rose "color wheel" scheme, rejected as "colors don't go together" + the near-black toolbar
-looked bad; (2) "Lagoon Latte" (teal/coral/gold, picked by comparing 3 published candidates)
-plus a gradient-heavy pass, rejected as "you went overboard with gradients" and "you're
-fixated on this green" - the user explicitly wanted three genuinely different hue families
-tried, not another green/teal variant; (3) three fresh candidates each built from a
-different, real published palette ("Ocean & Amber" - blue/amber; "Terracotta & Clay" -
-burnt-orange/dusty-teal; "Violet & Raspberry" - purple/pink), screenshotted side by side in
-an artifact gallery and picked via `AskUserQuestion` - **"Ocean & Amber" is the one the user
-actually chose**, not an assumption. **Gradients are used in exactly two places on
-purpose** - the toolbar (`--gg-gradient-ink`, primary fading into the palette's own ink
-color) and the coin/logo-mark circle (`--gg-gradient-warm`, cream-gold to deep gold) - not
-on every card border, button, or heading; a blanket-gradient version was tried and
-explicitly walked back after feedback. `--gg-ink` is this palette's own deep navy, not
-generic near-black, which is what keeps the toolbar/text/shadows feeling like one family
-rather than "dark UI chrome + pastel accents" bolted together - see the `:root` block's own
-comment for the reasoning, including why the custom-property *names* (`--gg-mint`/
-`--gg-blush`/`--gg-sky`) are kept as inherited "slot" names from the very first palette and
-don't literally match their current colors anymore - don't be surprised that `--gg-mint` is
-steel blue, not mint; renaming every call site each time the palette changes isn't worth it.
-Each accent (`--gg-coin`/`--gg-mint`/`--gg-blush`/`--gg-sky`) carries a `-soft` tint for
-chip/row backgrounds - same "hand-picked palette as plain CSS custom properties, used only
-where the app fully controls the surface, `--mat-sys-*` tokens for anything Material
-renders itself" convention as pvopt (`--pv-*`) and turboorders (`--to-*`). Typography is
-Inter (body, and `mat.theme`'s `typography` - a deliberate departure from turboorders/
-pvopt's plain Roboto, chosen for a more "real product" feel) + Nunito 800/900 for headings,
-both loaded in `index.html`. `.gg-card` (rounded corners,
-resting shadow via `--gg-shadow-md`, lift-and-deepen-shadow on hover when wrapped in
-`a.collection-link` or given `.gg-card--interactive`) replaces the old flat top-accent-only
-card; `--mint`/`--blush`/`--sky` still work as border-top accent modifiers. `.gg-fade-up`
-(+ a `--gg-stagger` custom property set per-card, e.g. `[style.--gg-stagger.ms]="i * 70"`)
-gives lists of cards a staggered entrance animation on load. `shared/logo/logo.ts`
-(`<app-logo>`) is the app's mark - a piggy-bank-with-a-coin SVG using `currentColor` for the
-body/shading (so it reads correctly both on the dark toolbar and on light hero surfaces) and
-a fixed gold for the coin itself; used in the toolbar, `Login`, and `PublicOverview`'s hero.
-Shared cross-page utility classes (`.back-link`, `.timeline`/`.timeline-icon`, `.loading-line`/
-`.empty-state`, `.status-chip--*`, `.title-with-icon` - the last needed because a bare
-`mat-icon` sibling before `mat-card-title` doesn't get picked up by Material's card-header
-grid and renders in the wrong place; put the icon *inside* `mat-card-title` with this class
-instead) live in `styles.scss`, not duplicated per component - see ParentView/GlobalLedger/
-CollectionDetails for the pattern. The toolbar (`app.html`/`app.scss`) collapses its inline
-nav links into a `mat-menu`-driven hamburger below 720px - verified with Playwright at a
-390px viewport, not just by inspecting CSS.
+**Visual style: direction A "Zeszyt w kratkę" (rebuilt from scratch 2026-10-01).** Squared
+paper page, white sheets with a red notebook margin, fountain-pen blue as the only action
+colour, Bricolage Grotesque + Figtree, Material Symbols Rounded icons. Angular Material is
+now used **only for `<mat-icon>`** - no theme, cards, tables, form fields, menus or chips;
+everything is native HTML styled by shared classes in `styles.scss`. The roster dots
+(`shared/roster-dots`) are the one orchestrated animation. **`docs/DESIGN.md` is the
+reference** for tokens, components, layout (phone tab bar / desktop sidebar), the motion
+table and what was rejected on purpose; `docs/brand/kierunki-ABC.png` shows the three
+directions the user chose from. The earlier "Ocean & Amber" Material palette is gone.
 
-`ng build` was verified working during scaffolding: succeeds, one non-fatal warning
-(initial bundle ~546kB against a 500kB soft budget in `angular.json`) - not addressed yet,
-see TODO. Not re-measured after the redesign (fonts changed, one new shared component) -
-worth checking next time that TODO is picked up.
+`ng build`: initial bundle ~423kB after dropping Material components in the 2026-10-01
+redesign, under the 500kB budget (the old ~546kB warning is gone).
 
 ## Verified end-to-end locally (real browser + a mock mailbox)
 
@@ -940,9 +899,8 @@ Roughly in the order they'd block real usage:
    record exists, `POST /api/parents/{id}/piggy-bank/credit` is how the treasurer tops up
    their own piggy bank manually (see "The treasurer's own account is excluded from bank
    matching" above for why that's manual rather than automatic).
-6. Fix the `ng build` initial-bundle budget warning (~546kB vs. 500kB) - likely
-   Angular Material module imports pulling in more than needed; not urgent, but worth
-   trimming before real users load this on a phone.
+6. ~~Fix the `ng build` initial-bundle budget warning~~ **Done** - ~423kB after the
+   2026-10-01 redesign dropped Material components.
 7. Consider adding a GSI for `findActivePendingRequirementsForParent` if the parent/collection
    count ever grows enough that a full table scan stops being obviously fine (see that
    method's javadoc for why a scan is currently an accepted tradeoff, not an oversight).

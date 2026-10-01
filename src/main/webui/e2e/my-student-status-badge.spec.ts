@@ -109,9 +109,9 @@ test.describe('collection widgets: "does my child take part / have they paid" ba
     // --- Kasia's parent (included, not yet paid): "not paid" icon, on both widgets ---
     await login.loginAs('rodzic1', 'rodzic1');
     await dashboard.goto();
-    await dashboard.expectMyStudentStatus(collectionTitle, 'cancel');
+    await dashboard.expectMyStudentStatus(collectionTitle, 'PENDING');
     await publicOverview.goto();
-    await publicOverview.expectMyStudentStatus(collectionTitle, 'cancel');
+    await publicOverview.expectMyStudentStatus(collectionTitle, 'PENDING');
 
     // --- Record Kasia's payment via the treasurer's own (still-valid) token - a raw API
     //     call, not a UI action, so no login switch is needed here (see main-flow.spec.ts's
@@ -121,17 +121,17 @@ test.describe('collection widgets: "does my child take part / have they paid" ba
     await api.recordContribution(collectionId, kasiaStudentId, 10);
 
     await dashboard.goto();
-    await dashboard.expectMyStudentStatus(collectionTitle, 'check_circle');
+    await dashboard.expectMyStudentStatus(collectionTitle, 'PAID');
     await publicOverview.goto();
-    await publicOverview.expectMyStudentStatus(collectionTitle, 'check_circle');
+    await publicOverview.expectMyStudentStatus(collectionTitle, 'PAID');
     await app.logout();
 
     // --- Zosia's parent (excluded from the start): "not participating" icon ---
     await login.loginAs('rodzic2', 'rodzic2');
     await dashboard.goto();
-    await dashboard.expectMyStudentStatus(collectionTitle, 'do_not_disturb_on');
+    await dashboard.expectMyStudentStatus(collectionTitle, 'NOT_INCLUDED');
     await publicOverview.goto();
-    await publicOverview.expectMyStudentStatus(collectionTitle, 'do_not_disturb_on');
+    await publicOverview.expectMyStudentStatus(collectionTitle, 'NOT_INCLUDED');
     await app.logout();
 
     // --- An anonymous visitor to the public homepage: no badge at all, for either child ---

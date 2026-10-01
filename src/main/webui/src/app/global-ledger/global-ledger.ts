@@ -1,17 +1,16 @@
-import { Component, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LedgerApiService } from '../core/ledger-api.service';
 import { GlobalLedgerEntry } from '../core/models';
 import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
+import { ledgerIcon, ledgerTone, localeFor } from '../shared/ledger-format';
 
 /** Treasurer-only "log wszystkich transakcji" - GET /api/ledger returns 403 for anyone
  * else, which the backend enforces regardless of this page even being reachable. */
 @Component({
   selector: 'app-global-ledger',
-  imports: [RouterLink, MatCardModule, MatIconModule, TranslatePipe, LoadingSpinner],
+  imports: [MatIconModule, TranslatePipe, LoadingSpinner],
   templateUrl: './global-ledger.html',
   styleUrl: './global-ledger.scss',
 })
@@ -22,6 +21,23 @@ export class GlobalLedger {
   readonly entries = signal<GlobalLedgerEntry[]>([]);
   readonly loading = signal(true);
   readonly forbidden = signal(false);
+
+  /** Entries grouped by calendar day (already newest first from the backend), so a long feed
+   *  reads like a diary rather than one undifferentiated list. */
+  readonly days = computed(() => {
+    const locale = localeFor(this.translate.currentLang());
+    const groups: { label: string; entries: GlobalLedgerEntry[] }[] = [];
+    for (const entry of this.entries()) {
+      const label = new Date(entry.occurredAt).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) {
+        last.entries.push(entry);
+      } else {
+        groups.push({ label, entries: [entry] });
+      }
+    }
+    return groups;
+  });
 
   constructor() {
     this.ledgerApi.getFull().subscribe({
@@ -42,33 +58,12 @@ export class GlobalLedger {
     return 'ledger.' + entry.eventType;
   }
 
-  /** Formatted in the app's currently-chosen language, not the browser's own locale - same
-   *  reasoning as CollectionDetails.printedOnLabel. Includes the time, not just the date -
-   *  more than one event can land on the same day (see the Deręgowski double-credit this
-   *  was added to help spot), so the date alone wouldn't have been enough to tell them apart. */
-  dateLabel(occurredAt: string): string {
-    const locale = this.translate.currentLang() === 'en' ? 'en-US' : 'pl-PL';
-    return new Date(occurredAt).toLocaleString(locale, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  /** Time only - the day is the group heading above it. Still shown because more than one
+   *  event can land on the same day (see the Deręgowski double-credit this helped spot). */
+  timeLabel(occurredAt: string): string {
+    return new Date(occurredAt).toLocaleTimeString(localeFor(this.translate.currentLang()), { hour: '2-digit', minute: '2-digit' });
   }
 
-  iconFor(entry: GlobalLedgerEntry): string {
-    switch (entry.eventType) {
-      case 'CONTRIBUTION_RECEIVED':
-        return 'south_west';
-      case 'COLLECTION_SETTLED':
-        return 'celebration';
-      case 'PIGGY_BANK_CREDITED':
-        return 'savings';
-      case 'PIGGY_BANK_APPLIED_TO_COLLECTION':
-        return 'north_east';
-      default:
-        return 'receipt_long';
-    }
-  }
+  readonly iconFor = ledgerIcon;
+  readonly toneFor = ledgerTone;
 }

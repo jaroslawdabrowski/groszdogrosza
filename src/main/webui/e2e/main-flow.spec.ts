@@ -147,7 +147,7 @@ test.describe('main flow: collection → payment → settlement → both logins 
     await collectionA.settleSummary.expectRemovedStudentsCountAbsent();
 
     await collectionA.settle('10');
-    await collectionA.settlementResult.containsEntry(`${kasiaFullName}: +40 zł`);
+    await collectionA.settlementResult.containsEntryWith(kasiaFullName, '+40 zł');
     await collectionA.expectStatus('SETTLED');
 
     await piggyBank.goto(kasiaStudentId);
@@ -203,8 +203,8 @@ test.describe('main flow: collection → payment → settlement → both logins 
     // this split is exactly the point of the fix - previously she'd have been silently
     // excluded from any surplus since no Contribution record ever existed for her.
     await collectionB.settle('16');
-    await collectionB.settlementResult.containsEntry(`${kasiaFullName}: +2 zł`);
-    await collectionB.settlementResult.containsEntry(`${jasioFullName}: +2 zł`);
+    await collectionB.settlementResult.containsEntryWith(kasiaFullName, '+2 zł');
+    await collectionB.settlementResult.containsEntryWith(jasioFullName, '+2 zł');
     await collectionB.expectStatus('SETTLED');
 
     await piggyBank.goto(kasiaStudentId);

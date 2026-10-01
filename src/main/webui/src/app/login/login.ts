@@ -1,6 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
+import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../core/auth.service';
@@ -14,7 +13,7 @@ import { Logo } from '../shared/logo/logo';
  */
 @Component({
   selector: 'app-login',
-  imports: [MatCardModule, MatButtonModule, MatIconModule, TranslatePipe, Logo],
+  imports: [RouterLink, MatIconModule, TranslatePipe, Logo],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })

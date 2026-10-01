@@ -33,6 +33,11 @@ export const routes: Routes = [
     canActivate: [authGuard, treasurerGuard],
   },
   {
+    path: 'wiecej',
+    loadComponent: () => import('./more/more').then((m) => m.More),
+    canActivate: [authGuard],
+  },
+  {
     path: 'login',
     loadComponent: () => import('./login/login').then((m) => m.Login),
   },

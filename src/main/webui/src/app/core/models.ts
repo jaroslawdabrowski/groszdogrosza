@@ -2,8 +2,8 @@
  *  family's (see backend CollectionResponse's javadoc): one of ContributionRequirement's
  *  statuses if the child is included, `'NOT_INCLUDED'` if the collection exists but the
  *  child isn't in it, or `null`/undefined if there's no logged-in parent (or no linked
- *  Student) to resolve "own child" for in the first place - see MyStudentStatusBadge, which
- *  renders nothing in that last case. */
+ *  Student) to resolve "own child" for in the first place - Start and Zbiórki show
+ *  nothing for the child in that last case. */
 export type MyStudentStatus = 'NOT_INCLUDED' | 'PENDING' | 'PAID' | 'OVERPAID';
 
 export interface CollectionSummary {
@@ -14,6 +14,10 @@ export interface CollectionSummary {
   baseAmountPerStudent: number;
   createdAt: string;
   myStudentStatus?: MyStudentStatus | null;
+  /** What this collection asks of the viewer's own child / what's been paid for them so far
+   *  (null when there's no own child or the child isn't included). */
+  myStudentRequiredAmount?: number | null;
+  myStudentPaidAmount?: number | null;
 }
 
 export interface RequirementView {
@@ -54,6 +58,8 @@ export interface CollectionProgress {
   collection: CollectionSummary;
   studentsCount: number;
   studentsPaidCount: number;
+  /** Students who've paid something but not all of it - drives the half-filled roster dots. */
+  studentsPartialCount: number;
   totalRequired: number;
   totalPaid: number;
   percentComplete: number;

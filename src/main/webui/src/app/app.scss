@@ -1,77 +1,301 @@
-.app-toolbar {
-  background: var(--gg-gradient-ink);
-  color: var(--gg-cream);
-  box-shadow: var(--gg-shadow-md);
-  padding-inline: clamp(0.75rem, 3vw, 1.5rem);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+// App shell: a sidebar on desktop, a floating tab bar on phones, a slim top bar when logged
+// out. The breakpoint (900px) is the same one docs/DESIGN.md uses everywhere.
+
+.app-content {
+  display: block;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+}
+
+// Content clears the floating tab bar (and the iPhone home indicator under it).
+.app-content--with-nav {
+  padding-bottom: calc(var(--tabbar-height) + 28px + env(safe-area-inset-bottom));
 }
 
 .brand {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 10px;
+  color: var(--ink);
   text-decoration: none;
-  color: inherit;
-  padding-block: 0.25rem;
 }
 
 .brand-mark {
-  color: var(--gg-coin-soft);
-  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--ink-blue-100);
+  color: var(--ink-blue-500);
 }
 
 .brand-name {
-  font-size: 1.25rem;
-  color: var(--gg-cream);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-lg);
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
-.spacer {
-  flex: 1 1 auto;
-}
-
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-}
-
-.app-toolbar .nav-link,
-.app-toolbar .lang-button {
-  color: var(--gg-cream) !important;
-  font-weight: 600;
-}
-
-.app-toolbar .nav-link::after {
-  content: '';
-}
-
-.app-toolbar .logout-button {
-  color: var(--gg-coin-soft) !important;
-  margin-inline-start: 0.25rem;
-}
-
-.nav-menu-trigger {
-  display: none;
-  color: var(--gg-cream) !important;
-}
-
-@media (max-width: 720px) {
-  .nav-links {
+// The logged-out top bar on a narrow phone: the mark alone is enough next to two controls.
+@media (max-width: 400px) {
+  .topbar .brand-name {
     display: none;
   }
-  .nav-menu-trigger {
-    display: inline-flex;
-  }
-  .brand-name {
-    font-size: 1.05rem;
+}
+
+// ---- Language switch (PL / EN) ----
+.lang-switch {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--radius-full);
+  background: #e7ebf4;
+}
+
+.lang-switch button {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 40px;
+  min-height: 32px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--ink-2);
+  font: 700 var(--text-xs) var(--font-body);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.lang-switch button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(28, 42, 92, 0.16);
+}
+
+// ---- Logged out: top bar ----
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: calc(env(safe-area-inset-top) + 10px) var(--space-4) 10px;
+  background: rgba(246, 248, 252, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar + .app-content {
+  padding-top: 0;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// ---- Phone: floating tab bar ----
+.tabbar {
+  position: fixed;
+  z-index: 20;
+  left: max(var(--space-3), env(safe-area-inset-left));
+  right: max(var(--space-3), env(safe-area-inset-right));
+  bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+  height: var(--tabbar-height);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  padding: 0 var(--space-1);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-3), 0 0 0 1px rgba(28, 42, 92, 0.04);
+  view-transition-name: tabbar;
+  // Rises into place once per app start - the shell renders once, not per navigation.
+  animation: tabbar-rise 380ms var(--ease-out) 80ms backwards;
+}
+
+@keyframes tabbar-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
 }
 
-.app-content {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: clamp(1rem, 4vw, 2rem) clamp(1rem, 4vw, 1.5rem) 4rem;
+.tab {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--ink-3);
+  text-decoration: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  user-select: none;
+  touch-action: manipulation;
+  transition: color var(--dur-fast) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.tab:active {
+  transform: scale(0.92);
+}
+
+.tab mat-icon {
+  font-size: 24px;
+  width: 56px;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  border-radius: var(--radius-full);
+  transition: font-variation-settings var(--dur-base) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out);
+}
+
+// Active = filled icon + ink-blue: state shown by shape, not only colour.
+.tab.active {
+  color: var(--ink-blue-500);
+}
+
+// The active destination sits on a soft pill (the native-app pattern); it grows in from
+// the icon's own width so switching tabs reads as the pill arriving, not a flash.
+.tab.active mat-icon {
+  background: var(--ink-blue-100);
+  animation: tab-pill 240ms var(--ease-out);
+}
+
+@keyframes tab-pill {
+  from {
+    background-color: transparent;
+    transform: scaleX(0.6);
+  }
+}
+
+.tab.active mat-icon,
+.side-link.active mat-icon {
+  font-variation-settings: "FILL" 1, "wght" 600, "GRAD" 0, "opsz" 24;
+}
+
+// ---- Desktop: sidebar ----
+.sidebar {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .tabbar {
+    display: none;
+  }
+
+  .app-content--with-nav {
+    padding-bottom: 0;
+    padding-left: var(--sidebar-width);
+  }
+
+  .sidebar {
+    position: fixed;
+    z-index: 20;
+    inset: 0 auto 0 0;
+    width: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: var(--space-5) var(--space-4);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    view-transition-name: sidebar;
+  }
+
+  .side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .side-link {
+    animation: side-in 300ms var(--ease-out) backwards;
+  }
+
+  .side-nav .side-link:nth-child(2) { animation-delay: 40ms; }
+  .side-nav .side-link:nth-child(3) { animation-delay: 80ms; }
+  .side-nav .side-link:nth-child(4) { animation-delay: 120ms; }
+  .side-nav .side-link:nth-child(5) { animation-delay: 160ms; }
+  .side-nav .side-link:nth-child(6) { animation-delay: 200ms; }
+}
+
+@keyframes side-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+}
+
+.side-link {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-field);
+  background: transparent;
+  color: var(--ink-2);
+  font: 600 var(--text-base) var(--font-body);
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.side-link:active {
+  transform: scale(0.98);
+}
+
+.side-link.active {
+  background: var(--ink-blue-50);
+  color: var(--ink-blue-500);
+}
+
+.side-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.side-foot .lang-switch {
+  align-self: flex-start;
+  margin-left: var(--space-3);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .side-link:not(.active):hover {
+    background: var(--surface-well);
+    color: var(--ink);
+  }
+
+  .tab:not(.active):hover {
+    color: var(--ink);
+  }
+}
+
+@media print {
+  .app-content,
+  .app-content--with-nav {
+    padding: 0;
+    min-height: 0;
+  }
 }

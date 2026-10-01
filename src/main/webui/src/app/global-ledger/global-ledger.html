@@ -1,31 +1,34 @@
-<a class="back-link" routerLink="/treasurer">
-  <mat-icon>arrow_back</mat-icon>{{ 'common.backToTreasurerPanel' | translate }}
-</a>
+<div class="page">
+  <header class="page-head">
+    <h1>{{ 'globalLedger.title' | translate }}</h1>
+    <p class="sub">{{ 'globalLedger.sub' | translate }}</p>
+  </header>
 
-<h1 class="gg-heading">{{ 'globalLedger.title' | translate }}</h1>
-
-@if (loading()) {
-  <app-loading-spinner [label]="'common.loading' | translate" />
-} @else if (forbidden()) {
-  <p class="empty-state">{{ 'globalLedger.forbidden' | translate }}</p>
-} @else {
-  <mat-card class="gg-card gg-card--sky gg-fade-up">
-    <mat-card-content>
-      @if (entries().length === 0) {
-        <p class="empty-state">{{ 'globalLedger.noEntries' | translate }}</p>
-      } @else {
-        <ul class="timeline">
-          @for (entry of entries(); track entry.id) {
-            <li>
-              <span class="timeline-icon"><mat-icon>{{ iconFor(entry) }}</mat-icon></span>
-              <span class="timeline-content">
-                <span class="timeline-text"><strong>{{ entry.studentName }}</strong> — {{ translationKeyFor(entry) | translate: entry.params }}</span>
-                <span class="timeline-date">{{ dateLabel(entry.occurredAt) }}</span>
-              </span>
-            </li>
-          }
-        </ul>
-      }
-    </mat-card-content>
-  </mat-card>
-}
+  @if (loading()) {
+    <app-loading-spinner [label]="'common.loading' | translate" />
+  } @else if (forbidden()) {
+    <div class="panel empty-state">{{ 'globalLedger.forbidden' | translate }}</div>
+  } @else if (entries().length === 0) {
+    <div class="panel empty-state">{{ 'globalLedger.noEntries' | translate }}</div>
+  } @else {
+    @for (day of days(); track day.label) {
+      <section>
+        <div class="section-head"><h2 class="day-label">{{ day.label }}</h2></div>
+        <div class="panel panel--flush">
+          <ul class="list ledger-list">
+            @for (entry of day.entries; track entry.id) {
+              <li class="list-row ledger-row" data-testid="ledger-entry">
+                <span class="list-icon" [class]="'list-icon list-icon--' + toneFor(entry.eventType)"><mat-icon>{{ iconFor(entry.eventType) }}</mat-icon></span>
+                <span class="list-main">
+                  <span class="list-title">{{ entry.studentName }}</span>
+                  <span class="ledger-text">{{ translationKeyFor(entry) | translate: entry.params }}</span>
+                  <span class="list-sub">{{ timeLabel(entry.occurredAt) }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+    }
+  }
+</div>

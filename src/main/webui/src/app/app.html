@@ -1,54 +1,70 @@
-<mat-toolbar class="app-toolbar">
-  <a class="brand" routerLink="/">
-    <app-logo [size]="30" class="brand-mark" />
-    <span class="brand-name gg-heading">Grosz do Grosza</span>
-  </a>
-  <span class="spacer"></span>
-
-  <nav class="nav-links">
-    @if (isAuthenticated()) {
-      <a mat-button class="nav-link" routerLink="/dashboard">{{ 'nav.dashboard' | translate }}</a>
-      @if (myStudentId(); as studentId) {
-        <a mat-button class="nav-link" [routerLink]="['/students', studentId]">{{ 'nav.myWallet' | translate }}</a>
+@if (isAuthenticated()) {
+  <!-- Desktop: a sidebar. Phone: the floating tab bar below. Same destinations in both. -->
+  <aside class="sidebar no-print" aria-label="Nawigacja">
+    <a class="brand" routerLink="/">
+      <span class="brand-mark"><app-logo [size]="26" /></span>
+      <span class="brand-name">Grosz do Grosza</span>
+    </a>
+    <nav class="side-nav">
+      @for (item of sideItems(); track item.id) {
+        <a class="side-link" [routerLink]="item.link" [class.active]="activeTab() === item.id" [attr.aria-current]="activeTab() === item.id ? 'page' : null">
+          <mat-icon>{{ item.icon }}</mat-icon>
+          <span>{{ item.label | translate }}</span>
+        </a>
       }
       @if (isTreasurer()) {
-        <a mat-button class="nav-link" routerLink="/ledger">{{ 'nav.ledger' | translate }}</a>
-        <a mat-button class="nav-link" routerLink="/treasurer">{{ 'nav.treasurer' | translate }}</a>
+        <a class="side-link" routerLink="/ledger" [class.active]="activeTab() === 'ledger'" [attr.aria-current]="activeTab() === 'ledger' ? 'page' : null">
+          <mat-icon>history</mat-icon>
+          <span>{{ 'nav.ledger' | translate }}</span>
+        </a>
       }
-    }
-    <a mat-button class="nav-link" routerLink="/jak-to-dziala">{{ 'nav.howItWorks' | translate }}</a>
-  </nav>
-
-  <button mat-icon-button class="nav-menu-trigger" [matMenuTriggerFor]="navMenu" aria-label="Menu">
-    <mat-icon>menu</mat-icon>
-  </button>
-  <mat-menu #navMenu="matMenu">
-    @if (isAuthenticated()) {
-      <a mat-menu-item routerLink="/dashboard">{{ 'nav.dashboard' | translate }}</a>
-      @if (myStudentId(); as studentId) {
-        <a mat-menu-item [routerLink]="['/students', studentId]">{{ 'nav.myWallet' | translate }}</a>
+      <a class="side-link" routerLink="/jak-to-dziala" [class.active]="activeTab() === 'how'">
+        <mat-icon>help</mat-icon>
+        <span>{{ 'nav.howItWorks' | translate }}</span>
+      </a>
+    </nav>
+    <div class="side-foot">
+      <div class="lang-switch" role="group" [attr.aria-label]="'more.language' | translate">
+        @for (language of languages; track language) {
+          <button type="button" [attr.aria-pressed]="currentLanguage() === language" (click)="changeLanguage(language)">{{ language.toUpperCase() }}</button>
+        }
+      </div>
+      <button type="button" class="side-link side-logout" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>{{ 'nav.logout' | translate }}</span>
+      </button>
+    </div>
+  </aside>
+} @else {
+  <header class="topbar no-print">
+    <a class="brand" routerLink="/">
+      <span class="brand-mark"><app-logo [size]="24" /></span>
+      <span class="brand-name">Grosz do Grosza</span>
+    </a>
+    <div class="topbar-actions">
+      <div class="lang-switch" role="group" [attr.aria-label]="'more.language' | translate">
+        @for (language of languages; track language) {
+          <button type="button" [attr.aria-pressed]="currentLanguage() === language" (click)="changeLanguage(language)">{{ language.toUpperCase() }}</button>
+        }
+      </div>
+      @if (!onLoginPage()) {
+        <button type="button" class="btn btn--primary btn--sm" (click)="login()">{{ 'nav.login' | translate }}</button>
       }
-      @if (isTreasurer()) {
-        <a mat-menu-item routerLink="/ledger">{{ 'nav.ledger' | translate }}</a>
-        <a mat-menu-item routerLink="/treasurer">{{ 'nav.treasurer' | translate }}</a>
-      }
-    }
-    <a mat-menu-item routerLink="/jak-to-dziala">{{ 'nav.howItWorks' | translate }}</a>
-  </mat-menu>
+    </div>
+  </header>
+}
 
-  <button mat-button class="lang-button" [matMenuTriggerFor]="languageMenu">{{ currentLanguage().toUpperCase() }}</button>
-  <mat-menu #languageMenu="matMenu">
-    @for (language of languages; track language) {
-      <button mat-menu-item (click)="changeLanguage(language)">{{ language.toUpperCase() }}</button>
-    }
-  </mat-menu>
-  @if (isAuthenticated()) {
-    <button mat-icon-button class="logout-button" (click)="logout()" aria-label="Log out">
-      <mat-icon>logout</mat-icon>
-    </button>
-  }
-</mat-toolbar>
-
-<div class="app-content">
+<main class="app-content" [class.app-content--with-nav]="isAuthenticated()">
   <router-outlet />
-</div>
+</main>
+
+@if (isAuthenticated()) {
+  <nav class="tabbar no-print" aria-label="Nawigacja">
+    @for (item of navItems(); track item.id) {
+      <a class="tab" [routerLink]="item.link" [class.active]="activeTab() === item.id" [attr.aria-current]="activeTab() === item.id ? 'page' : null">
+        <mat-icon>{{ item.icon }}</mat-icon>
+        <span>{{ item.shortLabel | translate }}</span>
+      </a>
+    }
+  </nav>
+}

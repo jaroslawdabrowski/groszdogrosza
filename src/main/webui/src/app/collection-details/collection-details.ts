@@ -1,16 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatTableModule } from '@angular/material/table';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { CollectionApiService } from '../core/collection-api.service';
 import { StudentApiService } from '../core/student-api.service';
 import { CurrentUserService } from '../core/current-user.service';
@@ -24,7 +16,11 @@ import {
   isCollectionDetails,
 } from '../core/models';
 import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
-import { MyStudentStatusBadge } from '../shared/my-student-status-badge/my-student-status-badge';
+import { MoneyPipe } from '../shared/money.pipe';
+import { RosterDots } from '../shared/roster-dots/roster-dots';
+
+/** The roster filter above the student list - see CollectionDetails.filteredRows. */
+type RosterFilter = 'all' | 'owe' | 'paid';
 
 /** One row of the requirements table - either a student genuinely included in the
  *  collection (backed by a real ContributionRequirement) or one who isn't (backed by
@@ -48,22 +44,7 @@ interface RosterRow {
  */
 @Component({
   selector: 'app-collection-details',
-  imports: [
-    RouterLink,
-    FormsModule,
-    MatCardModule,
-    MatTableModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
-    MatChipsModule,
-    MatTooltipModule,
-    MatProgressBarModule,
-    TranslatePipe,
-    LoadingSpinner,
-    MyStudentStatusBadge,
-  ],
+  imports: [RouterLink, FormsModule, MatIconModule, TranslatePipe, LoadingSpinner, MoneyPipe, RosterDots],
   templateUrl: './collection-details.html',
   styleUrl: './collection-details.scss',
 })
@@ -91,7 +72,8 @@ export class CollectionDetails {
   readonly loading = signal(true);
   readonly settlementPreview = signal<SettlementResult | null>(null);
   readonly actualCostSpent = signal<number>(0);
-  readonly requirementColumns = ['studentName', 'requiredAmount', 'paidAmount', 'status'];
+  readonly filter = signal<RosterFilter>('all');
+  readonly filters: RosterFilter[] = ['all', 'owe', 'paid'];
   readonly isCollectionDetails = isCollectionDetails;
 
   private readonly collectionId: string;
@@ -122,22 +104,14 @@ export class CollectionDetails {
   /** Every student in the class, merged with this collection's own requirements - a student
    *  with no requirement (never included, or removed earlier) still shows up here, greyed
    *  out - with an "add back" action while ACTIVE, and as a plain record once SETTLED (the
-   *  actions column only exists while ACTIVE, see visibleRequirementColumns). Nothing records
+   *  add/remove buttons only exist while ACTIVE). Nothing records
    *  who was left off at creation time, so for a SETTLED collection this compares against
    *  TODAY's roster: a student who joined the class after it settled also shows as not
    *  included - an accepted approximation, confirmed with the treasurer.
    *
-   *  A `computed` on purpose, not a plain method: `mat-table`'s `[dataSource]` uses the
-   *  bound array's own identity to decide which rows to add/remove/keep, and a plain method
-   *  called directly in the template re-runs (and returns a brand-new array + brand-new row
-   *  objects) on EVERY change-detection tick, not just when the underlying data changes. In
-   *  practice that made the table destroy and rebuild every row on the tick right after a
-   *  button's `mousedown` (which itself triggers change detection) - so by the time the
-   *  browser fired the `click`, the original button element was already gone and nothing
-   *  happened. `removeStudent`/`addStudent`'s click handlers looked correctly wired but
-   *  silently never fired. `computed` only recomputes (and only produces a new array) when
-   *  `view`/`allStudents` themselves actually change, keeping a stable reference across
-   *  every unrelated change-detection cycle. */
+   *  A `computed`, not a plain method: a method called from the template returns brand-new
+   *  row objects on every change-detection tick, which once made the rows rebuild between a
+   *  button's mousedown and its click, so the click never fired. */
   readonly rosterRows = computed<RosterRow[]>(() => {
     const current = this.view();
     if (!current || !isCollectionDetails(current)) {
@@ -164,6 +138,58 @@ export class CollectionDetails {
       }));
     return [...included, ...excluded];
   });
+
+  /** "Do zapłaty" = included and still PENDING; "Zapłacone" = included and settled up.
+   *  Students outside the collection only show under "Wszyscy". */
+  readonly filteredRows = computed<RosterRow[]>(() => {
+    const rows = this.rosterRows();
+    switch (this.filter()) {
+      case 'owe':
+        return rows.filter((r) => r.included && r.status === 'PENDING');
+      case 'paid':
+        return rows.filter((r) => r.included && r.status !== 'PENDING');
+      default:
+        return rows;
+    }
+  });
+
+  filterCount(filter: RosterFilter): number {
+    const rows = this.rosterRows();
+    switch (filter) {
+      case 'owe':
+        return rows.filter((r) => r.included && r.status === 'PENDING').length;
+      case 'paid':
+        return rows.filter((r) => r.included && r.status !== 'PENDING').length;
+      default:
+        return rows.length;
+    }
+  }
+
+  /** Included students who paid part of what they owe - the half-filled roster dots. */
+  partlyPaidStudentsCount(): number {
+    return this.rosterRows().filter((r) => r.included && r.status === 'PENDING' && r.paidAmount > 0).length;
+  }
+
+  excludedStudentsCount(): number {
+    return this.rosterRows().filter((r) => !r.included).length;
+  }
+
+  initials(name: string): string {
+    return name
+      .split(' ')
+      .filter((part) => part.length > 0)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join('');
+  }
+
+  /** Avatar/pill tone for one roster row. */
+  tone(row: RosterRow): string {
+    if (!row.included) {
+      return '';
+    }
+    return row.status === 'PENDING' ? 'owe' : 'ok';
+  }
 
   /** Puts a student back into the collection - see backend AddStudentToCollectionUseCase:
    *  immediately sweeps in whatever their current piggy bank balance covers, exactly like
@@ -221,7 +247,18 @@ export class CollectionDetails {
     return contentType.startsWith('image/');
   }
 
+  /** Settling is final (the collection becomes SETTLED and any surplus goes to piggy banks
+   *  for good), so it asks first, restating the numbers being committed. */
   settle(): void {
+    const confirmed = window.confirm(
+      this.translate.instant('collectionDetails.settleConfirm', {
+        cost: this.actualCostSpent(),
+        collected: this.totalCollected(),
+      }),
+    );
+    if (!confirmed) {
+      return;
+    }
     this.collectionApi.settle(this.collectionId, this.actualCostSpent()).subscribe((result) => {
       this.settlementPreview.set(result);
       this.reload();
@@ -230,8 +267,7 @@ export class CollectionDetails {
 
   /** Only meaningful while the collection is ACTIVE - see backend
    *  RemoveStudentFromCollectionUseCase, which refunds whatever the student already paid
-   *  back to their piggy bank. Adds the 'actions' column to the requirements table (see
-   *  visibleRequirementColumns) only in that state. */
+   *  back to their piggy bank. */
   removeStudent(studentId: string, studentName: string): void {
     const confirmed = window.confirm(this.translate.instant('collectionDetails.removeStudentConfirm', { name: studentName }));
     if (!confirmed) {
@@ -273,14 +309,6 @@ export class CollectionDetails {
       return;
     }
     this.collectionApi.addStudent(this.collectionId, studentId).subscribe(() => this.reload());
-  }
-
-  visibleRequirementColumns(): string[] {
-    const current = this.view();
-    if (current && isCollectionDetails(current) && current.collection.status === 'ACTIVE') {
-      return [...this.requirementColumns, 'actions'];
-    }
-    return this.requirementColumns;
   }
 
   /** SettlementResult only carries studentId (see backend SettlementResultResponse) - name

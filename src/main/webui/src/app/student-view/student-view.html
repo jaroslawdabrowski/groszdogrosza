@@ -1,62 +1,67 @@
 @if (loading()) {
-  <app-loading-spinner [label]="'common.loading' | translate" />
+  <div class="page">
+    <app-loading-spinner [label]="'common.loading' | translate" />
+  </div>
 } @else if (student(); as s) {
-  <a class="back-link" [routerLink]="isTreasurer() ? '/treasurer' : '/dashboard'">
-    <mat-icon>arrow_back</mat-icon>{{ (isTreasurer() ? 'common.backToTreasurerPanel' : 'common.backToDashboard') | translate }}
-  </a>
+  <div class="page">
+    @if (isTreasurer()) {
+      <a class="back-link" routerLink="/treasurer">
+        <mat-icon>arrow_back</mat-icon>{{ 'nav.classShort' | translate }}
+      </a>
+    }
 
-  <header class="detail-header">
-    <h1 class="gg-heading">{{ s.firstName }} {{ s.lastName }}</h1>
-  </header>
+    <header class="page-head">
+      <p class="eyebrow">{{ 'studentView.piggyBank' | translate }}</p>
+      <h1>{{ s.firstName }} {{ s.lastName }}</h1>
+    </header>
 
-  <mat-card class="gg-card gg-card--mint gg-fade-up piggy-card">
-    <mat-card-content>
-      <div class="piggy-icon"><mat-icon>savings</mat-icon></div>
-      <div>
-        <p class="piggy-label">{{ 'studentView.piggyBank' | translate }}</p>
-        <p class="piggy-balance">{{ s.piggyBankBalance }} zł</p>
+    <section class="sheet sheet--hero piggy">
+      <div class="piggy-text">
+        <p class="meta">{{ 'studentView.balanceLabel' | translate }}</p>
+        <p class="amount num" data-testid="piggy-balance">{{ s.piggyBankBalance | money }}<small>zł</small></p>
+        <p class="hint">{{ 'studentView.balanceHint' | translate }}</p>
       </div>
-    </mat-card-content>
-  </mat-card>
+      <span class="piggy-mark" aria-hidden="true"><mat-icon>savings</mat-icon></span>
+    </section>
 
-  @if (s.parents.length > 0) {
-    <mat-card class="gg-card gg-card--blush gg-fade-up" style="--gg-stagger: 40ms">
-      <mat-card-header>
-        <mat-card-title>{{ 'studentView.parents' | translate }}</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <ul class="parent-contact-list">
-          @for (parent of s.parents; track parent.id) {
-            <li>
-              <span class="parent-contact-name">{{ parent.firstName }} {{ parent.lastName }}</span>
-              <span class="parent-contact-email">{{ parent.email }}</span>
-            </li>
-          }
-        </ul>
-      </mat-card-content>
-    </mat-card>
-  }
+    @if (s.parents.length > 0) {
+      <section aria-labelledby="parents-heading">
+        <div class="section-head"><h2 id="parents-heading">{{ 'studentView.parents' | translate }}</h2></div>
+        <div class="panel panel--flush">
+          <div class="list">
+            @for (parent of s.parents; track parent.id) {
+              <div class="list-row">
+                <span class="avatar avatar--blue" aria-hidden="true">{{ parent.firstName[0] }}{{ parent.lastName[0] }}</span>
+                <span class="list-main">
+                  <span class="list-title">{{ parent.firstName }} {{ parent.lastName }}</span>
+                  <span class="list-sub">{{ parent.email }}</span>
+                </span>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+    }
 
-  <mat-card class="gg-card gg-card--sky gg-fade-up" style="--gg-stagger: 70ms">
-    <mat-card-header>
-      <mat-card-title>{{ 'studentView.ledger' | translate }}</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      @if (ledger().length === 0) {
-        <p class="empty-state">{{ 'studentView.noEntries' | translate }}</p>
-      } @else {
-        <ul class="timeline">
-          @for (entry of ledger(); track entry.id) {
-            <li>
-              <span class="timeline-icon"><mat-icon>{{ iconFor(entry) }}</mat-icon></span>
-              <span class="timeline-content">
-                <span class="timeline-text">{{ translationKeyFor(entry) | translate: entry.params }}</span>
-                <span class="timeline-date">{{ dateLabel(entry.occurredAt) }}</span>
-              </span>
-            </li>
-          }
-        </ul>
-      }
-    </mat-card-content>
-  </mat-card>
+    <section aria-labelledby="ledger-heading">
+      <div class="section-head"><h2 id="ledger-heading">{{ 'studentView.ledger' | translate }}</h2></div>
+      <div class="panel panel--flush">
+        @if (ledger().length === 0) {
+          <p class="empty-state">{{ 'studentView.noEntries' | translate }}</p>
+        } @else {
+          <ul class="list ledger-list">
+            @for (entry of ledger(); track entry.id) {
+              <li class="list-row ledger-row" data-testid="ledger-entry">
+                <span class="list-icon" [class]="'list-icon list-icon--' + toneFor(entry.eventType)"><mat-icon>{{ iconFor(entry.eventType) }}</mat-icon></span>
+                <span class="list-main">
+                  <span class="ledger-text">{{ translationKeyFor(entry) | translate: entry.params }}</span>
+                  <span class="list-sub">{{ dateLabel(entry.occurredAt) }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </section>
+  </div>
 }

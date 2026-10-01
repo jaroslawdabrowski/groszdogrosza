@@ -76,11 +76,11 @@ test.describe('treasurer panel: total piggy bank balance widget', () => {
     await treasurer.student(`Zosia ${studentLastName}`).expectPiggyBankBalance('15');
 
     // --- A regular parent can't reach the treasurer panel - the widget included - at all ---
-    await page.getByRole('button', { name: 'Log out' }).click();
+    await page.getByRole('button', { name: 'Wyloguj się' }).click();
     await page.waitForLoadState('networkidle');
     await login.loginAs('rodzic1', 'rodzic1');
     await page.goto('/treasurer');
     await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.locator('.summary-value')).toHaveCount(0);
+    await expect(page.getByTestId('total-piggy-balance')).toHaveCount(0);
   });
 });

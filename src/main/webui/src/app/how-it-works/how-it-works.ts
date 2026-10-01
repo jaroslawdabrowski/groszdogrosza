@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -15,8 +14,15 @@ import { TranslatePipe } from '@ngx-translate/core';
  */
 @Component({
   selector: 'app-how-it-works',
-  imports: [RouterLink, MatCardModule, MatIconModule, TranslatePipe],
+  imports: [RouterLink, MatIconModule, TranslatePipe],
   templateUrl: './how-it-works.html',
   styleUrl: './how-it-works.scss',
 })
-export class HowItWorks {}
+export class HowItWorks {
+  readonly topics = [
+    { key: 'collections', icon: 'groups', tone: 'blue' },
+    { key: 'piggyBank', icon: 'savings', tone: 'gold' },
+    { key: 'transparency', icon: 'history', tone: 'ok' },
+    { key: 'account', icon: 'person_add', tone: 'blue' },
+  ];
+}

@@ -1,13 +1,11 @@
-<div class="login-page">
-  <mat-card class="login-card gg-fade-up">
-    <div class="login-mark">
-      <app-logo [size]="56" />
-    </div>
-    <h1 class="gg-heading">Grosz do Grosza</h1>
+<div class="page login-page">
+  <article class="sheet sheet--hero login-sheet">
+    <span class="login-mark"><app-logo [size]="64" /></span>
+    <h1>Grosz do Grosza</h1>
     <p class="subtitle">{{ 'login.subtitle' | translate }}</p>
-    <button mat-flat-button color="primary" class="login-button" (click)="login()">
-      <mat-icon>login</mat-icon>
-      {{ 'login.submit' | translate }}
+    <button type="button" class="btn btn--primary btn--block" (click)="login()">
+      <mat-icon>login</mat-icon>{{ 'login.submit' | translate }}
     </button>
-  </mat-card>
+    <a class="how-link" routerLink="/jak-to-dziala">{{ 'publicOverview.howItWorksLink' | translate }}</a>
+  </article>
 </div>

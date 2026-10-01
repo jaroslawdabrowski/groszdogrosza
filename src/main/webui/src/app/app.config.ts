@@ -1,7 +1,8 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners, provideZoneChangeDetection, isDevMode } from '@angular/core';
+import { MatIconRegistry } from '@angular/material/icon';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withViewTransitions } from '@angular/router';
 import { OAuthStorage, provideOAuthClient } from 'angular-oauth2-oidc';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -15,7 +16,14 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    // Native-like cross-fade between screens (keyframes in styles.scss). The shell's tab bar
+    // and sidebar have their own view-transition-name, so they stay still while pages fade.
+    provideRouter(routes, withViewTransitions({ skipInitialTransition: true })),
+    // Press feedback is a small scale-down on :active (styles.scss), not Material's ink ripple.
+    // Material Symbols Rounded (loaded in index.html) instead of the default Material Icons.
+    provideAppInitializer(() => {
+      inject(MatIconRegistry).setDefaultFontSetClass('material-symbols-rounded');
+    }),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
     provideOAuthClient(),

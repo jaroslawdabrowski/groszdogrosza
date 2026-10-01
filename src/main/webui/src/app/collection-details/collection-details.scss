@@ -1,397 +1,332 @@
-.detail-header h1 {
-  margin: 0 0 0.4rem;
-}
-
-// Boxed, not plain text directly under the title - matches the same treatment given to
-// PublicOverview's collection cards (see that page's own comment) for the same reason: a
-// real sentence sitting right under a heading with no visual separation reads as cramped.
 .description {
-  color: var(--gg-ink-soft);
-  margin: 0.5rem 0 1rem;
-  padding: 0.6rem 0.8rem;
-  // Not --gg-cream-elevated - this header sits directly on the page background (--gg-cream),
-  // not inside a .gg-card, so the elevated white here is what actually gives it a distinct
-  // "boxed" surface instead of blending into the page.
-  background: var(--gg-cream-elevated);
-  border: 1px solid var(--gg-coin-soft);
-  border-radius: var(--gg-radius-sm);
-  font-size: 0.92rem;
-  line-height: 1.5;
+  max-width: 60ch;
+  color: var(--ink-2);
 }
 
-.amount-chip {
-  --mat-chip-elevated-container-color: var(--gg-coin-soft);
-  --mat-chip-label-text-color: var(--gg-coin-deep);
+.head-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
-mat-card {
-  margin-top: 1rem;
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-table {
-  width: 100%;
-  min-width: 480px;
+.due {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
-.req-status {
-  padding: 0.15rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
+.due-meta {
+  text-align: right;
+  padding-bottom: 4px;
+}
+
+.my-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--border);
+}
+
+.child-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
 }
 
-.req-status--PENDING {
-  background: var(--gg-blush-soft);
-  color: var(--gg-blush);
+.child-line mat-icon {
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+  font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
 }
 
-.req-status--PAID {
-  background: var(--gg-mint-soft);
-  color: var(--gg-mint);
+.child-line--owe {
+  color: var(--owe);
 }
 
-.req-status--OVERPAID {
-  background: var(--gg-coin-soft);
-  color: var(--gg-coin-deep);
+.child-line--ok {
+  color: var(--ok);
 }
 
-.delete-button {
-  color: var(--gg-blush);
+.child-line--muted {
+  color: var(--ink-3);
 }
 
-.add-button {
-  color: var(--gg-mint);
+.leave-btn {
+  color: var(--ink-2);
 }
 
-.req-status--EXCLUDED {
-  background: none;
-  color: var(--gg-ink-soft);
+.roster-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.seg-count {
+  color: var(--ink-3);
   font-weight: 500;
 }
 
-// A student not (yet) part of the collection - shown alongside the real requirements so the
-// "add back" action is discoverable, but visually receded so it doesn't read as a real row of
-// money owed.
-tr.excluded-row,
-td.excluded-row {
-  color: var(--gg-ink-soft);
-  opacity: 0.65;
+.student-row .list-end {
+  gap: var(--space-1);
 }
 
-.empty-state {
-  color: var(--gg-ink-soft);
+.panel-title {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-lg);
 }
 
-.contribution-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.title-with-icon mat-icon {
+  color: var(--gold-text);
+}
+
+.settle-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-4);
 }
 
-.contribution-list li {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: baseline;
-  padding: 0.55rem 0.75rem;
-  background: var(--gg-sky-soft);
-  border-radius: var(--gg-radius-sm);
+.settle-panel .panel-title {
+  margin-bottom: 0;
 }
 
-.contribution-amount {
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.stat {
+  padding: var(--space-3);
+  border-radius: var(--radius-field);
+  background: var(--surface-well);
+}
+
+.stat dt {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+
+.stat dd {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
   font-weight: 700;
+  color: var(--ink);
 }
 
-.contribution-source {
-  margin-inline-start: auto;
-  font-size: 0.8rem;
-  color: var(--gg-ink-soft);
+.stat--owe {
+  background: var(--danger-tint);
 }
 
-mat-form-field {
-  width: 100%;
-  max-width: 260px;
-  display: block;
-}
-
-.result-icon {
-  color: var(--gg-mint);
+.stat--owe dd {
+  color: var(--danger);
 }
 
 .settlement-result {
-  margin-top: 0.25rem;
-}
-
-.settlement-summary {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.75rem;
-}
-
-.summary-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.6rem 1rem;
-  background: var(--gg-mint-soft);
-  border-radius: var(--gg-radius-sm);
-  font-size: 0.85rem;
-  color: var(--gg-ink-soft);
+  gap: var(--space-3);
+  border: 1px solid var(--ok);
+  background: linear-gradient(var(--ok-tint), var(--surface) 120px);
 }
 
-.summary-stat strong {
-  font-size: 1.2rem;
-  color: var(--gg-ink);
+.settlement-result .panel-title {
+  margin-bottom: 0;
 }
 
-.summary-stat--warn {
-  background: var(--gg-blush-soft);
+// Settling is the rare, happy end of a collection - the one place the app spends a little
+// delight: the result lands, the icon pops, the refunds follow one by one.
+.settlement-result {
+  animation: result-in 320ms var(--ease-out) backwards;
 }
 
-.settlement-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.celebrate-icon {
+  animation: celebrate-pop 460ms cubic-bezier(0.34, 1.56, 0.64, 1) 140ms backwards;
+}
+
+.settlement-row {
+  animation: gg-enter 240ms var(--ease-out) backwards;
+  animation-delay: calc(min(var(--i, 0), 10) * 50ms + 220ms);
+}
+
+@keyframes result-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes celebrate-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-20deg);
+  }
+}
+
+// Filtering the roster: rows that come into the list fade in, rows that drop out fade away
+// (Angular animate.enter / animate.leave) instead of teleporting.
+.row-in {
+  animation: row-in 180ms var(--ease-out);
+}
+
+.row-out {
+  animation: row-out 120ms var(--ease-out) forwards;
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes row-out {
+  to {
+    opacity: 0;
+  }
+}
+
+.attachments {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-}
-
-.settlement-list li {
-  padding: 0.4rem 0;
-  border-bottom: 1px solid var(--gg-coin-soft);
-}
-
-.settlement-list li:last-child {
-  border-bottom: none;
-}
-
-.percent {
-  font-weight: 800;
-  font-family: "Nunito", sans-serif;
-  margin: 0.4rem 0 0.75rem;
-  color: var(--gg-blush);
-}
-
-.stat-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.9rem;
-  color: var(--gg-ink-soft);
-  padding-block: 0.15rem;
-}
-
-.stat-row strong {
-  color: var(--gg-ink);
-}
-
-// Now lives in the shared header (see detail-header) - same "own child" affordance for
-// everyone (treasurer included), not just a non-treasurer's progress card.
-.self-service-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 0.85rem;
-}
-
-.print-button {
-  margin: 0.5rem 0 1rem;
-}
-
-.print-header {
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid var(--gg-ink);
-}
-
-.print-brand {
-  margin: 0;
-  font-family: "Nunito", sans-serif;
-  font-weight: 800;
-  font-size: 1.3rem;
-}
-
-.print-date {
-  margin: 0.15rem 0 0;
-  font-size: 0.85rem;
-  color: var(--gg-ink-soft);
-}
-
-.total-collected {
-  margin: 0 0 1rem;
-  font-size: 1.1rem;
-}
-
-@media print {
-  // The "remove student"/"add student back" action column only makes sense as something to
-  // click - on paper it's just an empty column with nothing in it.
-  .mat-column-actions {
-    display: none;
-  }
-
-  // styles.scss gives every .gg-card `break-inside: avoid` so a small card (e.g. the
-  // settlement result) never splits awkwardly - but for a full class roster that's actively
-  // harmful: the browser can't fit the ENTIRE table+header on whatever's left of the current
-  // page, so it shoves the whole card onto a fresh page instead of just continuing where the
-  // header left off, wasting most of page 1. Letting THIS card break, while keeping each row
-  // intact (`tr { break-inside: avoid }` below), gets the natural "header + as many rows as
-  // fit, rest on page 2" behavior a roster table actually needs.
-  .requirements-card {
-    break-inside: auto;
-  }
-
-  tr {
-    break-inside: avoid;
-  }
-
-  .req-status {
-    // Colored chip backgrounds waste ink and can print as barely-legible pale blocks on a
-    // cheap printer/toner-saving mode - a plain bold label reads reliably either way.
-    background: none !important;
-    color: var(--gg-ink) !important;
-    padding: 0;
-    font-weight: 700;
-  }
-
-  // Same reasoning as .req-status above - the on-screen "soft box" behind the description
-  // is a screen-only nicety, not something worth spending toner on.
-  .description {
-    background: none !important;
-    padding: 0;
-    margin: 0.2rem 0 0.5rem;
-    color: var(--gg-ink) !important;
-  }
-
-  .detail-header h1 {
-    margin: 0 0 0.2rem;
-  }
-
-  .contribution-list li {
-    background: none;
-    border-bottom: 1px solid #ccc;
-    border-radius: 0;
-  }
-
-  // Tighter than the on-screen card rhythm (mat-card's own comfortable padding/margins are
-  // sized for a mouse/finger, not a printed page) - stacked with the smaller root font-size
-  // and @page margin in styles.scss, this is what lets a full class-sized roster (15-20+
-  // students) fit under the header on a single page instead of spilling onto a second.
-  mat-card {
-    margin-top: 0.35rem;
-  }
-
-  // A touch more breathing room than the very first pass - flush against the card's own
-  // border looked like the border was clipping the header/last row rather than framing them.
-  mat-card-header {
-    padding: 0.6rem 0.9rem 0.2rem !important;
-  }
-
-  .mat-mdc-card-content {
-    padding: 0.35rem 0.9rem 0.7rem !important;
-  }
-
-  th.mat-mdc-header-cell,
-  td.mat-mdc-cell {
-    padding: 0.15rem 0.45rem !important;
-    line-height: 1.25;
-  }
-
-  // Material's MDC table sets an explicit row height (52px by default, sized for a
-  // mouse/finger target) regardless of cell padding - without overriding it too, the padding
-  // reduction above does almost nothing for how many rows actually fit on the page.
-  .mat-mdc-header-row,
-  .mat-mdc-row {
-    height: auto;
-  }
-
-  .print-header {
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.35rem;
-  }
-
-  .total-collected {
-    margin: 0 0 0.35rem;
-  }
-}
-
-.attachment-upload {
-  margin-bottom: 0.75rem;
-}
-
-.attachment-error {
-  color: var(--gg-blush);
-  font-size: 0.85rem;
-  margin: 0.4rem 0 0;
+  gap: var(--space-3);
 }
 
 .attachment-list {
-  list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.attachment-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--gg-sky-soft);
-  border-radius: var(--gg-radius-sm);
+  list-style: none;
 }
 
 .attachment-thumb {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   object-fit: cover;
-  border-radius: var(--gg-radius-sm);
+  border-radius: 8px;
   display: block;
 }
 
-.attachment-file-link,
-.attachment-image-link {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--gg-ink);
+.attachment-file-link {
+  color: inherit;
   text-decoration: none;
 }
 
-.attachment-file-link:hover {
-  text-decoration: underline;
-}
-
 .attachment-name {
-  color: var(--gg-ink-soft);
-  font-size: 0.85rem;
   overflow-wrap: anywhere;
-}
-
-.attachment-list .delete-button {
-  margin-inline-start: auto;
 }
 
 .attachment-print-image {
   display: none;
 }
 
+// ---------------------------------------------------------------------------------------
+// The printed report. Plain black on white, tight enough that a 15-20+ student class fits
+// under the header on one page (with the smaller root font-size and @page margin in
+// styles.scss).
+// ---------------------------------------------------------------------------------------
+.print-header {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid #000;
+}
+
+.print-brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+}
+
+.print-date {
+  font-size: 0.85rem;
+}
+
 @media print {
-  .attachments-card {
+  .page {
+    gap: 0.5rem;
+  }
+
+  .detail-head {
+    padding-top: 0;
+  }
+
+  .detail-head h1 {
+    font-size: 2rem;
+  }
+
+  .description {
+    color: #000;
+  }
+
+  .total-collected {
+    font-size: 1.1rem;
+  }
+
+  .print-roster h2,
+  .attachments h2 {
+    font-size: 1.3rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1.1rem;
+  }
+
+  .print-table th,
+  .print-table td {
+    padding: 0.15rem 0.45rem;
+    border-bottom: 1px solid #bbb;
+    text-align: left;
+    line-height: 1.25;
+  }
+
+  .print-table th {
+    border-bottom: 1.5px solid #000;
+  }
+
+  .print-table tr {
     break-inside: avoid;
   }
 
-  .attachment-list li {
+  .print-table .excluded-row {
+    color: #666;
+  }
+
+  .attachments {
+    break-inside: avoid;
+  }
+
+  .attachment-panel {
+    border: 0;
+    box-shadow: none;
     background: none;
-    border-bottom: 1px solid #ccc;
-    border-radius: 0;
+  }
+
+  .attachment-row {
     flex-direction: column;
     align-items: flex-start;
+    border-bottom: 1px solid #ccc;
   }
 
   .attachment-print-image {

@@ -30,6 +30,7 @@ public record CollectionProgressResponse(
         CollectionResponse collection,
         int studentsCount,
         int studentsPaidCount,
+        int studentsPartialCount,
         BigDecimal totalRequired,
         BigDecimal totalPaid,
         int percentComplete) {
@@ -40,23 +41,24 @@ public record CollectionProgressResponse(
 
     /**
      * @param myStudentId the caller's own child's id (from {@code Parent.studentId}), or
-     *     {@code null} if there's no logged-in parent (or no linked Student) to resolve "own
-     *     child" for - see {@code CollectionResponse.myStudentStatus}'s javadoc for what the
-     *     resulting field means in each case.
+     *     {@code null} if there's no logged-in parent (or no linked Student) - see
+     *     {@code CollectionResponse}'s javadoc for what the {@code myStudent*} fields mean.
+     *     {@code studentsPartialCount} counts students who've paid something but not all of
+     *     it - with {@code studentsPaidCount} it drives the class roster dots (one per
+     *     student: filled, half-filled or empty). Counts only, never whose.
      */
     public static CollectionProgressResponse from(CollectionDetails details, String myStudentId) {
         BigDecimal totalRequired = BigDecimal.ZERO;
         BigDecimal totalPaid = BigDecimal.ZERO;
         int paidCount = 0;
-        String myStudentStatus = myStudentId == null ? null : "NOT_INCLUDED";
+        int partialCount = 0;
         for (ContributionRequirement requirement : details.requirements()) {
             totalRequired = totalRequired.add(requirement.requiredAmount());
             totalPaid = totalPaid.add(requirement.paidAmount());
             if (requirement.status() != ContributionRequirementStatus.PENDING) {
                 paidCount++;
-            }
-            if (requirement.studentId().equals(myStudentId)) {
-                myStudentStatus = requirement.status().name();
+            } else if (requirement.paidAmount().signum() > 0) {
+                partialCount++;
             }
         }
         int percent = totalRequired.signum() == 0
@@ -64,7 +66,8 @@ public record CollectionProgressResponse(
                 : totalPaid.min(totalRequired).multiply(BigDecimal.valueOf(100))
                         .divide(totalRequired, 0, RoundingMode.DOWN)
                         .intValue();
-        return new CollectionProgressResponse(CollectionResponse.from(details.collection(), myStudentStatus),
-                details.requirements().size(), paidCount, totalRequired, totalPaid, percent);
+        return new CollectionProgressResponse(
+                CollectionResponse.forViewer(details.collection(), details.requirements(), myStudentId),
+                details.requirements().size(), paidCount, partialCount, totalRequired, totalPaid, percent);
     }
 }

@@ -1,16 +1,32 @@
 .intro {
-  color: var(--gg-ink-soft);
-  margin: 0.5rem 0 0;
-  line-height: 1.55;
   max-width: 60ch;
+  color: var(--ink-2);
 }
 
-mat-card {
-  margin-top: 1rem;
+.explainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
-mat-card-content p {
-  margin: 0;
-  line-height: 1.55;
-  color: var(--gg-ink);
+.topic {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.topic-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: 62ch;
+}
+
+.topic h2 {
+  font-size: var(--text-lg);
+}
+
+.topic p {
+  line-height: 1.6;
+  color: var(--ink-2);
 }

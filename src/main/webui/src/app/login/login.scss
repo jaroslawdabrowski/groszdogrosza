@@ -1,51 +1,31 @@
 .login-page {
-  display: flex;
+  min-height: 70vh;
   justify-content: center;
-  align-items: center;
-  min-height: calc(100dvh - 220px);
-  padding-block: 2rem;
 }
 
-.login-card {
-  max-width: 380px;
+.login-sheet {
   width: 100%;
-  padding: 2.5rem 2rem;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
   text-align: center;
-  border-top: none !important;
-  background: var(--gg-cream-elevated) !important;
-  box-shadow: var(--gg-shadow-lg) !important;
 }
 
 .login-mark {
-  width: 84px;
-  height: 84px;
-  margin: 0 auto 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--gg-gradient-warm);
-  color: var(--gg-ink);
-  box-shadow: var(--gg-shadow-md);
-}
-
-h1 {
-  margin: 0 0 0.35rem;
-  font-size: 1.6rem;
+  color: var(--ink-blue-500);
 }
 
 .subtitle {
-  color: var(--gg-ink-soft);
-  margin: 0 0 1.75rem;
+  max-width: 32ch;
+  color: var(--ink-2);
+  margin-bottom: var(--space-2);
 }
 
-.login-button {
-  width: 100%;
-  height: 46px;
-  font-weight: 700;
-  border-radius: var(--gg-radius-sm);
-
-  mat-icon {
-    margin-inline-end: 0.35rem;
-  }
+.how-link {
+  padding: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
 }

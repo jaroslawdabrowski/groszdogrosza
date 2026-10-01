@@ -1,40 +1,23 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatListModule } from '@angular/material/list';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ParentApiService } from '../core/parent-api.service';
 import { StudentApiService } from '../core/student-api.service';
 import { CollectionApiService } from '../core/collection-api.service';
 import { Parent, Student } from '../core/models';
 import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
+import { MoneyPipe } from '../shared/money.pipe';
+
+/** The panel's three tabs, mirrored in the URL (`?tab=`) so "Nowa zbiórka" can be linked to. */
+type PanelTab = 'students' | 'new' | 'payment';
+const PANEL_TABS: PanelTab[] = ['students', 'new', 'payment'];
 
 @Component({
   selector: 'app-treasurer-panel',
-  imports: [
-    RouterLink,
-    FormsModule,
-    MatCardModule,
-    MatListModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
-    MatTooltipModule,
-    MatCheckboxModule,
-    TranslatePipe,
-    LoadingSpinner,
-  ],
+  imports: [RouterLink, FormsModule, MatIconModule, TranslatePipe, LoadingSpinner, MoneyPipe],
   templateUrl: './treasurer-panel.html',
   styleUrl: './treasurer-panel.scss',
 })
@@ -43,6 +26,14 @@ export class TreasurerPanel {
   private readonly studentApi = inject(StudentApiService);
   private readonly collectionApi = inject(CollectionApiService);
   private readonly translate = inject(TranslateService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
+  readonly tabs = PANEL_TABS;
+  readonly tab = signal<PanelTab>(this.tabFromUrl());
+
+  /** Which student's/parent's row has its actions unfolded - at most one at a time. */
+  readonly openActionsId = signal<string | null>(null);
 
   readonly students = signal<Student[]>([]);
   /** Only guards the FIRST load (a Lambda cold start can take real seconds - see
@@ -119,6 +110,28 @@ export class TreasurerPanel {
     });
   }
 
+  selectTab(tab: PanelTab): void {
+    this.tab.set(tab);
+    this.router.navigate([], { queryParams: { tab: tab === 'students' ? null : tab }, replaceUrl: true });
+  }
+
+  private tabFromUrl(): PanelTab {
+    const requested = this.route.snapshot.queryParamMap.get('tab') as PanelTab | null;
+    return requested && PANEL_TABS.includes(requested) ? requested : 'students';
+  }
+
+  toggleActions(id: string): void {
+    this.openActionsId.update((current) => (current === id ? null : id));
+  }
+
+  isActionsOpen(id: string): boolean {
+    return this.openActionsId() === id;
+  }
+
+  includedInNewCollectionCount(): number {
+    return this.students().filter((s) => this.isStudentIncludedInNewCollection(s.id)).length;
+  }
+
   reloadStudents(): void {
     this.studentApi.list().subscribe({
       next: (students) => {
@@ -183,6 +196,7 @@ export class TreasurerPanel {
   // --- student name edit ---
 
   startEditStudent(student: Student): void {
+    this.openActionsId.set(null);
     this.editingStudentId.set(student.id);
     this.editStudentFirstName.set(student.firstName);
     this.editStudentLastName.set(student.lastName);
@@ -229,6 +243,7 @@ export class TreasurerPanel {
   // --- manual piggy bank top-up (cash received by hand, not a bank transfer) ---
 
   startCreditPiggyBank(studentId: string): void {
+    this.openActionsId.set(null);
     this.creditingStudentId.set(studentId);
     this.creditAmount.set(0);
     this.accountStatus.update((s) => ({ ...s, [studentId]: undefined }));
@@ -261,6 +276,7 @@ export class TreasurerPanel {
   // --- add parent to a student ---
 
   startAddParent(studentId: string): void {
+    this.openActionsId.set(null);
     this.addingParentToStudentId.set(studentId);
     this.newParentFirstName.set('');
     this.newParentLastName.set('');
@@ -292,6 +308,7 @@ export class TreasurerPanel {
   // --- parent edit/delete ---
 
   startEdit(parent: Parent): void {
+    this.openActionsId.set(null);
     this.editingParentId.set(parent.id);
     this.editFirstName.set(parent.firstName);
     this.editLastName.set(parent.lastName);
