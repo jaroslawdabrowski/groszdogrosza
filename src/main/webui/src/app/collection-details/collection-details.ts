@@ -234,10 +234,11 @@ export class CollectionDetails {
         this.uploadingAttachment.set(false);
         this.reloadAttachments();
       },
-      error: () => {
+      error: (err) => {
         reset();
         this.uploadingAttachment.set(false);
         this.attachmentError.set(this.translate.instant('collectionDetails.attachmentUploadFailed'));
+        this.attachmentApi.reportFailure(file, err);
       },
     });
   }

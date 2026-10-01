@@ -1,7 +1,28 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, catchError, from, switchMap, throwError } from 'rxjs';
 import { Attachment } from './models';
+
+/** Which step of an attachment upload failed - see AttachmentApiService.upload. */
+export class UploadError extends Error {
+  constructor(
+    readonly step: 'read' | 'request' | 'put' | 'confirm',
+    detail: string,
+  ) {
+    super(`${step}: ${detail}`);
+  }
+}
+
+function describe(err: unknown): string {
+  if (err instanceof HttpErrorResponse) {
+    const body = typeof err.error === 'string' ? err.error : JSON.stringify(err.error);
+    return `HTTP ${err.status} ${err.statusText} ${(body ?? '').slice(0, 300)}`;
+  }
+  if (err instanceof Error) {
+    return `${err.name}: ${err.message}`;
+  }
+  return String(err);
+}
 
 /** Allowed file types/max size - the user's own explicit choice (asked via
  *  AskUserQuestion): images a phone camera produces plus PDF, capped at 10MB. Mirrors the
@@ -56,47 +77,47 @@ export class AttachmentApiService {
   /** The full three-step direct-to-S3 upload flow in one call - see backend
    *  RequestAttachmentUploadUseCase/ConfirmAttachmentUploadUseCase's javadoc for why it's
    *  three separate HTTP calls under the hood rather than a single multipart POST to the
-   *  Lambda (the Function URL's synchronous payload limit). */
+   *  Lambda (the Function URL's synchronous payload limit).
+   *
+   *  The file is read into memory first and those bytes are uploaded, not the File handle:
+   *  on an iPhone a photo picked from the library once reached S3 as 0 bytes. Every step
+   *  tags its failure (UploadError.step), so a failed upload can be reported and diagnosed
+   *  - see reportFailure. */
   upload(collectionId: string, file: File): Observable<Attachment> {
-    return new Observable<Attachment>((subscriber) => {
-      // Read the whole file into memory FIRST and upload those bytes, not the File handle.
-      // On iPhone (WebKit) a photo picked from the library is a temporary file that can be
-      // gone by the time the PUT streams it - the request still "succeeds", but S3 stores a
-      // 0-byte object that later shows as a broken image (seen on production). The backend's
-      // confirm step also rejects a size mismatch, as a second line of defence.
-      file.arrayBuffer().then(
-        (buffer) => {
-          if (buffer.byteLength === 0 || buffer.byteLength !== file.size) {
-            subscriber.error(new Error(`Could not read ${file.name}: got ${buffer.byteLength} of ${file.size} bytes`));
-            return;
-          }
-          this.uploadBytes(collectionId, file, new Blob([buffer], { type: file.type })).subscribe(subscriber);
-        },
-        (err) => subscriber.error(err),
-      );
-    });
+    return from(file.arrayBuffer()).pipe(
+      catchError((err) => throwError(() => new UploadError('read', describe(err)))),
+      switchMap((buffer) => {
+        // Only an EMPTY read is refused. The size iOS reports for a picked photo can differ
+        // from the bytes it hands over (it converts HEIC to JPEG on the way), so the bytes
+        // actually read are what gets declared to the backend, not file.size.
+        if (buffer.byteLength === 0) {
+          return throwError(() => new UploadError('read', `0 bytes read, file.size=${file.size}`));
+        }
+        const bytes = new Blob([buffer], { type: file.type });
+        return this.requestUpload(collectionId, file.name, file.type, bytes.size).pipe(
+          catchError((err) => throwError(() => new UploadError('request', describe(err)))),
+          switchMap((ticket) =>
+            this.putToS3(ticket.uploadUrl, bytes).pipe(
+              catchError((err) => throwError(() => new UploadError('put', describe(err)))),
+              switchMap(() =>
+                this.confirmUpload(collectionId, ticket.attachmentId, file.name, file.type, bytes.size).pipe(
+                  catchError((err) => throwError(() => new UploadError('confirm', describe(err)))),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
   }
 
-  private uploadBytes(collectionId: string, file: File, bytes: Blob): Observable<Attachment> {
-    return new Observable<Attachment>((subscriber) => {
-      this.requestUpload(collectionId, file.name, file.type, bytes.size).subscribe({
-        next: (ticket) => {
-          this.putToS3(ticket.uploadUrl, bytes).subscribe({
-            next: () => {
-              this.confirmUpload(collectionId, ticket.attachmentId, file.name, file.type, bytes.size).subscribe({
-                next: (attachment) => {
-                  subscriber.next(attachment);
-                  subscriber.complete();
-                },
-                error: (err) => subscriber.error(err),
-              });
-            },
-            error: (err) => subscriber.error(err),
-          });
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
+  /** Writes a failed upload into the server log (POST /api/client-log), since the failing
+   *  steps run in the browser where nobody can see them. Best effort - its own failure is
+   *  ignored. */
+  reportFailure(file: File, err: unknown): void {
+    const step = err instanceof UploadError ? err.step : 'unknown';
+    const message = `${describe(err)} | file=${file.name} type=${file.type || '-'} size=${file.size}`;
+    this.http.post('/api/client-log', { context: `attachment-upload:${step}`, message }).subscribe({ error: () => {} });
   }
 
   delete(collectionId: string, attachmentId: string): Observable<object> {

@@ -16,10 +16,13 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.OptionalLong;
 import java.util.UUID;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class CollectionAttachmentService implements RequestAttachmentUploadUseCase, ConfirmAttachmentUploadUseCase,
         ListAttachmentsUseCase, DeleteAttachmentUseCase {
+
+    private static final Logger LOG = Logger.getLogger(CollectionAttachmentService.class);
 
     @Inject
     AttachmentRepositoryPort attachmentRepository;
@@ -53,6 +56,8 @@ public class CollectionAttachmentService implements RequestAttachmentUploadUseCa
             // 0-byte object and then showed as a broken image. Don't record a file nobody can
             // open: drop the bad object and tell the client the upload failed.
             attachmentStorage.deleteObject(s3Key);
+            LOG.warnf("Rejected attachment %s (%s): declared %d bytes, S3 holds %d",
+                    attachmentId, fileName, sizeBytes, storedSize.getAsLong());
             throw new UnsupportedAttachmentException("Uploaded file is incomplete: expected " + sizeBytes
                     + " bytes, got " + storedSize.getAsLong());
         }
