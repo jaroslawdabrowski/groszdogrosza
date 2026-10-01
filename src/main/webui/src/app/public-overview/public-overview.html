@@ -12,29 +12,29 @@
   @if (loading()) {
     <app-loading-spinner [label]="'common.loading' | translate" />
   } @else if (overview(); as o) {
+    <!-- Always shown, even with no active collection: paying ahead into the piggy bank is
+         the whole point, so how to pay is never hidden. -->
+    <section class="pay-card" id="how-to-pay" aria-labelledby="how-to-pay-heading" data-testid="payment-info">
+      <div class="pay-card-head">
+        <h2 id="how-to-pay-heading">{{ 'publicOverview.howToPay' | translate }}</h2>
+        <mat-icon aria-hidden="true">account_balance</mat-icon>
+      </div>
+      <div class="prepay">
+        <p class="prepay-title">{{ 'start.prepayTitle' | translate }} <strong class="num">{{ suggestedPrepay(o) | money }} zł</strong></p>
+        <p class="prepay-body">{{ 'start.prepayBody' | translate }}</p>
+        @if (isLoggedIn() && totalOwed(o) > 0) {
+          <p class="prepay-due" data-testid="total-owed">{{ 'start.dueNow' | translate: { amount: (totalOwed(o) | money) } }}</p>
+        }
+      </div>
+      @if (hasPaymentInfo(o)) {
+        <ng-container [ngTemplateOutlet]="payment" [ngTemplateOutletContext]="{ $implicit: o }" />
+      } @else {
+        <p class="notice"><mat-icon>info</mat-icon>{{ 'start.noPaymentInfo' | translate }}</p>
+      }
+    </section>
+
     @if (o.activeCollections.length === 0) {
       <div class="panel empty-state">{{ 'start.noActive' | translate }}</div>
-    }
-
-    @if (o.activeCollections.length > 0) {
-      <section class="pay-card" id="how-to-pay" aria-labelledby="how-to-pay-heading" data-testid="payment-info">
-        <div class="pay-card-head">
-          <h2 id="how-to-pay-heading">{{ 'publicOverview.howToPay' | translate }}</h2>
-          <mat-icon aria-hidden="true">account_balance</mat-icon>
-        </div>
-        <div class="prepay">
-          <p class="prepay-title">{{ 'start.prepayTitle' | translate }} <strong class="num">{{ suggestedPrepay(o) | money }} zł</strong></p>
-          <p class="prepay-body">{{ 'start.prepayBody' | translate }}</p>
-          @if (isLoggedIn() && totalOwed(o) > 0) {
-            <p class="prepay-due" data-testid="total-owed">{{ 'start.dueNow' | translate: { amount: (totalOwed(o) | money) } }}</p>
-          }
-        </div>
-        @if (hasPaymentInfo(o)) {
-          <ng-container [ngTemplateOutlet]="payment" [ngTemplateOutletContext]="{ $implicit: o }" />
-        } @else {
-          <p class="notice"><mat-icon>info</mat-icon>{{ 'start.noPaymentInfo' | translate }}</p>
-        }
-      </section>
     }
 
     @for (c of o.activeCollections; track c.collection.id) {

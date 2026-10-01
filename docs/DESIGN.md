@@ -150,7 +150,8 @@ only for destructive actions and shortfalls). Ink text is `#1c2a5c`.
 On Start, **"Jak zapłacić" is drawn like a bank card**: an ink-blue gradient, white figures,
 and the account number, BLIK number and transfer title as translucent wells with copy
 buttons. Everything else on the page stays white and quiet. Every text colour on the card is
-a light tint of its own hue (never grey on colour), and all of them are ≥ 5:1. It sits at
+a light tint of its own hue (never grey on colour), and all of them are ≥ 5:1. It is shown
+always, even when no collection is active (paying ahead is the point), and it sits at
 the top of the page, which is the user's choice.
 
 **The card encourages paying ahead, not paying exactly what's owed.** This is the user's
