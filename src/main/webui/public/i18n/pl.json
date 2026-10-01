@@ -198,7 +198,13 @@
     "parentsCount": "Rodzice: {{count}}",
     "baseAmountHint": "Skarbonka dziecka od razu pokryje, ile się da.",
     "seeCollections": "Zobacz zbiórki",
-    "noParent": "Bez rodzica"
+    "noParent": "Bez rodzica",
+    "errors": {
+      "title": "Wpisz nazwę zbiórki.",
+      "amount": "Podaj kwotę od ucznia większą od 0 zł.",
+      "students": "Zaznacz co najmniej jednego ucznia.",
+      "createFailed": "Nie udało się utworzyć zbiórki. Sprawdź dane i spróbuj ponownie."
+    }
   },
   "howItWorks": {
     "eyebrow": "Dla rodziców",

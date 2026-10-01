@@ -198,7 +198,13 @@
     "parentsCount": "Parents: {{count}}",
     "baseAmountHint": "Each child's piggy bank covers what it can right away.",
     "seeCollections": "See collections",
-    "noParent": "No parent yet"
+    "noParent": "No parent yet",
+    "errors": {
+      "title": "Enter a name for the collection.",
+      "amount": "Enter an amount per student above 0 zł.",
+      "students": "Select at least one student.",
+      "createFailed": "The collection couldn't be created. Check the details and try again."
+    }
   },
   "howItWorks": {
     "eyebrow": "For parents",

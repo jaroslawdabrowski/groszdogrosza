@@ -208,27 +208,34 @@ export class CollectionDetails {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    input.value = '';
+    // Cleared so picking the same file again still fires (change) - but only once we're done
+    // with the file: on iPhone, clearing the input releases the picked photo, and reading it
+    // afterwards gives 0 bytes (a "successful" upload of an empty, broken image).
+    const reset = () => (input.value = '');
     if (!file) {
       return;
     }
     this.attachmentError.set(null);
     if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
       this.attachmentError.set(this.translate.instant('collectionDetails.attachmentTypeError'));
+      reset();
       return;
     }
     if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
       this.attachmentError.set(this.translate.instant('collectionDetails.attachmentSizeError'));
+      reset();
       return;
     }
 
     this.uploadingAttachment.set(true);
     this.attachmentApi.upload(this.collectionId, file).subscribe({
       next: () => {
+        reset();
         this.uploadingAttachment.set(false);
         this.reloadAttachments();
       },
       error: () => {
+        reset();
         this.uploadingAttachment.set(false);
         this.attachmentError.set(this.translate.instant('collectionDetails.attachmentUploadFailed'));
       },

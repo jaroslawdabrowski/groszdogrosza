@@ -93,8 +93,14 @@ export class TreasurerPanel {
 
   readonly newCollectionTitle = signal('');
   readonly newCollectionDescription = signal('');
-  readonly newCollectionBaseAmount = signal<number>(0);
+  /** null = the field is empty (rather than a misleading pre-filled 0). */
+  readonly newCollectionBaseAmount = signal<number | null>(null);
   readonly collectionCreated = signal(false);
+  /** Field errors of the "Nowa zbiórka" form, shown once the treasurer tries to submit -
+   *  see NewCollectionPolicy on the backend, which enforces the same rules. */
+  readonly collectionErrors = signal<{ title?: string; amount?: string; students?: string; server?: string }>({});
+  /** Guards against a double click creating the collection twice. */
+  readonly creatingCollection = signal(false);
   /** Students unchecked on the "who's in this collection" checklist - not every collection
    *  includes every student (e.g. a trip a student already can't attend). Tracking the
    *  excluded set rather than the included one means a newly-added student defaults to
@@ -163,18 +169,46 @@ export class TreasurerPanel {
   }
 
   createCollection(): void {
+    if (this.creatingCollection()) {
+      return;
+    }
     const includedStudentIds = this.students()
       .map((s) => s.id)
       .filter((id) => this.isStudentIncludedInNewCollection(id));
-    this.collectionApi
-      .create(this.newCollectionTitle(), this.newCollectionDescription(), this.newCollectionBaseAmount(), includedStudentIds)
-      .subscribe(() => {
+    const title = (this.newCollectionTitle() ?? '').trim();
+    const amount = Number(this.newCollectionBaseAmount());
+
+    const errors: { title?: string; amount?: string; students?: string } = {};
+    if (!title) {
+      errors.title = 'treasurer.errors.title';
+    }
+    if (!(amount > 0)) {
+      errors.amount = 'treasurer.errors.amount';
+    }
+    if (includedStudentIds.length === 0) {
+      errors.students = 'treasurer.errors.students';
+    }
+    this.collectionErrors.set(errors);
+    this.collectionCreated.set(false);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
+    this.creatingCollection.set(true);
+    this.collectionApi.create(title, this.newCollectionDescription(), amount, includedStudentIds).subscribe({
+      next: () => {
+        this.creatingCollection.set(false);
         this.newCollectionTitle.set('');
         this.newCollectionDescription.set('');
-        this.newCollectionBaseAmount.set(0);
+        this.newCollectionBaseAmount.set(null);
         this.excludedStudentIdsForNewCollection.set(new Set());
         this.collectionCreated.set(true);
-      });
+      },
+      error: () => {
+        this.creatingCollection.set(false);
+        this.collectionErrors.set({ server: 'treasurer.errors.createFailed' });
+      },
+    });
   }
 
   isStudentIncludedInNewCollection(studentId: string): boolean {

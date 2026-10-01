@@ -14,6 +14,7 @@ import jakarta.inject.Inject;
 import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.OptionalLong;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -40,10 +41,20 @@ public class CollectionAttachmentService implements RequestAttachmentUploadUseCa
             String collectionId, String attachmentId, String fileName, String contentType, long sizeBytes) {
         AttachmentPolicy.validate(contentType, sizeBytes);
         String s3Key = s3Key(collectionId, attachmentId);
-        if (!attachmentStorage.objectExists(s3Key)) {
+        OptionalLong storedSize = attachmentStorage.objectSize(s3Key);
+        if (storedSize.isEmpty()) {
             // The browser's PUT to the presigned URL never actually completed (network
             // failure, cancelled upload) - nothing to confirm.
             throw new NoSuchElementException("Upload not found for attachment " + attachmentId);
+        }
+        if (storedSize.getAsLong() != sizeBytes) {
+            // The PUT "succeeded" but S3 holds a different number of bytes than the browser
+            // said it was sending - seen for real on iPhone, where the photo arrived as a
+            // 0-byte object and then showed as a broken image. Don't record a file nobody can
+            // open: drop the bad object and tell the client the upload failed.
+            attachmentStorage.deleteObject(s3Key);
+            throw new UnsupportedAttachmentException("Uploaded file is incomplete: expected " + sizeBytes
+                    + " bytes, got " + storedSize.getAsLong());
         }
         CollectionAttachment attachment = new CollectionAttachment(
                 attachmentId, collectionId, fileName, contentType, sizeBytes, s3Key, Instant.now());

@@ -1,5 +1,7 @@
 package io.github.jaroslawdabrowski.groszdogrosza.collection.port.out;
 
+import java.util.OptionalLong;
+
 /** S3-backed object storage for attachment bytes - see {@code S3AttachmentStorageAdapter}. */
 public interface AttachmentStoragePort {
 
@@ -7,7 +9,8 @@ public interface AttachmentStoragePort {
 
     String presignGetUrl(String s3Key, String fileName);
 
-    boolean objectExists(String s3Key);
+    /** The stored object's size in bytes, or empty if nothing was uploaded under this key. */
+    OptionalLong objectSize(String s3Key);
 
     void deleteObject(String s3Key);
 }

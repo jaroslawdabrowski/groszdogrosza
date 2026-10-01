@@ -266,7 +266,18 @@
         <div class="form">
           <div class="field">
             <label for="new-title">{{ 'treasurer.collectionTitle' | translate }}</label>
-            <input class="input" id="new-title" autocomplete="off" [ngModel]="newCollectionTitle()" (ngModelChange)="newCollectionTitle.set($event)">
+            <input
+              class="input"
+              id="new-title"
+              autocomplete="off"
+              [attr.aria-invalid]="!!collectionErrors().title"
+              [attr.aria-describedby]="collectionErrors().title ? 'new-title-error' : null"
+              [ngModel]="newCollectionTitle()"
+              (ngModelChange)="newCollectionTitle.set($event)"
+            >
+            @if (collectionErrors().title; as error) {
+              <p class="field-error gg-enter" id="new-title-error">{{ error | translate }}</p>
+            }
           </div>
           <div class="field">
             <label for="new-description">{{ 'treasurer.collectionDescription' | translate }}</label>
@@ -275,9 +286,24 @@
           <div class="field amount-field">
             <label for="new-amount">{{ 'treasurer.baseAmount' | translate }}</label>
             <div class="input-group">
-              <input class="input num" id="new-amount" type="number" inputmode="decimal" [ngModel]="newCollectionBaseAmount()" (ngModelChange)="newCollectionBaseAmount.set($event)">
+              <input
+                class="input num"
+                id="new-amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                inputmode="decimal"
+                placeholder="np. 30"
+                [attr.aria-invalid]="!!collectionErrors().amount"
+                [attr.aria-describedby]="collectionErrors().amount ? 'new-amount-error' : null"
+                [ngModel]="newCollectionBaseAmount()"
+                (ngModelChange)="newCollectionBaseAmount.set($event)"
+              >
               <span class="suffix">zł</span>
             </div>
+            @if (collectionErrors().amount; as error) {
+              <p class="field-error gg-enter" id="new-amount-error">{{ error | translate }}</p>
+            }
             <p class="hint">{{ 'treasurer.baseAmountHint' | translate }}</p>
           </div>
 
@@ -299,10 +325,16 @@
                   </label>
                 }
               </div>
+              @if (collectionErrors().students; as error) {
+                <p class="field-error gg-enter">{{ error | translate }}</p>
+              }
             </fieldset>
           }
 
-          <button type="button" class="btn btn--primary btn--block" (click)="createCollection()">
+          @if (collectionErrors().server; as error) {
+            <p class="notice notice--error gg-enter"><mat-icon>error</mat-icon>{{ error | translate }}</p>
+          }
+          <button type="button" class="btn btn--primary btn--block" [disabled]="creatingCollection()" (click)="createCollection()">
             <mat-icon>add</mat-icon>{{ 'treasurer.createCollectionButton' | translate }}
           </button>
           @if (collectionCreated()) {

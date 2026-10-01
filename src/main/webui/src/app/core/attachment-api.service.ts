@@ -30,7 +30,7 @@ export class AttachmentApiService {
     );
   }
 
-  private putToS3(uploadUrl: string, file: File): Observable<object> {
+  private putToS3(uploadUrl: string, file: Blob): Observable<object> {
     // Not through the app's own HttpClient base/interceptor chain conceptually, but the
     // same HttpClient instance works fine for an absolute cross-origin URL - the
     // authInterceptor only attaches a bearer token to same-origin /api/* requests (see
@@ -59,11 +59,31 @@ export class AttachmentApiService {
    *  Lambda (the Function URL's synchronous payload limit). */
   upload(collectionId: string, file: File): Observable<Attachment> {
     return new Observable<Attachment>((subscriber) => {
-      this.requestUpload(collectionId, file.name, file.type, file.size).subscribe({
+      // Read the whole file into memory FIRST and upload those bytes, not the File handle.
+      // On iPhone (WebKit) a photo picked from the library is a temporary file that can be
+      // gone by the time the PUT streams it - the request still "succeeds", but S3 stores a
+      // 0-byte object that later shows as a broken image (seen on production). The backend's
+      // confirm step also rejects a size mismatch, as a second line of defence.
+      file.arrayBuffer().then(
+        (buffer) => {
+          if (buffer.byteLength === 0 || buffer.byteLength !== file.size) {
+            subscriber.error(new Error(`Could not read ${file.name}: got ${buffer.byteLength} of ${file.size} bytes`));
+            return;
+          }
+          this.uploadBytes(collectionId, file, new Blob([buffer], { type: file.type })).subscribe(subscriber);
+        },
+        (err) => subscriber.error(err),
+      );
+    });
+  }
+
+  private uploadBytes(collectionId: string, file: File, bytes: Blob): Observable<Attachment> {
+    return new Observable<Attachment>((subscriber) => {
+      this.requestUpload(collectionId, file.name, file.type, bytes.size).subscribe({
         next: (ticket) => {
-          this.putToS3(ticket.uploadUrl, file).subscribe({
+          this.putToS3(ticket.uploadUrl, bytes).subscribe({
             next: () => {
-              this.confirmUpload(collectionId, ticket.attachmentId, file.name, file.type, file.size).subscribe({
+              this.confirmUpload(collectionId, ticket.attachmentId, file.name, file.type, bytes.size).subscribe({
                 next: (attachment) => {
                   subscriber.next(attachment);
                   subscriber.complete();

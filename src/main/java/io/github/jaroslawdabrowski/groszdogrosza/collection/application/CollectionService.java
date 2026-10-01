@@ -4,6 +4,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.bankstatement.domain.Contributi
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.Collection;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.CollectionNotActiveException;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.CollectionStatus;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.NewCollectionPolicy;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.Contribution;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.ContributionRequirement;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.ContributionRequirementStatus;
@@ -67,7 +68,8 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
     @Override
     public Collection createCollection(
             String title, String description, BigDecimal baseAmountPerStudent, List<String> includedStudentIds) {
-        Collection collection = new Collection(UUID.randomUUID().toString(), title, description,
+        NewCollectionPolicy.validate(title, baseAmountPerStudent, includedStudentIds);
+        Collection collection = new Collection(UUID.randomUUID().toString(), title.trim(), description,
                 CollectionStatus.ACTIVE, baseAmountPerStudent, Instant.now());
         collection = collectionRepository.saveCollection(collection);
 

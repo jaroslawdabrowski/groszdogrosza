@@ -783,6 +783,21 @@ button.list-row:active {
   box-shadow: 0 0 0 4px var(--ink-blue-100);
 }
 
+// A field the user has to fix: red edge + a short message under it (never colour alone).
+.input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.input[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 4px var(--danger-tint);
+}
+
+.field-error {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--danger);
+}
+
 .input-group {
   position: relative;
   display: flex;

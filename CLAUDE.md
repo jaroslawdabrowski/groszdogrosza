@@ -148,6 +148,24 @@ wired up yet: `createCollection` computes requirements and sets status `ACTIVE`
 immediately; `CollectionStatus.DRAFT` exists in the domain model for a possible future
 two-step flow but nothing currently produces one.
 
+**A new collection is validated** (`collection.domain.NewCollectionPolicy`, called from
+`createCollection`; `InvalidCollectionException` maps to 400): a non-blank title, an amount
+per student above 0, and at least one student. Description stays optional. Added after a
+collection was created by accident with an empty title and 0 zł - the form had no validation
+at all. `TreasurerPanel`'s form checks the same rules before submitting, shows the errors
+under the fields, and disables the button while saving (a double click used to be able to
+create the collection twice). Only new collections are checked; stored ones load as they are.
+
+**Attachments: an upload must arrive in full** - on an iPhone a photo once reached S3 as a
+**0-byte object** (the record said 235 kB), which then showed as a broken image. Cause:
+`CollectionDetails.onFileSelected` cleared the file input before the upload, and WebKit
+releases the picked photo when that happens, so reading it later gave nothing. Fixed twice
+over: the frontend reads the whole file into memory first (`AttachmentApiService.upload`)
+and only clears the input when it's done, and `confirmUpload` compares the size S3 actually
+holds (`AttachmentStoragePort.objectSize`) with the declared one - on a mismatch it deletes
+the object and fails, instead of recording a file nobody can open. Desktop Chrome (and so
+the e2e suite) never reproduced it.
+
 **Not every collection includes every student** - `CreateCollectionUseCase.createCollection`
 takes an explicit `includedStudentIds` list; a student left off it gets no
 `ContributionRequirement` at all, not a zeroed one. This exists for the class-trip case: a

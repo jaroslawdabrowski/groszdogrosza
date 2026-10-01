@@ -4,6 +4,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.out.AttachmentS
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Duration;
+import java.util.OptionalLong;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -65,13 +66,13 @@ public class S3AttachmentStorageAdapter implements AttachmentStoragePort {
     }
 
     @Override
-    public boolean objectExists(String s3Key) {
+    public OptionalLong objectSize(String s3Key) {
         try {
-            s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(s3Key).build());
-            return true;
+            return OptionalLong.of(
+                    s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(s3Key).build()).contentLength());
         } catch (S3Exception e) {
             if (e.statusCode() == 404) {
-                return false;
+                return OptionalLong.empty();
             }
             throw e;
         }
