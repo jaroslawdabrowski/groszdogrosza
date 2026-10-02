@@ -164,6 +164,18 @@ brakuje 27 zł"). For the same reason a collection's sheet leads with the *class
 big "you owe" number. For a logged-in parent the card also shows their child's surname as
 the transfer title (bank matching relies on it).
 
+### Start for the treasurer, and the install hint
+
+- **"Do zrobienia"** (treasurer only, above the payment card): collections everyone has paid
+  for (ready to settle), missing payment details, students without a parent. Hidden when
+  empty.
+- **The child's piggy bank is a line on the blue card** ("Kalina ma w skarbonce 12 zł"),
+  next to how to pay, not a separate row at the bottom of the page.
+- **Install hint** (`shared/install-hint`, logged-in users, once): on iPhone Safari it
+  explains Share → "Do ekranu początkowego"; on Android/desktop Chrome it offers a real
+  "Zainstaluj" button (`beforeinstallprompt`). Hidden when already installed or dismissed
+  (localStorage).
+
 ### Screens
 
 | Route | What it is |
@@ -173,7 +185,7 @@ the transfer title (bank matching relies on it).
 | `/collections/:id` | A hero sheet (collected / of, roster dots, your child, join/leave), then, for the treasurer only, the students list with a filter, payments, the settle panel (settling asks for confirmation and restates the cost and the amount collected), the settlement result and attachments. Printing switches to a plain black-and-white table (`.print-only`) that fits one page. |
 | `/treasurer` Klasa | Tabs Uczniowie / Nowa zbiórka / Dane do wpłat (`?tab=new` / `?tab=payment`). Shows the piggy bank total, students with their parents, and actions that unfold inline. |
 | `/students/:id` | The piggy bank balance, the parents and the activity log. |
-| `/ledger` | The treasurer's full activity log, grouped by day. |
+| `/ledger` | The treasurer's full activity log, grouped by day, filterable by kind (Wpłaty / Skarbonki / Rozliczenia), child and collection. |
 | `/wiecej`, `/jak-to-dziala`, `/login` | The phone's "more" page, an explainer, and the login landing page. |
 
 ### App icon, favicon, splash

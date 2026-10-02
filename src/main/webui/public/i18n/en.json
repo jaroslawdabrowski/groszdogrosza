@@ -59,7 +59,22 @@
     "title": "Activity log",
     "noEntries": "No entries yet.",
     "forbidden": "This view is only available to the treasurer.",
-    "sub": "Every payment and piggy bank movement, newest first."
+    "sub": "Every payment and piggy bank movement, newest first.",
+    "filters": "Filters",
+    "kindLabel": "Kind of events",
+    "kind": {
+      "all": "All",
+      "payments": "Payments",
+      "piggy": "Piggy banks",
+      "settlements": "Settlements"
+    },
+    "student": "Child",
+    "collection": "Collection",
+    "allStudents": "All children",
+    "allCollections": "All collections",
+    "shown": "Showing {{count}} of {{total}}",
+    "clear": "Clear filters",
+    "noMatches": "Nothing matches these filters."
   },
   "collection": {
     "status": {
@@ -89,7 +104,6 @@
     "settle": "Settle collection",
     "settlementResult": "Settlement result",
     "actualCost": "Actual cost (PLN)",
-    "settleButton": "Settle collection",
     "totalSurplus": "Surplus to refund",
     "totalShortfall": "Shortfall",
     "toPiggyBank": "to piggy bank",
@@ -127,7 +141,14 @@
     "filterEmpty": "Nobody here.",
     "of": "of",
     "settleHint": "What was actually spent. Any surplus goes back equally to the piggy banks of children who paid.",
-    "settleConfirm": "Settle this collection? Cost: {{cost}} zł, collected: {{collected}} zł. Any surplus goes equally to the piggy banks of children who paid. This can't be undone."
+    "previewButton": "Preview the settlement",
+    "draftTitle": "Settlement preview at a cost of {{cost}} zł",
+    "draftSurplus": "The {{amount}} zł surplus goes back to {{count}} children's piggy banks:",
+    "draftShortfall": "{{amount}} zł short - less was collected than it cost. Nobody gets anything back.",
+    "draftExact": "The cost equals what was collected - nothing goes back to piggy banks.",
+    "draftIrreversible": "Once confirmed the collection is closed. This can't be undone.",
+    "draftBack": "Change the cost",
+    "draftConfirm": "Confirm settlement"
   },
   "studentView": {
     "piggyBank": "Piggy bank",
@@ -259,6 +280,21 @@
     "prepayTitle": "Pay ahead, e.g.",
     "prepayBody": "Whatever is left waits in your child's piggy bank and pays for the next collections by itself. One transfer instead of one per collection.",
     "dueNow": "Current collections still need {{amount}} zł.",
-    "childDue": "{{name}}: {{amount}} zł to go"
+    "childDue": "{{name}}: {{amount}} zł to go",
+    "cardPiggy": "{{name}}'s piggy bank",
+    "todo": {
+      "title": "To do",
+      "readyToSettle": "\"{{title}}\": everyone has paid - ready to settle",
+      "noPaymentInfo": "Add an account number or BLIK so parents know how to pay",
+      "noParent": "Students with no parent added: {{count}}"
+    }
+  },
+  "install": {
+    "title": "Add the app to your home screen",
+    "body": "It will open like a regular app, without the browser bar.",
+    "button": "Install",
+    "iosStep1": "In Safari, tap",
+    "iosStep2": "(Share), then \"Add to Home Screen\".",
+    "dismiss": "Don't show again"
   }
 }

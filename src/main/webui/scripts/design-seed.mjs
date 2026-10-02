@@ -9,10 +9,14 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 const OUT = new URL('../../../../target/design', import.meta.url).pathname;
-const base = 'http://localhost:8080';
+// GG_BASE_URL when the dev server runs on another port (e.g. 8081 next to another project).
+const base = process.env.GG_BASE_URL ?? 'http://localhost:8080';
 mkdirSync(OUT, { recursive: true });
 
 function localstack() {
+  if (process.env.GG_LOCALSTACK_URL) {
+    return process.env.GG_LOCALSTACK_URL;
+  }
   const line = execFileSync('docker', ['ps', '--format', '{{.Image}}\t{{.Ports}}']).toString()
     .split('\n').find((l) => l.startsWith('localstack/localstack'));
   return `http://localhost:${line.match(/0\.0\.0\.0:(\d+)->4566\/tcp/)[1]}`;

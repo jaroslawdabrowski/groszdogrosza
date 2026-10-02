@@ -13,8 +13,19 @@ import { CollectionProgress, CollectionSummary, PublicOverview as PublicOverview
 import { LoadingSpinner } from '../shared/loading-spinner/loading-spinner';
 import { RosterDots } from '../shared/roster-dots/roster-dots';
 import { MoneyPipe } from '../shared/money.pipe';
+import { InstallHint } from '../shared/install-hint/install-hint';
 
 type CopyField = 'bank' | 'blik' | 'title';
+
+/** One item on the treasurer's "Do zrobienia" list - see PublicOverview.todos. */
+interface TodoItem {
+  key: string;
+  icon: string;
+  textKey: string;
+  params: Record<string, string | number>;
+  link: string[];
+  query?: Record<string, string>;
+}
 
 /**
  * Start ("/"). For anyone, logged in or not: every ACTIVE collection's progress (aggregate
@@ -24,7 +35,7 @@ type CopyField = 'bank' | 'blik' | 'title';
  */
 @Component({
   selector: 'app-public-overview',
-  imports: [NgTemplateOutlet, RouterLink, ClipboardModule, MatIconModule, TranslatePipe, LoadingSpinner, RosterDots, MoneyPipe],
+  imports: [NgTemplateOutlet, RouterLink, ClipboardModule, MatIconModule, TranslatePipe, LoadingSpinner, RosterDots, MoneyPipe, InstallHint],
   templateUrl: './public-overview.html',
   styleUrl: './public-overview.scss',
 })
@@ -52,6 +63,42 @@ export class PublicOverview {
       .slice(0, 3),
   );
 
+  /** Every student in the class - only loaded for the treasurer (the endpoint is
+   *  treasurer-only), for the "Do zrobienia" list. */
+  readonly students = signal<Student[]>([]);
+
+  /** The treasurer's "Do zrobienia": things on Start that need the treasurer, not a parent.
+   *  Collections everyone has paid for (ready to settle), missing payment details, and
+   *  students with no parent attached (nobody can log in for them, and a transfer from a
+   *  grandparent's account can't be matched through a parent). Empty = the section hides. */
+  readonly todos = computed<TodoItem[]>(() => {
+    if (!this.isTreasurer()) {
+      return [];
+    }
+    const items: TodoItem[] = [];
+    const o = this.overview();
+    for (const c of o?.activeCollections ?? []) {
+      if (c.studentsCount > 0 && c.studentsPaidCount === c.studentsCount) {
+        items.push({ key: `settle-${c.collection.id}`, icon: 'task_alt', textKey: 'start.todo.readyToSettle',
+          params: { title: c.collection.title }, link: ['/collections', c.collection.id] });
+      }
+    }
+    if (o && !this.hasPaymentInfo(o)) {
+      items.push({ key: 'payment', icon: 'account_balance', textKey: 'start.todo.noPaymentInfo', params: {},
+        link: ['/treasurer'], query: { tab: 'payment' } });
+    }
+    const orphans = this.students().filter((s) => s.parents.length === 0).length;
+    if (orphans > 0) {
+      items.push({ key: 'orphans', icon: 'person_add', textKey: 'start.todo.noParent', params: { count: orphans },
+        link: ['/treasurer'] });
+    }
+    return items;
+  });
+
+  isTreasurer(): boolean {
+    return this.currentUser.isTreasurer();
+  }
+
   constructor() {
     this.publicApi.overview().subscribe({
       next: (overview) => {
@@ -65,6 +112,9 @@ export class PublicOverview {
       this.currentUser.load().subscribe((parent) => {
         if (parent?.studentId) {
           this.studentApi.get(parent.studentId).subscribe((student) => this.child.set(student));
+        }
+        if (parent?.role === 'TREASURER') {
+          this.studentApi.list().subscribe((students) => this.students.set(students));
         }
       });
     }

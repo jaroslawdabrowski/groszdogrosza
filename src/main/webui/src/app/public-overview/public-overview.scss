@@ -202,6 +202,43 @@
   line-height: 1.5;
 }
 
+.piggy-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-field);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--on-card);
+  text-decoration: none;
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.piggy-line:active {
+  transform: scale(0.985);
+}
+
+.piggy-line mat-icon:first-child {
+  color: #ffd25e;
+  font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+}
+
+.piggy-line span {
+  flex: 1;
+  color: var(--on-card-2);
+}
+
+.piggy-line strong {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 800;
+}
+
+.piggy-line .chev {
+  color: var(--on-card-2);
+}
+
 .pay-card .payment-rows {
   margin-bottom: 0;
 }
@@ -236,4 +273,23 @@
   .pay-card .icon-btn:hover {
     background: rgba(255, 255, 255, 0.16);
   }
+}
+
+.todo {
+  display: flex;
+  flex-direction: column;
+}
+
+.todo-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  margin-left: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--gold);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  vertical-align: middle;
 }

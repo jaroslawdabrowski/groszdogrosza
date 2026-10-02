@@ -106,7 +106,12 @@ export interface Student {
 
 export interface LedgerEntry {
   id: string;
-  eventType: 'CONTRIBUTION_RECEIVED' | 'COLLECTION_SETTLED' | 'PIGGY_BANK_CREDITED' | 'PIGGY_BANK_APPLIED_TO_COLLECTION';
+  eventType:
+    | 'CONTRIBUTION_RECEIVED'
+    | 'COLLECTION_SETTLED'
+    | 'PIGGY_BANK_CREDITED'
+    | 'PIGGY_BANK_APPLIED_TO_COLLECTION'
+    | 'REMOVED_FROM_COLLECTION';
   occurredAt: string;
   params: Record<string, string>;
 }

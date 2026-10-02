@@ -72,6 +72,10 @@ export class CollectionDetails {
   readonly loading = signal(true);
   readonly settlementPreview = signal<SettlementResult | null>(null);
   readonly actualCostSpent = signal<number>(0);
+  /** The dry-run result shown before the treasurer commits (step 1 of settling). Cleared
+   *  whenever the cost changes, so what's confirmed is always what was previewed. */
+  readonly settlementDraft = signal<SettlementResult | null>(null);
+  readonly settling = signal(false);
   readonly filter = signal<RosterFilter>('all');
   readonly filters: RosterFilter[] = ['all', 'owe', 'paid'];
   readonly isCollectionDetails = isCollectionDetails;
@@ -255,21 +259,33 @@ export class CollectionDetails {
     return contentType.startsWith('image/');
   }
 
+  setActualCost(cost: number): void {
+    this.actualCostSpent.set(cost);
+    this.settlementDraft.set(null);
+  }
+
   /** Settling is final (the collection becomes SETTLED and any surplus goes to piggy banks
-   *  for good), so it asks first, restating the numbers being committed. */
-  settle(): void {
-    const confirmed = window.confirm(
-      this.translate.instant('collectionDetails.settleConfirm', {
-        cost: this.actualCostSpent(),
-        collected: this.totalCollected(),
-      }),
+   *  for good), so it's two steps: first a dry run showing who gets how much back... */
+  previewSettlement(): void {
+    this.collectionApi.previewSettlement(this.collectionId, this.actualCostSpent()).subscribe((draft) =>
+      this.settlementDraft.set(draft),
     );
-    if (!confirmed) {
+  }
+
+  /** ...then the real settle, at exactly the previewed cost. */
+  settle(): void {
+    if (!this.settlementDraft() || this.settling()) {
       return;
     }
-    this.collectionApi.settle(this.collectionId, this.actualCostSpent()).subscribe((result) => {
-      this.settlementPreview.set(result);
-      this.reload();
+    this.settling.set(true);
+    this.collectionApi.settle(this.collectionId, this.actualCostSpent()).subscribe({
+      next: (result) => {
+        this.settling.set(false);
+        this.settlementDraft.set(null);
+        this.settlementPreview.set(result);
+        this.reload();
+      },
+      error: () => this.settling.set(false),
     });
   }
 

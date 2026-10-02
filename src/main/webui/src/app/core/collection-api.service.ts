@@ -29,6 +29,11 @@ export class CollectionApiService {
     return this.http.post<CollectionDetails>(`/api/collections/${collectionId}/contributions`, { studentId, amount });
   }
 
+  /** What settling at this cost would do - nothing is saved (see backend PreviewSettlementUseCase). */
+  previewSettlement(collectionId: string, actualCostSpent: number): Observable<SettlementResult> {
+    return this.http.post<SettlementResult>(`/api/collections/${collectionId}/settle-preview`, { actualCostSpent });
+  }
+
   settle(collectionId: string, actualCostSpent: number): Observable<SettlementResult> {
     return this.http.post<SettlementResult>(`/api/collections/${collectionId}/settle`, { actualCostSpent });
   }

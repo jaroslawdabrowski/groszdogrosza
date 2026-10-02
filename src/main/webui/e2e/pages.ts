@@ -375,9 +375,9 @@ export class CollectionDetailsPage {
 
   async settle(actualCostSpentZl: string): Promise<void> {
     await this.page.getByLabel('Rzeczywisty koszt (zł)').fill(actualCostSpentZl);
-    // Settling asks for confirmation first - see CollectionDetails.settle.
-    this.page.once('dialog', (dialog) => dialog.accept());
-    await this.page.getByRole('button', { name: 'Rozlicz zbiórkę' }).click();
+    // Two steps - a preview of who gets what back, then the real settle (CollectionDetails).
+    await this.page.getByRole('button', { name: 'Pokaż, jak się rozliczy' }).click();
+    await this.page.getByRole('button', { name: 'Zatwierdź rozliczenie' }).click();
   }
 
   async expectStatus(status: 'ACTIVE' | 'SETTLED'): Promise<void> {

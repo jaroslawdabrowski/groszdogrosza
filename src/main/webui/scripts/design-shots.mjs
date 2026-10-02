@@ -11,7 +11,8 @@ const only = onlyArg ? onlyArg.split(',') : null;
 const sizes = sizesArg ? sizesArg.split(',') : null;
 mkdirSync(`${DIR}/${tag}`, { recursive: true });
 const { ids, trip, katechizm } = JSON.parse(readFileSync(`${DIR}/ids.json`, 'utf8'));
-const base = 'http://localhost:8080';
+// GG_BASE_URL when the dev server runs on another port (e.g. 8081 next to another project).
+const base = process.env.GG_BASE_URL ?? 'http://localhost:8080';
 
 const screens = [
   ['splash', null, '/'],

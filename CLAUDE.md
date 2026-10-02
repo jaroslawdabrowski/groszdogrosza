@@ -90,6 +90,15 @@ Frontend (run from `src/main/webui/`, only needed standalone - normally Quinoa d
 
 Java 21; Node must satisfy Angular 20's engine check (`^20.19.0 || ^22.12.0 || >=24.0.0`) - Node 24.14.0 was used during scaffolding and works.
 
+**Running next to another Quarkus project in dev mode** (e.g. finansik): Dev Services are
+shared between projects by default, so this app silently attaches to the other project's
+Keycloak/Localstack (wrong realm, no test users). Start it on its own ports with its own
+containers: `./mvnw quarkus:dev -Dquarkus.http.port=8081 -Dquarkus.quinoa.dev-server.port=4201
+"-Dquarkus.quinoa.package-manager-command.dev=run start -- --host=0.0.0.0 --port=4201"
+-Ddebug=false -Dquarkus.keycloak.devservices.shared=false -Dquarkus.aws.devservices.localstack.shared=false`,
+then run e2e with `GG_E2E_BASE_URL=http://localhost:8081 GG_LOCALSTACK_URL=<the "connect to the
+stack at" URL from the dev log>` (the design scripts take `GG_BASE_URL` the same way).
+
 **End-to-end test** (`src/main/webui/e2e/main-flow.spec.ts`, Playwright): the main money
 flow against a real running app - treasurer creates a collection, a payment is recorded, it
 settles, a parent's own login sees their child's piggy bank. Requires `./mvnw quarkus:dev`
@@ -207,9 +216,11 @@ with a non-dividing surplus).
 commits the result (credits piggy banks, writes ledger entries, marks the collection
 SETTLED) in one call - there's no separate "preview" endpoint yet even though the user's
 spec asked for a settle-preview-then-confirm UI flow; `CollectionDetails`'s "Rozlicz"
-button currently commits immediately. **TODO**: add a preview-only variant of
-`SettleCollectionUseCase` (or an optional `dryRun` param) before this goes live - settling
-should not be a single irreversible click with no preview in a tool tracking real money.
+button used to commit immediately. **Now two steps**: `POST /api/collections/{id}/settle-preview`
+(`PreviewSettlementUseCase`, treasurer-only) runs the same `SettlementPolicy` without saving
+anything, and `CollectionDetails` shows who gets how much back (or the shortfall) before a
+separate "Zatwierdź rozliczenie" commits it. Changing the cost clears the preview, so what's
+confirmed is always what was previewed.
 
 `CollectionService.settleCollection` guards against being called on a collection that isn't
 `ACTIVE` (`CollectionNotActiveException`, mapped to `409` by
@@ -901,10 +912,8 @@ Roughly in the order they'd block real usage:
    ran. Fixed the URL by appending the real path to the invocation endpoint. Only provable by
    watching the next scheduled run's logs (can't force-fire a `schedule_expression` rule on
    demand).
-3. **Decide the settle-preview UX** - right now `POST /collections/{id}/settle` commits
-   immediately with no dry-run; the user's spec asked for a preview-then-confirm flow. Add
-   either a `dryRun` param to `SettleCollectionUseCase` or a separate preview endpoint, and
-   a confirm step in `CollectionDetails`'s template before this is safe to use for real.
+3. ~~Decide the settle-preview UX~~ **Done** - preview then confirm, see the `collection`
+   section above.
 4. **Terraform**: run `infra/bootstrap` once for real, `terraform apply -target=aws_ecr_repository.app`,
    then a first real `scripts/build.sh && scripts/deploy.sh` - none of `infra/main` has
    been applied against a real AWS account yet, only `terraform validate`/`terraform fmt`

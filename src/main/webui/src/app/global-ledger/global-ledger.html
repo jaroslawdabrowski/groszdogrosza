@@ -11,6 +11,45 @@
   } @else if (entries().length === 0) {
     <div class="panel empty-state">{{ 'globalLedger.noEntries' | translate }}</div>
   } @else {
+    <section class="filters" aria-label="{{ 'globalLedger.filters' | translate }}">
+      <div class="segmented" role="group" [attr.aria-label]="'globalLedger.kindLabel' | translate"
+           [style.--seg-count]="kinds.length" [style.--seg-index]="kinds.indexOf(kind())">
+        <span class="segmented-indicator" aria-hidden="true"></span>
+        @for (k of kinds; track k) {
+          <button type="button" [attr.aria-pressed]="kind() === k" (click)="kind.set(k)">{{ ('globalLedger.kind.' + k) | translate }}</button>
+        }
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="filter-student">{{ 'globalLedger.student' | translate }}</label>
+          <select id="filter-student" class="input select" [ngModel]="studentFilter()" (ngModelChange)="studentFilter.set($event)">
+            <option value="">{{ 'globalLedger.allStudents' | translate }}</option>
+            @for (o of studentOptions(); track o.id) {
+              <option [value]="o.id">{{ o.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="filter-collection">{{ 'globalLedger.collection' | translate }}</label>
+          <select id="filter-collection" class="input select" [ngModel]="collectionFilter()" (ngModelChange)="collectionFilter.set($event)">
+            <option value="">{{ 'globalLedger.allCollections' | translate }}</option>
+            @for (o of collectionOptions(); track o.id) {
+              <option [value]="o.id">{{ o.title }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      @if (isFiltered()) {
+        <p class="filter-summary">
+          {{ 'globalLedger.shown' | translate: { count: filtered().length, total: entries().length } }}
+          <button type="button" class="btn btn--text btn--sm" (click)="clearFilters()">{{ 'globalLedger.clear' | translate }}</button>
+        </p>
+      }
+    </section>
+
+    @if (filtered().length === 0) {
+      <div class="panel empty-state">{{ 'globalLedger.noMatches' | translate }}</div>
+    }
     @for (day of days(); track day.label) {
       <section>
         <div class="section-head"><h2 class="day-label">{{ day.label }}</h2></div>

@@ -14,6 +14,11 @@ import { randomUUID } from 'node:crypto';
  * never point GG_E2E_BASE_URL at a real deployment and run this against it.
  */
 function localstackEndpoint(): string {
+  // Set when more than one Localstack is running (e.g. another project's dev server next to
+  // this one) - the first container `docker ps` lists may not be this app's.
+  if (process.env.GG_LOCALSTACK_URL) {
+    return process.env.GG_LOCALSTACK_URL;
+  }
   const psOutput = execFileSync('docker', ['ps', '--format', '{{.Image}}\t{{.Ports}}']).toString();
   const line = psOutput.split('\n').find((l) => l.startsWith('localstack/localstack'));
   if (!line) {

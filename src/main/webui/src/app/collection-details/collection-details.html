@@ -259,15 +259,43 @@
                 type="number"
                 inputmode="decimal"
                 [ngModel]="actualCostSpent()"
-                (ngModelChange)="actualCostSpent.set($event)"
+                (ngModelChange)="setActualCost($event)"
               >
               <span class="suffix">zł</span>
             </div>
             <p class="hint">{{ 'collectionDetails.settleHint' | translate }}</p>
           </div>
-          <button type="button" class="btn btn--primary btn--block" (click)="settle()">
-            <mat-icon>task_alt</mat-icon>{{ 'collectionDetails.settleButton' | translate }}
-          </button>
+          @if (settlementDraft(); as draft) {
+            <div class="settle-draft gg-enter" data-testid="settle-draft">
+              <p class="draft-title">{{ 'collectionDetails.draftTitle' | translate: { cost: (actualCostSpent() | money) } }}</p>
+              @if (draft.totalShortfall > 0) {
+                <p class="notice notice--error"><mat-icon>error</mat-icon>{{ 'collectionDetails.draftShortfall' | translate: { amount: (draft.totalShortfall | money) } }}</p>
+              } @else if (draft.totalSurplus > 0) {
+                <p class="draft-sub">{{ 'collectionDetails.draftSurplus' | translate: { amount: (draft.totalSurplus | money), count: draft.studentSettlements.length } }}</p>
+                <div class="list draft-list">
+                  @for (s of draft.studentSettlements; track s.studentId) {
+                    <div class="list-row" data-testid="draft-row">
+                      <span class="list-main"><span class="list-title">{{ nameForStudent(s.studentId) }}</span></span>
+                      <span class="list-amount num">+{{ s.leftoverToCredit | money }} zł</span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="draft-sub">{{ 'collectionDetails.draftExact' | translate }}</p>
+              }
+              <p class="hint">{{ 'collectionDetails.draftIrreversible' | translate }}</p>
+              <div class="actions-row">
+                <button type="button" class="btn btn--secondary" (click)="settlementDraft.set(null)">{{ 'collectionDetails.draftBack' | translate }}</button>
+                <button type="button" class="btn btn--primary" [disabled]="settling()" (click)="settle()">
+                  <mat-icon>task_alt</mat-icon>{{ 'collectionDetails.draftConfirm' | translate }}
+                </button>
+              </div>
+            </div>
+          } @else {
+            <button type="button" class="btn btn--primary btn--block" (click)="previewSettlement()">
+              <mat-icon>preview</mat-icon>{{ 'collectionDetails.previewButton' | translate }}
+            </button>
+          }
         </section>
       }
 

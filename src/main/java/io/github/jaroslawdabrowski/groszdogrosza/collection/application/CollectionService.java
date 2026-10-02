@@ -20,6 +20,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetCollectio
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListCollectionsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RecordManualContributionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RemoveStudentFromCollectionUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.PreviewSettlementUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SweepPiggyBankIntoActiveCollectionsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.out.CollectionRepositoryPort;
@@ -45,7 +46,7 @@ import java.util.UUID;
 public class CollectionService implements CreateCollectionUseCase, GetCollectionUseCase, ListCollectionsUseCase,
         RecordManualContributionUseCase, ApplyAutomaticContributionUseCase, GetActiveRequirementsForStudentUseCase,
         SettleCollectionUseCase, RemoveStudentFromCollectionUseCase, AddStudentToCollectionUseCase,
-        SweepPiggyBankIntoActiveCollectionsUseCase {
+        SweepPiggyBankIntoActiveCollectionsUseCase, PreviewSettlementUseCase {
 
     @Inject
     CollectionRepositoryPort collectionRepository;
@@ -216,6 +217,16 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
             applyContribution(requirementAllocation.collectionId(), studentId, requirementAllocation.amountApplied(),
                     ContributionSource.PIGGY_BANK_APPLIED, null);
         }
+    }
+
+    @Override
+    public SettlementResult previewSettlement(String collectionId, BigDecimal actualCostSpent) {
+        Collection collection = collectionRepository.findCollectionById(collectionId)
+                .orElseThrow(() -> new NoSuchElementException("No such collection: " + collectionId));
+        if (collection.status() != CollectionStatus.ACTIVE) {
+            throw new CollectionNotActiveException(collectionId, collection.status());
+        }
+        return SettlementPolicy.settle(collectionRepository.findContributionsByCollectionId(collectionId), actualCostSpent);
     }
 
     @Override

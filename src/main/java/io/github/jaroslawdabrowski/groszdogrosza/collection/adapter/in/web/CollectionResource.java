@@ -9,6 +9,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.GetCollectio
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListCollectionsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RecordManualContributionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RemoveStudentFromCollectionUseCase;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.PreviewSettlementUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.GetFullLedgerUseCase;
@@ -60,6 +61,9 @@ public class CollectionResource {
 
     @Inject
     SettleCollectionUseCase settleCollectionUseCase;
+
+    @Inject
+    PreviewSettlementUseCase previewSettlementUseCase;
 
     @Inject
     RemoveStudentFromCollectionUseCase removeStudentFromCollectionUseCase;
@@ -128,6 +132,14 @@ public class CollectionResource {
         String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
         return CollectionDetailsResponse.from(
                 details, listStudentsUseCase.listStudents(), myStudentId, removedStudentsCountFor(details));
+    }
+
+    /** Dry run of {@code settle} - nothing is saved. Treasurer-only, like settling itself. */
+    @POST
+    @Path("/{id}/settle-preview")
+    public SettlementResultResponse previewSettle(@PathParam("id") String id, SettleCollectionRequest request) {
+        authorizationSupport.requireTreasurer(identity);
+        return SettlementResultResponse.from(previewSettlementUseCase.previewSettlement(id, request.actualCostSpent()));
     }
 
     @POST

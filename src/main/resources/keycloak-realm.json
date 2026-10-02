@@ -9,7 +9,7 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://localhost:8080/*", "http://localhost:4200/*"],
+      "redirectUris": ["http://localhost:8080/*", "http://localhost:8081/*", "http://localhost:4200/*"],
       "webOrigins": ["+"]
     }
   ],

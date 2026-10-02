@@ -59,7 +59,22 @@
     "title": "Dziennik zdarzeń",
     "noEntries": "Brak wpisów.",
     "forbidden": "Ten widok jest dostępny tylko dla skarbnika.",
-    "sub": "Każda wpłata i każdy ruch w skarbonkach, od najnowszych."
+    "sub": "Każda wpłata i każdy ruch w skarbonkach, od najnowszych.",
+    "filters": "Filtry",
+    "kindLabel": "Rodzaj zdarzeń",
+    "kind": {
+      "all": "Wszystko",
+      "payments": "Wpłaty",
+      "piggy": "Skarbonki",
+      "settlements": "Rozliczenia"
+    },
+    "student": "Dziecko",
+    "collection": "Zbiórka",
+    "allStudents": "Wszystkie dzieci",
+    "allCollections": "Wszystkie zbiórki",
+    "shown": "Pokazano {{count}} z {{total}}",
+    "clear": "Wyczyść filtry",
+    "noMatches": "Nic nie pasuje do wybranych filtrów."
   },
   "collection": {
     "status": {
@@ -89,7 +104,6 @@
     "settle": "Rozliczenie zbiórki",
     "settlementResult": "Wynik rozliczenia",
     "actualCost": "Rzeczywisty koszt (zł)",
-    "settleButton": "Rozlicz zbiórkę",
     "totalSurplus": "Nadwyżka do zwrotu",
     "totalShortfall": "Brakująca kwota",
     "toPiggyBank": "do skarbonki",
@@ -127,7 +141,14 @@
     "filterEmpty": "Nikogo tu nie ma.",
     "of": "z",
     "settleHint": "Ile faktycznie wydaliśmy. Nadwyżka wróci po równo do skarbonek dzieci, które wpłaciły.",
-    "settleConfirm": "Rozliczyć zbiórkę? Koszt: {{cost}} zł, zebrano: {{collected}} zł. Nadwyżka trafi po równo do skarbonek dzieci, które wpłaciły. Tej operacji nie można cofnąć."
+    "previewButton": "Pokaż, jak się rozliczy",
+    "draftTitle": "Podgląd rozliczenia przy koszcie {{cost}} zł",
+    "draftSurplus": "Nadwyżka {{amount}} zł wróci do skarbonek {{count}} dzieci:",
+    "draftShortfall": "Brakuje {{amount}} zł - zebrano mniej, niż wynosi koszt. Nikt nic nie dostanie z powrotem.",
+    "draftExact": "Koszt równa się zebranej kwocie - nic nie wraca do skarbonek.",
+    "draftIrreversible": "Po zatwierdzeniu zbiórka zostanie zamknięta. Tego nie da się cofnąć.",
+    "draftBack": "Zmień koszt",
+    "draftConfirm": "Zatwierdź rozliczenie"
   },
   "studentView": {
     "piggyBank": "Skarbonka",
@@ -259,6 +280,21 @@
     "prepayTitle": "Wpłać z góry, np.",
     "prepayBody": "Co zostanie, czeka w skarbonce dziecka i samo opłaci kolejne zbiórki. Jeden przelew zamiast przelewu na każdą zbiórkę.",
     "dueNow": "Na bieżące zbiórki brakuje {{amount}} zł.",
-    "childDue": "{{name}}: brakuje {{amount}} zł"
+    "childDue": "{{name}}: brakuje {{amount}} zł",
+    "cardPiggy": "{{name}} ma w skarbonce",
+    "todo": {
+      "title": "Do zrobienia",
+      "readyToSettle": "„{{title}}”: wszyscy wpłacili - można rozliczyć",
+      "noPaymentInfo": "Uzupełnij numer konta lub BLIK, żeby rodzice wiedzieli, jak wpłacać",
+      "noParent": "Uczniowie bez dodanego rodzica: {{count}}"
+    }
+  },
+  "install": {
+    "title": "Dodaj aplikację do ekranu początkowego",
+    "body": "Będzie się otwierać jak zwykła aplikacja, bez paska przeglądarki.",
+    "button": "Zainstaluj",
+    "iosStep1": "W Safari stuknij",
+    "iosStep2": "(Udostępnij), a potem „Do ekranu początkowego”.",
+    "dismiss": "Nie pokazuj więcej"
   }
 }
