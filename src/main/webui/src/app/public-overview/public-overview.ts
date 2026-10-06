@@ -100,13 +100,7 @@ export class PublicOverview {
   }
 
   constructor() {
-    this.publicApi.overview().subscribe({
-      next: (overview) => {
-        this.overview.set(overview);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+    this.loadOverview();
     if (this.authService.isAuthenticated()) {
       this.collectionApi.list().subscribe((collections) => this.allCollections.set(collections));
       this.currentUser.load().subscribe((parent) => {
@@ -118,6 +112,25 @@ export class PublicOverview {
         }
       });
     }
+  }
+
+  /** Set when the overview couldn't be loaded - the page then says so and offers a retry,
+   *  instead of showing an empty page with no collections and no payment details. */
+  readonly loadFailed = signal(false);
+
+  loadOverview(): void {
+    this.loading.set(true);
+    this.loadFailed.set(false);
+    this.publicApi.overview().subscribe({
+      next: (overview) => {
+        this.overview.set(overview);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.loadFailed.set(true);
+      },
+    });
   }
 
   isLoggedIn(): boolean {

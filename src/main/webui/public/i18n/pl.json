@@ -287,7 +287,9 @@
       "readyToSettle": "„{{title}}”: wszyscy wpłacili - można rozliczyć",
       "noPaymentInfo": "Uzupełnij numer konta lub BLIK, żeby rodzice wiedzieli, jak wpłacać",
       "noParent": "Uczniowie bez dodanego rodzica: {{count}}"
-    }
+    },
+    "loadFailed": "Nie udało się wczytać zbiórek. Sprawdź połączenie z internetem i spróbuj ponownie.",
+    "retry": "Spróbuj ponownie"
   },
   "install": {
     "title": "Dodaj aplikację do ekranu początkowego",

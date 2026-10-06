@@ -443,6 +443,14 @@ by scanning for `role == TREASURER` (there's normally exactly one - see `ParentR
 by a dedicated "the" pointer, consistent with how the rest of this app treats the treasurer
 as just another `Parent` row rather than a special singleton entity.
 
+**A stale token must never hide the public page.** Quarkus validates any bearer token it's
+given - even on a `permit` path - so an expired ID token left in localStorage (session ran
+out while the app was closed) turned `GET /api/public/overview` into a 401, and Start showed
+no collections and no payment details until the user logged in again. `authInterceptor` now
+attaches the token only while `hasValidIdToken()`, and a 401 from `/api/public/*` is retried
+once without it; Start also shows an error with a retry button instead of an empty page.
+Covered by `e2e/expired-session.spec.ts` (fails against the old interceptor).
+
 The Angular route `/` was repointed from `Dashboard` to a new unauthenticated
 `PublicOverview` component for this - `Dashboard` (the full collection list, previously at
 `/`) moved to `/dashboard`, now behind `authGuard` like everything else. `PublicOverview`

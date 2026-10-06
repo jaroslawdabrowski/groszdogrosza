@@ -151,6 +151,13 @@
       }
 
     }
+  } @else if (loadFailed()) {
+    <div class="panel load-error" data-testid="load-error">
+      <p class="notice notice--error"><mat-icon>cloud_off</mat-icon>{{ 'start.loadFailed' | translate }}</p>
+      <button type="button" class="btn btn--primary" (click)="loadOverview()">
+        <mat-icon>refresh</mat-icon>{{ 'start.retry' | translate }}
+      </button>
+    </div>
   }
 </div>
 

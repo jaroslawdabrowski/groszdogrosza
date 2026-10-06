@@ -287,7 +287,9 @@
       "readyToSettle": "\"{{title}}\": everyone has paid - ready to settle",
       "noPaymentInfo": "Add an account number or BLIK so parents know how to pay",
       "noParent": "Students with no parent added: {{count}}"
-    }
+    },
+    "loadFailed": "The collections couldn't be loaded. Check your internet connection and try again.",
+    "retry": "Try again"
   },
   "install": {
     "title": "Add the app to your home screen",

@@ -1,6 +1,7 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { OAuthService } from 'angular-oauth2-oidc';
+import { catchError, throwError } from 'rxjs';
 
 /**
  * Sends the ID token, not the access token, as the bearer credential to our own backend.
@@ -22,10 +23,25 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  const idToken = inject(OAuthService).getIdToken();
+  // Only a token that's still valid. An expired one left in storage (session ran out while
+  // the app was closed) makes the backend reject even the public endpoints with 401 - Quarkus
+  // validates any bearer token it's given, permitted path or not - so Start showed no
+  // collections and no payment details until the user logged in again.
+  const oauth = inject(OAuthService);
+  const idToken = oauth.hasValidIdToken() ? oauth.getIdToken() : null;
   if (!idToken) {
     return next(req);
   }
 
-  return next(req.clone({ setHeaders: { Authorization: `Bearer ${idToken}` } }));
+  const withToken = next(req.clone({ setHeaders: { Authorization: `Bearer ${idToken}` } }));
+  if (!req.url.startsWith('/api/public/')) {
+    return withToken;
+  }
+  // Public data must never depend on the token: if it's rejected anyway (expired between the
+  // check above and the server, or revoked), ask again anonymously.
+  return withToken.pipe(
+    catchError((err) =>
+      err instanceof HttpErrorResponse && err.status === 401 ? next(req) : throwError(() => err),
+    ),
+  );
 };

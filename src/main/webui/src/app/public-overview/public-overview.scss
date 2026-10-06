@@ -294,3 +294,9 @@
   font-size: var(--text-sm);
   vertical-align: middle;
 }
+
+.load-error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
