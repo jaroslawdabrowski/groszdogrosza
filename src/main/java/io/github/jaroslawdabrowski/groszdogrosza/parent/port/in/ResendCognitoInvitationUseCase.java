@@ -4,5 +4,5 @@ package io.github.jaroslawdabrowski.groszdogrosza.parent.port.in;
  *  an account but says they never received it (or it expired). */
 public interface ResendCognitoInvitationUseCase {
 
-    void resendCognitoInvitation(String parentId);
+    void resendCognitoInvitation(String classId, String parentId);
 }

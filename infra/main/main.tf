@@ -93,6 +93,14 @@ resource "aws_cognito_user_pool" "app" {
   auto_verified_attributes = ["email"]
   username_attributes      = ["email"]
 
+  # The app identifies people by their verified email (platform.security.CallerEmail). If a
+  # user changed their own email attribute, Cognito would otherwise switch it immediately
+  # (unverified) - with this, the old, verified address stays in effect until the new one is
+  # confirmed from its own inbox, so nobody can take on someone else's email.
+  user_attribute_update_settings {
+    attributes_require_verification_before_update = ["email"]
+  }
+
   admin_create_user_config {
     allow_admin_create_user_only = true
 

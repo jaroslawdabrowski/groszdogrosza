@@ -11,5 +11,5 @@ import java.util.List;
  */
 public interface GetActiveRequirementsForStudentUseCase {
 
-    List<ContributionRequirement> getActivePendingRequirements(String studentId);
+    List<ContributionRequirement> getActivePendingRequirements(String classId, String studentId);
 }

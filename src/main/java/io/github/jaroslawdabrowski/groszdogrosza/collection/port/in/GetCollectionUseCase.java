@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface GetCollectionUseCase {
 
-    Optional<CollectionDetails> getCollection(String collectionId);
+    Optional<CollectionDetails> getCollection(String classId, String collectionId);
 
     record CollectionDetails(
             Collection collection,

@@ -5,5 +5,5 @@ import java.util.List;
 
 public interface ListParentsUseCase {
 
-    List<Parent> listParents();
+    List<Parent> listParents(String classId);
 }

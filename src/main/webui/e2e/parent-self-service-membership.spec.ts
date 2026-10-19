@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seedTreasurer } from './seed';
+import { E2E_CLASS_ID, seedTreasurer } from './seed';
 import { Api, AppShell, CollectionDetailsPage, Dashboard, LoginPage, TreasurerPanel } from './pages';
 
 /**
@@ -106,10 +106,11 @@ test.describe('a parent can add/remove their own child from an ACTIVE collection
     // --- A second, unrelated parent cannot touch Kasia's membership directly via the API ---
     await login.loginAs('rodzic2', 'rodzic2');
     const rodzic2IdToken = await page.evaluate(() => localStorage.getItem('id_token'));
-    const forbidden = await request.delete(`${baseURL}/api/collections/${collectionId}/students/${kasiaStudentId}`, {
+    const forbidden = await request.delete(`${baseURL}/api/classes/${E2E_CLASS_ID}/collections/${collectionId}/students/${kasiaStudentId}`, {
       headers: { Authorization: `Bearer ${rodzic2IdToken}` },
     });
-    expect(forbidden.status()).toBe(403);
+    // 404, not 403: someone else's child doesn't exist as far as this parent is concerned.
+    expect(forbidden.status()).toBe(404);
     await app.logout();
 
     // --- Kasia's own parent again: pays in, then opts her back out - refunded, requirement gone ---

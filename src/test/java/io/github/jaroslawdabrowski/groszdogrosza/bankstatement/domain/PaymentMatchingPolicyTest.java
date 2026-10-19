@@ -18,16 +18,16 @@ class PaymentMatchingPolicyTest {
     private static final double THRESHOLD = 0.90;
 
     private static Student student(String id, String lastName) {
-        return new Student(id, "Child", lastName, BigDecimal.ZERO);
+        return new Student(id, "class-1", "Child", lastName, BigDecimal.ZERO);
     }
 
     private static Parent parent(String id, String studentId, String lastName, String expectedSenderName) {
-        return new Parent(id, studentId, "First", lastName, "x@example.com", expectedSenderName, null,
+        return new Parent(id, "class-1", studentId, "First", lastName, "x@example.com", expectedSenderName, null,
                 ParentRole.PARENT, null);
     }
 
     private static Parent treasurer(String id, String studentId, String expectedSenderName) {
-        return new Parent(id, studentId, "First", "Last", "treasurer@example.com", expectedSenderName, null,
+        return new Parent(id, "class-1", studentId, "First", "Last", "treasurer@example.com", expectedSenderName, null,
                 ParentRole.TREASURER, null);
     }
 

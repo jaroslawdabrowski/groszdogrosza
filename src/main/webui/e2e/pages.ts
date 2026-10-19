@@ -1,4 +1,5 @@
 import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
+import { E2E_CLASS_ID } from './seed';
 
 /**
  * Page Object Model for the e2e suite - one class per screen (plus a couple of small
@@ -279,8 +280,14 @@ export class StudentItem {
     await this.openActions();
     await this.root.getByRole('button', { name: 'Doładuj skarbonkę gotówką' }).click();
     const form = this.root.getByTestId('credit-form');
-    await form.getByLabel('Kwota (zł)').fill(amountZl);
+    const amount = form.getByLabel('Kwota (zł)');
+    // Opening the form resets the amount to 0 - wait until it's open and settled before typing,
+    // and check the value stuck, otherwise a late reset leaves 0 and nothing is credited.
+    await expect(amount).toHaveValue('0');
+    await amount.fill(amountZl);
+    await expect(amount).toHaveValue(amountZl);
     await form.getByRole('button', { name: 'Doładuj skarbonkę', exact: true }).click();
+    await expect(this.root.getByText('Skarbonka doładowana.')).toBeVisible();
   }
 }
 
@@ -537,6 +544,7 @@ export class Api {
     private readonly request: APIRequestContext,
     private readonly baseURL: string,
     private readonly treasurerIdToken: string,
+    private readonly classId: string = E2E_CLASS_ID,
   ) {}
 
   private get headers(): Record<string, string> {
@@ -546,7 +554,7 @@ export class Api {
   /** The test only knows a lastName, not the id DynamoDB assigned when the UI created the
    *  student - resolve it the same way the app itself would, via the real API. */
   async studentIdByLastName(lastName: string): Promise<string> {
-    const resp = await this.request.get(`${this.baseURL}/api/students`, { headers: this.headers });
+    const resp = await this.request.get(`${this.baseURL}/api/classes/${this.classId}/students`, { headers: this.headers });
     const students = (await resp.json()) as Array<{ id: string; lastName: string }>;
     const match = students.find((s) => s.lastName === lastName);
     if (!match) {
@@ -557,7 +565,7 @@ export class Api {
 
   /** Same idea as studentIdByLastName, for a collection created through the UI. */
   async collectionIdByTitle(title: string): Promise<string> {
-    const resp = await this.request.get(`${this.baseURL}/api/collections`, { headers: this.headers });
+    const resp = await this.request.get(`${this.baseURL}/api/classes/${this.classId}/collections`, { headers: this.headers });
     const collections = (await resp.json()) as Array<{ id: string; title: string }>;
     const match = collections.find((c) => c.title === title);
     if (!match) {
@@ -569,7 +577,7 @@ export class Api {
   /** Stands in for "a payment arrived" - see main-flow.spec.ts's class comment for why this
    *  isn't a UI click. */
   async recordContribution(collectionId: string, studentId: string, amountZl: number): Promise<void> {
-    const resp = await this.request.post(`${this.baseURL}/api/collections/${collectionId}/contributions`, {
+    const resp = await this.request.post(`${this.baseURL}/api/classes/${this.classId}/collections/${collectionId}/contributions`, {
       headers: this.headers,
       data: { studentId, amount: amountZl },
     });
@@ -583,7 +591,7 @@ export class Api {
    *  student an existing piggy bank balance *before* a collection is created, so its
    *  requirement is computed against a non-zero starting balance. */
   async creditPiggyBank(studentId: string, amountZl: number): Promise<void> {
-    const resp = await this.request.post(`${this.baseURL}/api/students/${studentId}/piggy-bank/credit`, {
+    const resp = await this.request.post(`${this.baseURL}/api/classes/${this.classId}/students/${studentId}/piggy-bank/credit`, {
       headers: this.headers,
       data: { amount: amountZl },
     });
@@ -594,6 +602,6 @@ export class Api {
   }
 
   async deleteStudent(studentId: string): Promise<void> {
-    await this.request.delete(`${this.baseURL}/api/students/${studentId}`, { headers: this.headers }).catch(() => {});
+    await this.request.delete(`${this.baseURL}/api/classes/${this.classId}/students/${studentId}`, { headers: this.headers }).catch(() => {});
   }
 }

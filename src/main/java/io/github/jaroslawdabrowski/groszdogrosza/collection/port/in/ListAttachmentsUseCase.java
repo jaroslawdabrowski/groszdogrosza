@@ -11,7 +11,7 @@ import java.util.List;
  */
 public interface ListAttachmentsUseCase {
 
-    List<AttachmentWithViewUrl> listAttachments(String collectionId);
+    List<AttachmentWithViewUrl> listAttachments(String classId, String collectionId);
 
     record AttachmentWithViewUrl(CollectionAttachment attachment, String viewUrl) {
     }

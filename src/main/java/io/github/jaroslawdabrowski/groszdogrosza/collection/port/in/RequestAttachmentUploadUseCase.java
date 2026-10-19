@@ -11,7 +11,7 @@ package io.github.jaroslawdabrowski.groszdogrosza.collection.port.in;
  */
 public interface RequestAttachmentUploadUseCase {
 
-    UploadTicket requestUpload(String collectionId, String fileName, String contentType, long sizeBytes);
+    UploadTicket requestUpload(String classId, String collectionId, String fileName, String contentType, long sizeBytes);
 
     record UploadTicket(String attachmentId, String uploadUrl) {
     }

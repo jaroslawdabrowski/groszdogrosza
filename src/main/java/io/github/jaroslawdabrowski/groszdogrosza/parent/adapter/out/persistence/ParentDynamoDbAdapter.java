@@ -16,7 +16,9 @@ import java.util.Map;
 import java.util.Optional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import io.github.jaroslawdabrowski.groszdogrosza.platform.persistence.ClassScopedReads;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
@@ -49,57 +51,56 @@ public class ParentDynamoDbAdapter implements ParentRepositoryPort {
     }
 
     @Override
-    public Optional<Parent> findById(String parentId) {
-        Map<String, AttributeValue> item = dynamoDbClient.getItem(GetItemRequest.builder()
-                        .tableName(tableName)
-                        .key(Map.of("pk", s(pk(parentId)), "sk", s(SK)))
-                        .build())
-                .item();
-        return item == null || item.isEmpty() ? Optional.empty() : Optional.of(fromItem(item));
+    public Optional<Parent> findById(String classId, String parentId) {
+        return ClassScopedReads.getInClass(dynamoDbClient, tableName, key(parentId), classId)
+                .map(ParentDynamoDbAdapter::fromItem);
     }
 
     @Override
-    public Optional<Parent> findByEmail(String email) {
-        // Full scan is fine at this scale - same tradeoff as findAll() below. Email
-        // comparison is done case-insensitively in application code (DynamoDB filter
-        // expressions have no case-insensitive equality), which is fine given the low
-        // parent count this app is scoped for.
-        return allParents().stream()
-                .filter(parent -> parent.email().equalsIgnoreCase(email))
-                .findFirst();
+    public List<Parent> findByEmail(String email) {
+        // Across every class on purpose: this is how a login finds the classes it belongs to.
+        // Email comparison is case-insensitive in application code (DynamoDB filter
+        // expressions have no case-insensitive equality). A record with no classId (not
+        // migrated yet) belongs to no class, so it grants nothing.
+        return ClassScopedReads.scanAll(dynamoDbClient, tableName, "sk = :sk", Map.of(":sk", s(SK))).stream()
+                .map(ParentDynamoDbAdapter::fromItem)
+                .filter(parent -> parent.classId() != null)
+                .filter(parent -> parent.email() != null && parent.email().equalsIgnoreCase(email))
+                .toList();
     }
 
     @Override
-    public List<Parent> findAll() {
-        return allParents();
+    public List<Parent> findAllInClass(String classId) {
+        return ClassScopedReads.scanInClass(dynamoDbClient, tableName, "sk = :sk", Map.of(":sk", s(SK)), classId)
+                .stream()
+                .map(ParentDynamoDbAdapter::fromItem)
+                .toList();
     }
 
     @Override
-    public List<Parent> findByStudentId(String studentId) {
-        return allParents().stream()
+    public List<Parent> findByStudentId(String classId, String studentId) {
+        return findAllInClass(classId).stream()
                 .filter(parent -> studentId.equals(parent.studentId()))
                 .toList();
     }
 
     @Override
-    public void deleteById(String parentId) {
-        dynamoDbClient.deleteItem(DeleteItemRequest.builder()
-                .tableName(tableName)
-                .key(Map.of("pk", s(pk(parentId)), "sk", s(SK)))
-                .build());
+    public void deleteById(String classId, String parentId) {
+        // Conditional: deletes only the class's own parent record.
+        try {
+            dynamoDbClient.deleteItem(DeleteItemRequest.builder()
+                    .tableName(tableName)
+                    .key(key(parentId))
+                    .conditionExpression("classId = :classId")
+                    .expressionAttributeValues(Map.of(":classId", s(classId)))
+                    .build());
+        } catch (ConditionalCheckFailedException e) {
+            // Not this class's parent (or already gone) - nothing to delete.
+        }
     }
 
-    private List<Parent> allParents() {
-        // A full scan is fine at this scale (a single class's worth of parents, a handful
-        // of reads a day) - see DynamoDbTableInitializer javadoc on the single-table layout.
-        return dynamoDbClient.scan(ScanRequest.builder()
-                        .tableName(tableName)
-                        .filterExpression("sk = :sk")
-                        .expressionAttributeValues(Map.of(":sk", s(SK)))
-                        .build())
-                .items().stream()
-                .map(ParentDynamoDbAdapter::fromItem)
-                .toList();
+    private static Map<String, AttributeValue> key(String parentId) {
+        return Map.of("pk", s(pk(parentId)), "sk", s(SK));
     }
 
     private static String pk(String parentId) {
@@ -111,6 +112,7 @@ public class ParentDynamoDbAdapter implements ParentRepositoryPort {
                 Map.entry("pk", s(pk(parent.id()))),
                 Map.entry("sk", s(SK)),
                 Map.entry("id", s(parent.id())),
+                Map.entry("classId", s(parent.classId())),
                 Map.entry("studentId", sOrNull(parent.studentId())),
                 Map.entry("firstName", s(parent.firstName())),
                 Map.entry("lastName", s(parent.lastName())),
@@ -130,6 +132,7 @@ public class ParentDynamoDbAdapter implements ParentRepositoryPort {
                 : new PaymentInfo(bankAccountNumber, blikPhoneNumber);
         return new Parent(
                 str(item, "id"),
+                str(item, "classId"),
                 strOrNull(item, "studentId"),
                 str(item, "firstName"),
                 str(item, "lastName"),

@@ -6,7 +6,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.ParentRole;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.CreateParentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.parent.port.in.ListParentsForStudentUseCase;
-import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
+import io.github.jaroslawdabrowski.groszdogrosza.platform.security.ClassContext;
 import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.CreateStudentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.CreditStudentPiggyBankManuallyUseCase;
@@ -15,7 +15,6 @@ import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.GetStudentUseCa
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.UpdateStudentUseCase;
 import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -30,19 +29,12 @@ import jakarta.ws.rs.core.Response;
 import java.util.List;
 
 /**
- * Every list/create/update/delete here is treasurer-only - a student's identity and their
- * parents' contact/login details are exactly the kind of cross-family data
- * {@code AuthorizationSupport} exists to keep behind the treasurer role. {@code get} is also
- * available to a parent for their own linked student (self-or-treasurer, see
- * {@code AuthorizationSupport.requireSelfOrTreasurerForStudent}) - that's how "Moja skarbonka"
- * works on the frontend.
- *
- * <p>Adding a parent happens here, under a specific student
- * ({@code POST /api/students/{id}/parents}), not as a standalone
- * {@code POST /api/parents} - see {@code Parent.studentId}'s javadoc for why a parent always
- * belongs to exactly one student.
+ * A class's students. Membership of the class is checked before any of this runs
+ * (platform.security.ClassAccessFilter); here it's only about the role: the roster and every
+ * change are treasurer-only, a single student is visible to the treasurer and that student's
+ * own parents.
  */
-@Path("/api/students")
+@Path("/api/classes/{classId}/students")
 @Authenticated
 @Produces(MediaType.APPLICATION_JSON)
 public class StudentResource {
@@ -72,70 +64,70 @@ public class StudentResource {
     ListParentsForStudentUseCase listParentsForStudentUseCase;
 
     @Inject
-    AuthorizationSupport authorizationSupport;
-
-    @Inject
-    SecurityIdentity identity;
+    ClassContext classContext;
 
     @GET
     public List<StudentResponse> list() {
-        authorizationSupport.requireTreasurer(identity);
-        return listStudentsUseCase.listStudents().stream()
-                .map(student -> StudentResponse.from(student, listParentsForStudentUseCase.listParentsForStudent(student.id())))
+        classContext.requireTreasurer();
+        String classId = classContext.classId();
+        return listStudentsUseCase.listStudents(classId).stream()
+                .map(student -> StudentResponse.from(student, listParentsForStudentUseCase.listParentsForStudent(classId, student.id())))
                 .toList();
     }
 
     @POST
     public StudentResponse create(CreateStudentRequest request) {
-        authorizationSupport.requireTreasurer(identity);
-        Student student = createStudentUseCase.createStudent(request.firstName(), request.lastName());
+        classContext.requireTreasurer();
+        Student student = createStudentUseCase.createStudent(classContext.classId(), request.firstName(), request.lastName());
         return StudentResponse.from(student, List.of());
     }
 
     @GET
     @Path("/{id}")
     public StudentResponse get(@PathParam("id") String id) {
+        classContext.requireTreasurerOrGuardianOf(id);
         Student student = requireStudent(id);
-        authorizationSupport.requireSelfOrTreasurerForStudent(identity, id);
-        return StudentResponse.from(student, listParentsForStudentUseCase.listParentsForStudent(id));
+        return StudentResponse.from(student, listParentsForStudentUseCase.listParentsForStudent(classContext.classId(), id));
     }
 
     @PUT
     @Path("/{id}")
     public StudentResponse update(@PathParam("id") String id, UpdateStudentRequest request) {
-        authorizationSupport.requireTreasurer(identity);
-        Student updated = updateStudentUseCase.updateStudent(id, request.firstName(), request.lastName());
-        return StudentResponse.from(updated, listParentsForStudentUseCase.listParentsForStudent(id));
+        classContext.requireTreasurer();
+        String classId = classContext.classId();
+        Student updated = updateStudentUseCase.updateStudent(classId, id, request.firstName(), request.lastName());
+        return StudentResponse.from(updated, listParentsForStudentUseCase.listParentsForStudent(classId, id));
     }
 
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") String id) {
-        authorizationSupport.requireTreasurer(identity);
-        deleteStudentUseCase.deleteStudent(id);
+        classContext.requireTreasurer();
+        deleteStudentUseCase.deleteStudent(classContext.classId(), id);
         return Response.noContent().build();
     }
 
     @POST
     @Path("/{id}/parents")
     public ParentResponse addParent(@PathParam("id") String id, CreateParentRequest request) {
-        authorizationSupport.requireTreasurer(identity);
+        classContext.requireTreasurer();
         requireStudent(id);
-        ParentRole role = request.role() == null ? ParentRole.PARENT : ParentRole.valueOf(request.role());
-        Parent parent = createParentUseCase.createParent(
-                id, request.firstName(), request.lastName(), request.email(), request.expectedSenderName(), role);
+        Parent parent = createParentUseCase.createParent(classContext.classId(), id, request.firstName(),
+                request.lastName(), request.email(), request.expectedSenderName(), ParentRole.PARENT);
         return ParentResponse.from(parent);
     }
 
     @POST
     @Path("/{id}/piggy-bank/credit")
     public StudentResponse creditPiggyBank(@PathParam("id") String id, CreditPiggyBankRequest request) {
-        authorizationSupport.requireTreasurer(identity);
-        Student updated = creditStudentPiggyBankManuallyUseCase.creditPiggyBankManually(id, request.amount());
-        return StudentResponse.from(updated, listParentsForStudentUseCase.listParentsForStudent(id));
+        classContext.requireTreasurer();
+        String classId = classContext.classId();
+        Student updated = creditStudentPiggyBankManuallyUseCase.creditPiggyBankManually(classId, id, request.amount());
+        return StudentResponse.from(updated, listParentsForStudentUseCase.listParentsForStudent(classId, id));
     }
 
     private Student requireStudent(String id) {
-        return getStudentUseCase.getStudent(id).orElseThrow(() -> new NotFoundException("No such student: " + id));
+        return getStudentUseCase.getStudent(classContext.classId(), id)
+                .orElseThrow(() -> new NotFoundException("No such student: " + id));
     }
 }

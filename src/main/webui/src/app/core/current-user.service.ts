@@ -1,28 +1,39 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { catchError, of, shareReplay, tap, type Observable } from 'rxjs';
-import { Parent } from './models';
+import { ClassMembership, Me } from './models';
+
+const SELECTED_CLASS_KEY = 'gg-class';
 
 /**
- * Caches the logged-in account's own Parent record (GET /api/parents/me) so the frontend
- * can show/hide treasurer-only UI (nav links, routes) without waiting on a per-view fetch.
- * This is a UX convenience only - the backend (AuthorizationSupport) is still the actual
- * authorization boundary and re-checks role on every request regardless of what this shows.
+ * The logged-in user (GET /api/me) and the class they're currently looking at. Every
+ * class-scoped API call goes to that class (see classInterceptor). A user belongs to one or
+ * more classes, with a role per class; the choice is remembered on this device.
+ *
+ * This only drives what the UI shows - the backend (ClassAccessFilter, ClassContext) decides
+ * on every request what the user may actually see and do.
  */
 @Injectable({ providedIn: 'root' })
 export class CurrentUserService {
   private readonly http = inject(HttpClient);
 
-  private me$: Observable<Parent | null> | null = null;
-  readonly parent = signal<Parent | null>(null);
+  private me$: Observable<Me | null> | null = null;
+  readonly me = signal<Me | null>(null);
+  private readonly selectedClassId = signal<string | null>(readSelectedClass());
 
-  /** Resolves once the current user's Parent record has loaded (or failed to - e.g. not created yet). */
-  load(): Observable<Parent | null> {
+  /** The class being shown: the remembered one if the user still belongs to it, else the first. */
+  readonly currentClass = computed<ClassMembership | null>(() => {
+    const classes = this.me()?.classes ?? [];
+    return classes.find((c) => c.id === this.selectedClassId()) ?? classes[0] ?? null;
+  });
+
+  /** Resolves once /api/me has loaded (null if it failed - e.g. not logged in). */
+  load(): Observable<Me | null> {
     if (!this.me$) {
-      this.me$ = this.http.get<Parent>('/api/parents/me').pipe(
-        tap((parent) => this.parent.set(parent)),
+      this.me$ = this.http.get<Me>('/api/me').pipe(
+        tap((me) => this.me.set(me)),
         catchError(() => {
-          this.parent.set(null);
+          this.me.set(null);
           return of(null);
         }),
         shareReplay(1),
@@ -31,14 +42,46 @@ export class CurrentUserService {
     return this.me$;
   }
 
-  isTreasurer(): boolean {
-    return this.parent()?.role === 'TREASURER';
+  selectClass(classId: string): void {
+    this.selectedClassId.set(classId);
+    try {
+      localStorage.setItem(SELECTED_CLASS_KEY, classId);
+    } catch {
+      // Private mode / blocked storage: the choice just isn't remembered.
+    }
   }
 
-  /** The student this account's own Parent record is linked to - what "Moja skarbonka"
-   *  points at. Null until loaded, or if the treasurer hasn't created a matching Parent
-   *  record for this account yet. */
+  classId(): string | null {
+    return this.currentClass()?.id ?? null;
+  }
+
+  isTreasurer(): boolean {
+    return this.currentClass()?.role === 'TREASURER';
+  }
+
+  /** The user's own child in the current class - what "Moja skarbonka" points at. */
   studentId(): string | null {
-    return this.parent()?.studentId ?? null;
+    return [...(this.currentClass()?.studentIds ?? [])].sort()[0] ?? null;
+  }
+
+  /** The user's own parent records in the current class (they can't delete themselves). */
+  ownParentIds(): string[] {
+    return this.currentClass()?.parentIds ?? [];
+  }
+
+  firstName(): string | null {
+    return this.me()?.firstName ?? null;
+  }
+
+  email(): string | null {
+    return this.me()?.email ?? null;
+  }
+}
+
+function readSelectedClass(): string | null {
+  try {
+    return localStorage.getItem(SELECTED_CLASS_KEY);
+  } catch {
+    return null;
   }
 }

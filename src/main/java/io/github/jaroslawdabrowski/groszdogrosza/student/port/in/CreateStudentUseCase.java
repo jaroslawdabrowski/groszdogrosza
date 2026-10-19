@@ -6,5 +6,5 @@ import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
  *  {@code parent.port.in.CreateParentUseCase}. */
 public interface CreateStudentUseCase {
 
-    Student createStudent(String firstName, String lastName);
+    Student createStudent(String classId, String firstName, String lastName);
 }

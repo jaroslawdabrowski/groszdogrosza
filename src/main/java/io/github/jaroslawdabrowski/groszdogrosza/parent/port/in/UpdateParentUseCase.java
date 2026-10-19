@@ -8,5 +8,5 @@ import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
  *  own dedicated, more carefully-guarded use cases. */
 public interface UpdateParentUseCase {
 
-    Parent updateParent(String parentId, String firstName, String lastName, String email, String expectedSenderName);
+    Parent updateParent(String classId, String parentId, String firstName, String lastName, String email, String expectedSenderName);
 }

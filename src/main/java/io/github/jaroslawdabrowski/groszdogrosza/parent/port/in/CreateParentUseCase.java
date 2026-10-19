@@ -7,6 +7,6 @@ import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.ParentRole;
  *          if the student already has 2 parents */
 public interface CreateParentUseCase {
 
-    Parent createParent(String studentId, String firstName, String lastName, String email, String expectedSenderName,
+    Parent createParent(String classId, String studentId, String firstName, String lastName, String email, String expectedSenderName,
             ParentRole role);
 }

@@ -10,9 +10,11 @@ public interface CollectionRepositoryPort {
 
     Collection saveCollection(Collection collection);
 
-    Optional<Collection> findCollectionById(String collectionId);
+    /** Empty when the collection doesn't exist OR belongs to another class. Requirements,
+     *  contributions and attachments are only ever reached after this check. */
+    Optional<Collection> findCollectionById(String classId, String collectionId);
 
-    List<Collection> findAllCollections();
+    List<Collection> findAllCollections(String classId);
 
     ContributionRequirement saveRequirement(ContributionRequirement requirement);
 
@@ -21,7 +23,7 @@ public interface CollectionRepositoryPort {
     Optional<ContributionRequirement> findRequirement(String collectionId, String studentId);
 
     /** Across every ACTIVE collection, requirements for this student that are not yet PAID/OVERPAID. */
-    List<ContributionRequirement> findActivePendingRequirementsForStudent(String studentId);
+    List<ContributionRequirement> findActivePendingRequirementsForStudent(String classId, String studentId);
 
     /** Used by {@code RemoveStudentFromCollectionUseCase} - a student taken out of a
      *  collection stops having a requirement in it at all, not just a zeroed one. */

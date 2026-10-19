@@ -12,5 +12,5 @@ package io.github.jaroslawdabrowski.groszdogrosza.student.port.in;
  */
 public interface DeleteStudentUseCase {
 
-    void deleteStudent(String studentId);
+    void deleteStudent(String classId, String studentId);
 }

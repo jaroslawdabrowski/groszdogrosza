@@ -11,5 +11,5 @@ import java.math.BigDecimal;
  */
 public interface SettleCollectionUseCase {
 
-    SettlementResult settleCollection(String collectionId, BigDecimal actualCostSpent);
+    SettlementResult settleCollection(String classId, String collectionId, BigDecimal actualCostSpent);
 }

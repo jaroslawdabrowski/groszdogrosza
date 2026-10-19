@@ -14,5 +14,5 @@ import java.math.BigDecimal;
  */
 public interface CreditStudentPiggyBankManuallyUseCase {
 
-    Student creditPiggyBankManually(String studentId, BigDecimal amount);
+    Student creditPiggyBankManually(String classId, String studentId, BigDecimal amount);
 }

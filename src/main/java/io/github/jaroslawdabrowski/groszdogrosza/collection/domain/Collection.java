@@ -14,6 +14,7 @@ import java.time.Instant;
  */
 public record Collection(
         String id,
+        String classId,
         String title,
         String description,
         CollectionStatus status,
@@ -27,6 +28,6 @@ public record Collection(
     }
 
     public Collection withStatus(CollectionStatus newStatus) {
-        return new Collection(id, title, description, newStatus, baseAmountPerStudent, createdAt);
+        return new Collection(id, classId, title, description, newStatus, baseAmountPerStudent, createdAt);
     }
 }

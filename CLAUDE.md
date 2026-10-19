@@ -12,6 +12,16 @@ Single Maven module at the repo root (not a `backend/`/`frontend/` split, mirror
 
 Code and comments are in English. The UI is bilingual (Polish/English) via `@ngx-translate`, **default language Polish** - this is a real Polish primary school context, Polish is the primary audience.
 
+### Multiple classes (2026-10-19, `multi-class` branch)
+
+The app is being extended from one class to several - **read `docs/MULTI-CLASS.md` first**:
+decisions, the isolation design and what stage 1 changed. In short: every class-owned record
+carries a `classId`; every class endpoint is `/api/classes/{classId}/...` behind one
+gatekeeper (`platform.security.ClassAccessFilter`) that returns 404 to non-members; roles
+(treasurer/parent) are per class; identity is the *verified* email. Anything below that says
+"the treasurer" (singular, global) or uses the old `/api/students`, `/api/collections`,
+`/api/parents/me`, `AuthorizationSupport` describes the pre-multi-class code.
+
 ### Student replaces Parent as the money-tracking unit (mid-project redesign)
 
 The original model had `Parent` own the piggy bank balance, the ledger, and each

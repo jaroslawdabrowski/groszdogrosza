@@ -87,7 +87,7 @@ export class More {
   readonly languages = SUPPORTED_LANGUAGES;
 
   email(): string | null {
-    return this.currentUser.parent()?.email ?? null;
+    return this.currentUser.email();
   }
 
   current(): Language {

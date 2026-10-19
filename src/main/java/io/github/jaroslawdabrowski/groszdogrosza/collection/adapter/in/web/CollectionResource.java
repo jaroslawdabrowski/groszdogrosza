@@ -13,11 +13,9 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.PreviewSettl
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.SettleCollectionUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.domain.LedgerEventType;
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.GetFullLedgerUseCase;
-import io.github.jaroslawdabrowski.groszdogrosza.parent.domain.Parent;
-import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
+import io.github.jaroslawdabrowski.groszdogrosza.platform.security.ClassContext;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
 import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -42,7 +40,7 @@ import java.util.stream.Collectors;
  * {@code AuthorizationSupport}. Roles are checked explicitly (not {@code @RolesAllowed})
  * because the source of truth is {@code Parent.role()}, not an identity-provider claim.
  */
-@Path("/api/collections")
+@Path("/api/classes/{classId}/collections")
 @Authenticated
 @Produces(MediaType.APPLICATION_JSON)
 public class CollectionResource {
@@ -78,10 +76,7 @@ public class CollectionResource {
     GetFullLedgerUseCase getFullLedgerUseCase;
 
     @Inject
-    AuthorizationSupport authorizationSupport;
-
-    @Inject
-    SecurityIdentity identity;
+    ClassContext classContext;
 
     /**
      * Every collection's summary, enriched with the caller's OWN child's status in it (see
@@ -93,8 +88,8 @@ public class CollectionResource {
      */
     @GET
     public List<CollectionResponse> list() {
-        String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
-        return listCollectionsUseCase.listCollections().stream()
+        String myStudentId = classContext.firstOwnStudentId();
+        return listCollectionsUseCase.listCollections(classContext.classId()).stream()
                 .map(collection -> forViewer(collection, myStudentId))
                 .toList();
     }
@@ -103,7 +98,7 @@ public class CollectionResource {
         if (myStudentId == null) {
             return CollectionResponse.from(collection);
         }
-        List<ContributionRequirement> requirements = getCollectionUseCase.getCollection(collection.id())
+        List<ContributionRequirement> requirements = getCollectionUseCase.getCollection(classContext.classId(), collection.id())
                 .map(CollectionDetails::requirements)
                 .orElse(List.of());
         return CollectionResponse.forViewer(collection, requirements, myStudentId);
@@ -111,8 +106,8 @@ public class CollectionResource {
 
     @POST
     public CollectionResponse create(CreateCollectionRequest request) {
-        authorizationSupport.requireTreasurer(identity);
-        return CollectionResponse.from(createCollectionUseCase.createCollection(
+        classContext.requireTreasurer();
+        return CollectionResponse.from(createCollectionUseCase.createCollection(classContext.classId(),
                 request.title(), request.description(), request.baseAmountPerStudent(), request.studentIds()));
     }
 
@@ -125,28 +120,28 @@ public class CollectionResource {
     @POST
     @Path("/{id}/contributions")
     public CollectionDetailsResponse recordContribution(@PathParam("id") String id, RecordContributionRequest request) {
-        authorizationSupport.requireTreasurer(identity);
-        recordManualContributionUseCase.recordManualContribution(id, request.studentId(), request.amount());
-        CollectionDetails details = getCollectionUseCase.getCollection(id)
+        classContext.requireTreasurer();
+        recordManualContributionUseCase.recordManualContribution(classContext.classId(), id, request.studentId(), request.amount());
+        CollectionDetails details = getCollectionUseCase.getCollection(classContext.classId(), id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
-        String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
+        String myStudentId = classContext.firstOwnStudentId();
         return CollectionDetailsResponse.from(
-                details, listStudentsUseCase.listStudents(), myStudentId, removedStudentsCountFor(details));
+                details, listStudentsUseCase.listStudents(classContext.classId()), myStudentId, removedStudentsCountFor(details));
     }
 
     /** Dry run of {@code settle} - nothing is saved. Treasurer-only, like settling itself. */
     @POST
     @Path("/{id}/settle-preview")
     public SettlementResultResponse previewSettle(@PathParam("id") String id, SettleCollectionRequest request) {
-        authorizationSupport.requireTreasurer(identity);
-        return SettlementResultResponse.from(previewSettlementUseCase.previewSettlement(id, request.actualCostSpent()));
+        classContext.requireTreasurer();
+        return SettlementResultResponse.from(previewSettlementUseCase.previewSettlement(classContext.classId(), id, request.actualCostSpent()));
     }
 
     @POST
     @Path("/{id}/settle")
     public SettlementResultResponse settle(@PathParam("id") String id, SettleCollectionRequest request) {
-        authorizationSupport.requireTreasurer(identity);
-        return SettlementResultResponse.from(settleCollectionUseCase.settleCollection(id, request.actualCostSpent()));
+        classContext.requireTreasurer();
+        return SettlementResultResponse.from(settleCollectionUseCase.settleCollection(classContext.classId(), id, request.actualCostSpent()));
     }
 
     /**
@@ -162,8 +157,8 @@ public class CollectionResource {
     @DELETE
     @Path("/{id}/students/{studentId}")
     public Object removeStudent(@PathParam("id") String id, @PathParam("studentId") String studentId) {
-        authorizationSupport.requireSelfOrTreasurerForStudent(identity, studentId);
-        removeStudentFromCollectionUseCase.removeStudentFromCollection(id, studentId);
+        classContext.requireTreasurerOrGuardianOf(studentId);
+        removeStudentFromCollectionUseCase.removeStudentFromCollection(classContext.classId(), id, studentId);
         return collectionResponseFor(id);
     }
 
@@ -172,21 +167,21 @@ public class CollectionResource {
     @POST
     @Path("/{id}/students/{studentId}")
     public Object addStudent(@PathParam("id") String id, @PathParam("studentId") String studentId) {
-        authorizationSupport.requireSelfOrTreasurerForStudent(identity, studentId);
-        addStudentToCollectionUseCase.addStudentToCollection(id, studentId);
+        classContext.requireTreasurerOrGuardianOf(studentId);
+        addStudentToCollectionUseCase.addStudentToCollection(classContext.classId(), id, studentId);
         return collectionResponseFor(id);
     }
 
     private Object collectionResponseFor(String id) {
-        CollectionDetails details = getCollectionUseCase.getCollection(id)
+        CollectionDetails details = getCollectionUseCase.getCollection(classContext.classId(), id)
                 .orElseThrow(() -> new NotFoundException("No such collection: " + id));
         // Computed regardless of role - the treasurer is also a Parent, possibly with their
         // OWN linked Student, and gets the same join/leave affordance on their own page a
         // regular parent does (see CollectionResponse's javadoc).
-        String myStudentId = authorizationSupport.currentParent(identity).map(Parent::studentId).orElse(null);
-        if (authorizationSupport.isTreasurer(identity)) {
+        String myStudentId = classContext.firstOwnStudentId();
+        if (classContext.isTreasurer()) {
             return CollectionDetailsResponse.from(
-                    details, listStudentsUseCase.listStudents(), myStudentId, removedStudentsCountFor(details));
+                    details, listStudentsUseCase.listStudents(classContext.classId()), myStudentId, removedStudentsCountFor(details));
         }
         return CollectionProgressResponse.from(details, myStudentId);
     }
@@ -207,7 +202,7 @@ public class CollectionResource {
         Set<String> currentlyIncluded = details.requirements().stream()
                 .map(requirement -> requirement.studentId())
                 .collect(Collectors.toSet());
-        return (int) getFullLedgerUseCase.getFullLedger().stream()
+        return (int) getFullLedgerUseCase.getFullLedger(classContext.classId()).stream()
                 .filter(entry -> entry.eventType() == LedgerEventType.REMOVED_FROM_COLLECTION)
                 .filter(entry -> details.collection().id().equals(entry.params().get("collectionId")))
                 .map(entry -> entry.studentId())

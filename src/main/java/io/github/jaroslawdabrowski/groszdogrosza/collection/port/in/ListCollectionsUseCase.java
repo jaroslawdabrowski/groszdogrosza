@@ -5,5 +5,5 @@ import java.util.List;
 
 public interface ListCollectionsUseCase {
 
-    List<Collection> listCollections();
+    List<Collection> listCollections(String classId);
 }

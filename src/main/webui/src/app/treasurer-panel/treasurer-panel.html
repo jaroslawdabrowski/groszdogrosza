@@ -183,8 +183,8 @@
                                 <button type="button" class="btn btn--text btn--sm" (click)="startEdit(parent)">
                                   <mat-icon>edit</mat-icon>{{ 'treasurer.editTooltip' | translate }}
                                 </button>
-                                <button type="button" class="btn btn--danger btn--sm" [disabled]="parent.id === me()?.id" (click)="deleteParent(parent)">
-                                  <mat-icon>delete</mat-icon>{{ (parent.id === me()?.id ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteTooltip') | translate }}
+                                <button type="button" class="btn btn--danger btn--sm" [disabled]="isOwnParentRecord(parent)" (click)="deleteParent(parent)">
+                                  <mat-icon>delete</mat-icon>{{ (isOwnParentRecord(parent) ? 'treasurer.deleteSelfTooltip' : 'treasurer.deleteTooltip') | translate }}
                                 </button>
                               </div>
                             </div>

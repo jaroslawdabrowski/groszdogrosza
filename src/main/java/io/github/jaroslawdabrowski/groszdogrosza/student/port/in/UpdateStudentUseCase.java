@@ -6,5 +6,5 @@ import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
  *  narrower credit/debit use cases. */
 public interface UpdateStudentUseCase {
 
-    Student updateStudent(String studentId, String firstName, String lastName);
+    Student updateStudent(String classId, String studentId, String firstName, String lastName);
 }

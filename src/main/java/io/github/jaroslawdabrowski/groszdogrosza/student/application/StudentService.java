@@ -48,91 +48,87 @@ public class StudentService implements CreateStudentUseCase, GetStudentUseCase, 
     SweepPiggyBankIntoActiveCollectionsUseCase sweepPiggyBankIntoActiveCollectionsUseCase;
 
     @Override
-    public Student createStudent(String firstName, String lastName) {
-        Student student = new Student(UUID.randomUUID().toString(), firstName, lastName, BigDecimal.ZERO);
+    public Student createStudent(String classId, String firstName, String lastName) {
+        Student student = new Student(UUID.randomUUID().toString(), classId, firstName, lastName, BigDecimal.ZERO);
         return studentRepository.save(student);
     }
 
     @Override
-    public Optional<Student> getStudent(String studentId) {
-        return studentRepository.findById(studentId);
+    public Optional<Student> getStudent(String classId, String studentId) {
+        return studentRepository.findById(classId, studentId);
     }
 
     @Override
-    public List<Student> listStudents() {
+    public List<Student> listStudents(String classId) {
         // The repository (a DynamoDB Scan) has no ordering guarantee at all - sort here,
         // once, so every caller (the treasurer's student list, the "who's in this
         // collection" checklist, a collection's requirement breakdown, ...) sees the same
         // stable lastName-then-firstName order without having to sort it again itself. See
         // Student.byLastNameThenFirstName's javadoc for why a class roster, specifically,
         // needs Polish collation rather than raw String ordering.
-        List<Student> students = new ArrayList<>(studentRepository.findAll());
+        List<Student> students = new ArrayList<>(studentRepository.findAllInClass(classId));
         students.sort(Student.byLastNameThenFirstName());
         return students;
     }
 
     @Override
-    public Student updateStudent(String studentId, String firstName, String lastName) {
-        Student student = requireStudent(studentId);
-        Student updated = new Student(student.id(), firstName, lastName, student.piggyBankBalance());
+    public Student updateStudent(String classId, String studentId, String firstName, String lastName) {
+        Student student = requireStudent(classId, studentId);
+        Student updated = new Student(student.id(), student.classId(), firstName, lastName, student.piggyBankBalance());
         return studentRepository.save(updated);
     }
 
     @Override
-    public void deleteStudent(String studentId) {
-        requireStudent(studentId);
-        for (Parent parent : listParentsForStudentUseCase.listParentsForStudent(studentId)) {
-            deleteParentUseCase.deleteParent(parent.id());
+    public void deleteStudent(String classId, String studentId) {
+        requireStudent(classId, studentId);
+        for (Parent parent : listParentsForStudentUseCase.listParentsForStudent(classId, studentId)) {
+            deleteParentUseCase.deleteParent(classId, parent.id());
         }
-        studentRepository.deleteById(studentId);
+        studentRepository.deleteById(classId, studentId);
     }
 
     @Override
-    public Student creditPiggyBank(String studentId, BigDecimal amount) {
+    public Student creditPiggyBank(String classId, String studentId, BigDecimal amount) {
         if (amount.signum() < 0) {
             throw new IllegalArgumentException("Cannot credit a negative amount: " + amount);
         }
-        Student student = requireStudent(studentId);
-        Student updated = withPiggyBankBalance(student, student.piggyBankBalance().add(amount));
+        Student student = requireStudent(classId, studentId);
+        Student updated = student.withPiggyBankBalance(student.piggyBankBalance().add(amount));
         return studentRepository.save(updated);
     }
 
     @Override
-    public Student debitPiggyBank(String studentId, BigDecimal amount) {
+    public Student debitPiggyBank(String classId, String studentId, BigDecimal amount) {
         if (amount.signum() < 0) {
             throw new IllegalArgumentException("Cannot debit a negative amount: " + amount);
         }
-        Student student = requireStudent(studentId);
+        Student student = requireStudent(classId, studentId);
         BigDecimal newBalance = student.piggyBankBalance().subtract(amount);
         if (newBalance.signum() < 0) {
             throw new IllegalArgumentException(
                     "Cannot debit " + amount + " from piggy bank balance " + student.piggyBankBalance()
                             + " for student " + studentId);
         }
-        Student updated = withPiggyBankBalance(student, newBalance);
+        Student updated = student.withPiggyBankBalance(newBalance);
         return studentRepository.save(updated);
     }
 
     @Override
-    public Student creditPiggyBankManually(String studentId, BigDecimal amount) {
-        Student updated = creditPiggyBank(studentId, amount);
-        recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_CREDITED,
+    public Student creditPiggyBankManually(String classId, String studentId, BigDecimal amount) {
+        Student updated = creditPiggyBank(classId, studentId, amount);
+        recordLedgerEntryUseCase.record(classId, studentId, LedgerEventType.PIGGY_BANK_CREDITED,
                 Map.of("amount", LedgerAmounts.format(amount)));
         // A manual credit (typically cash handed to the treasurer) gets exactly the same
         // "sweep into whatever's currently owed on an ACTIVE collection" treatment an
         // automatic bank-transfer match already gets - see SweepPiggyBankIntoActiveCollectionsUseCase's
         // javadoc for the production gap this closes. Re-fetch afterwards: the sweep debits
         // the balance further, so `updated` above is stale the moment it returns.
-        sweepPiggyBankIntoActiveCollectionsUseCase.sweep(studentId);
-        return requireStudent(studentId);
+        sweepPiggyBankIntoActiveCollectionsUseCase.sweep(classId, studentId);
+        return requireStudent(classId, studentId);
     }
 
-    private Student requireStudent(String studentId) {
-        return studentRepository.findById(studentId)
+    private Student requireStudent(String classId, String studentId) {
+        return studentRepository.findById(classId, studentId)
                 .orElseThrow(() -> new NoSuchElementException("No such student: " + studentId));
-    }
-
-    private static Student withPiggyBankBalance(Student student, BigDecimal newBalance) {
-        return new Student(student.id(), student.firstName(), student.lastName(), newBalance);
     }
 }

@@ -12,5 +12,5 @@ import java.util.Map;
  */
 public interface RecordLedgerEntryUseCase {
 
-    LedgerEntry record(String studentId, LedgerEventType eventType, Map<String, String> params);
+    LedgerEntry record(String classId, String studentId, LedgerEventType eventType, Map<String, String> params);
 }

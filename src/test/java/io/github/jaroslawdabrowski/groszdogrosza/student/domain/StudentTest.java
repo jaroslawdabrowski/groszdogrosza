@@ -42,6 +42,6 @@ class StudentTest {
     }
 
     private static Student student(String firstName, String lastName) {
-        return new Student(firstName + "-" + lastName + "-id", firstName, lastName, BigDecimal.ZERO);
+        return new Student(firstName + "-" + lastName + "-id", "class-1", firstName, lastName, BigDecimal.ZERO);
     }
 }

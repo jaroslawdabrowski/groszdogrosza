@@ -20,18 +20,18 @@ public class LedgerService implements GetLedgerForStudentUseCase, RecordLedgerEn
     LedgerRepositoryPort ledgerRepository;
 
     @Override
-    public List<LedgerEntry> getLedgerFor(String studentId) {
-        return ledgerRepository.findByStudentId(studentId);
+    public List<LedgerEntry> getLedgerFor(String classId, String studentId) {
+        return ledgerRepository.findByStudentId(classId, studentId);
     }
 
     @Override
-    public List<LedgerEntry> getFullLedger() {
-        return ledgerRepository.findAll();
+    public List<LedgerEntry> getFullLedger(String classId) {
+        return ledgerRepository.findAllInClass(classId);
     }
 
     @Override
-    public LedgerEntry record(String studentId, LedgerEventType eventType, Map<String, String> params) {
-        LedgerEntry entry = new LedgerEntry(UUID.randomUUID().toString(), studentId, eventType, Instant.now(), params);
+    public LedgerEntry record(String classId, String studentId, LedgerEventType eventType, Map<String, String> params) {
+        LedgerEntry entry = new LedgerEntry(UUID.randomUUID().toString(), classId, studentId, eventType, Instant.now(), params);
         return ledgerRepository.save(entry);
     }
 }

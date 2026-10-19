@@ -11,5 +11,5 @@ package io.github.jaroslawdabrowski.groszdogrosza.collection.port.in;
  */
 public interface RemoveStudentFromCollectionUseCase {
 
-    void removeStudentFromCollection(String collectionId, String studentId);
+    void removeStudentFromCollection(String classId, String collectionId, String studentId);
 }

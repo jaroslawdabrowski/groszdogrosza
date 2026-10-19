@@ -20,6 +20,7 @@ import java.util.Locale;
  */
 public record Student(
         String id,
+        String classId,
         String firstName,
         String lastName,
         BigDecimal piggyBankBalance) {
@@ -31,6 +32,10 @@ public record Student(
         if (piggyBankBalance.signum() < 0) {
             throw new IllegalArgumentException("piggyBankBalance cannot be negative: " + piggyBankBalance);
         }
+    }
+
+    public Student withPiggyBankBalance(BigDecimal newBalance) {
+        return new Student(id, classId, firstName, lastName, newBalance);
     }
 
     public String fullName() {

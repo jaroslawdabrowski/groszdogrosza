@@ -1,12 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { Observable, switchMap } from 'rxjs';
 import { NgTemplateOutlet } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ClipboardModule } from '@angular/cdk/clipboard';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../core/auth.service';
 import { CurrentUserService } from '../core/current-user.service';
 import { PublicApiService } from '../core/public-api.service';
+import { ClassApiService } from '../core/class-api.service';
 import { CollectionApiService } from '../core/collection-api.service';
 import { StudentApiService } from '../core/student-api.service';
 import { CollectionProgress, CollectionSummary, PublicOverview as PublicOverviewModel, Student } from '../core/models';
@@ -41,6 +43,9 @@ interface TodoItem {
 })
 export class PublicOverview {
   private readonly publicApi = inject(PublicApiService);
+  private readonly classApi = inject(ClassApiService);
+  /** Set on a class's public link (`/k/<token>`): that class's public view, nothing else. */
+  readonly publicToken = inject(ActivatedRoute).snapshot.paramMap.get('token');
   private readonly collectionApi = inject(CollectionApiService);
   private readonly studentApi = inject(StudentApiService);
   private readonly currentUser = inject(CurrentUserService);
@@ -53,7 +58,7 @@ export class PublicOverview {
   /** Which payment field was just copied, briefly, to swap its icon to a check. */
   readonly justCopied = signal<CopyField | null>(null);
 
-  readonly parentName = computed(() => this.currentUser.parent()?.firstName ?? null);
+  readonly parentName = computed(() => this.currentUser.firstName());
   /** Settled (and any other non-active) collections, newest first - the active ones are
    *  already shown as sheets above. */
   readonly earlierCollections = computed(() =>
@@ -101,13 +106,17 @@ export class PublicOverview {
 
   constructor() {
     this.loadOverview();
-    if (this.authService.isAuthenticated()) {
-      this.collectionApi.list().subscribe((collections) => this.allCollections.set(collections));
-      this.currentUser.load().subscribe((parent) => {
-        if (parent?.studentId) {
-          this.studentApi.get(parent.studentId).subscribe((student) => this.child.set(student));
+    if (this.showsOwnClass()) {
+      this.currentUser.load().subscribe(() => {
+        if (!this.currentUser.classId()) {
+          return;
         }
-        if (parent?.role === 'TREASURER') {
+        this.collectionApi.list().subscribe((collections) => this.allCollections.set(collections));
+        const studentId = this.currentUser.studentId();
+        if (studentId) {
+          this.studentApi.get(studentId).subscribe((student) => this.child.set(student));
+        }
+        if (this.currentUser.isTreasurer()) {
           this.studentApi.list().subscribe((students) => this.students.set(students));
         }
       });
@@ -121,7 +130,7 @@ export class PublicOverview {
   loadOverview(): void {
     this.loading.set(true);
     this.loadFailed.set(false);
-    this.publicApi.overview().subscribe({
+    this.overviewSource().subscribe({
       next: (overview) => {
         this.overview.set(overview);
         this.loading.set(false);
@@ -135,6 +144,35 @@ export class PublicOverview {
 
   isLoggedIn(): boolean {
     return this.authService.isAuthenticated();
+  }
+
+  /** Start about the user's own class, with their child, links into the class and so on:
+   *  logged in, a member of a class, and on the plain address - not on a class link, which
+   *  always shows exactly the public view. */
+  memberView(): boolean {
+    return this.showsOwnClass() && !!this.currentUser.classId();
+  }
+
+  /** Logged in, on the plain address (not a class link): Start is about the user's own class. */
+  private showsOwnClass(): boolean {
+    return !this.publicToken && this.isLoggedIn();
+  }
+
+  /**
+   * Which overview this page shows: a class link shows that class's public view; a logged-in
+   * member sees their current class; anyone else (or someone who belongs to no class yet)
+   * sees the class at the app's plain address.
+   */
+  private overviewSource(): Observable<PublicOverviewModel> {
+    if (this.publicToken) {
+      return this.publicApi.overviewByToken(this.publicToken);
+    }
+    if (!this.isLoggedIn()) {
+      return this.publicApi.overview();
+    }
+    return this.currentUser.load().pipe(
+      switchMap(() => (this.currentUser.classId() ? this.classApi.overview() : this.publicApi.overview())),
+    );
   }
 
   hasPaymentInfo(o: PublicOverviewModel): boolean {
@@ -163,7 +201,7 @@ export class PublicOverview {
    *  one bigger transfer that later collections draw from, instead of a transfer per
    *  collection. */
   suggestedPrepay(o: PublicOverviewModel): number {
-    const due = this.isLoggedIn() ? this.totalOwed(o) : 0;
+    const due = this.memberView() ? this.totalOwed(o) : 0;
     return due < 100 ? 100 : Math.ceil((due + 1) / 50) * 50;
   }
 

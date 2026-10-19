@@ -11,5 +11,5 @@ package io.github.jaroslawdabrowski.groszdogrosza.collection.port.in;
  */
 public interface AddStudentToCollectionUseCase {
 
-    void addStudentToCollection(String collectionId, String studentId);
+    void addStudentToCollection(String classId, String collectionId, String studentId);
 }

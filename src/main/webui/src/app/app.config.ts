@@ -8,6 +8,7 @@ import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { provideTranslateService } from '@ngx-translate/core';
 
 import { authInterceptor } from './core/auth.interceptor';
+import { classInterceptor } from './core/class.interceptor';
 import { AuthService } from './core/auth.service';
 import { routes } from './app.routes';
 import { provideServiceWorker } from '@angular/service-worker';
@@ -24,7 +25,7 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => {
       inject(MatIconRegistry).setDefaultFontSetClass('material-symbols-rounded');
     }),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([classInterceptor, authInterceptor])),
     provideAnimationsAsync(),
     provideOAuthClient(),
     // angular-oauth2-oidc defaults to sessionStorage, which the browser/OS wipes the

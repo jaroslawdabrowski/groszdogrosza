@@ -8,6 +8,11 @@ export const routes: Routes = [
     loadComponent: () => import('./public-overview/public-overview').then((m) => m.PublicOverview),
   },
   {
+    // A class's public link: its totals and payment details, no login (see PublicOverview).
+    path: 'k/:token',
+    loadComponent: () => import('./public-overview/public-overview').then((m) => m.PublicOverview),
+  },
+  {
     path: 'dashboard',
     loadComponent: () => import('./dashboard/dashboard').then((m) => m.Dashboard),
     canActivate: [authGuard],

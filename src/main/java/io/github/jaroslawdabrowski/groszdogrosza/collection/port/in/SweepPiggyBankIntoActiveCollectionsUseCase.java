@@ -17,5 +17,5 @@ package io.github.jaroslawdabrowski.groszdogrosza.collection.port.in;
  */
 public interface SweepPiggyBankIntoActiveCollectionsUseCase {
 
-    void sweep(String studentId);
+    void sweep(String classId, String studentId);
 }

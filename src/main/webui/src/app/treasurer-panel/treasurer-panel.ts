@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ParentApiService } from '../core/parent-api.service';
+import { ClassApiService } from '../core/class-api.service';
+import { CurrentUserService } from '../core/current-user.service';
 import { StudentApiService } from '../core/student-api.service';
 import { CollectionApiService } from '../core/collection-api.service';
 import { Parent, Student } from '../core/models';
@@ -48,7 +50,8 @@ export class TreasurerPanel {
    *  itself is also behind `treasurerGuard`, so there's no separate access check needed
    *  here, the widget just inherits both. */
   readonly totalPiggyBankBalance = computed(() => this.students().reduce((sum, s) => sum + s.piggyBankBalance, 0));
-  readonly me = signal<Parent | null>(null);
+  private readonly currentUser = inject(CurrentUserService);
+  private readonly classApi = inject(ClassApiService);
   readonly bankAccountNumber = signal('');
   readonly blikPhoneNumber = signal('');
   readonly paymentInfoSaved = signal(false);
@@ -109,10 +112,10 @@ export class TreasurerPanel {
 
   constructor() {
     this.reloadStudents();
-    this.parentApi.me().subscribe((me) => {
-      this.me.set(me);
-      this.bankAccountNumber.set(me.bankAccountNumber ?? '');
-      this.blikPhoneNumber.set(me.blikPhoneNumber ?? '');
+    this.currentUser.load().subscribe();
+    this.classApi.get().subscribe((schoolClass) => {
+      this.bankAccountNumber.set(schoolClass.bankAccountNumber ?? '');
+      this.blikPhoneNumber.set(schoolClass.blikPhoneNumber ?? '');
     });
   }
 
@@ -149,12 +152,7 @@ export class TreasurerPanel {
   }
 
   savePaymentInfo(): void {
-    const currentUser = this.me();
-    if (!currentUser) {
-      return;
-    }
-    this.parentApi.updatePaymentInfo(currentUser.id, this.bankAccountNumber(), this.blikPhoneNumber()).subscribe((updated) => {
-      this.me.set(updated);
+    this.classApi.updatePaymentInfo(this.bankAccountNumber(), this.blikPhoneNumber()).subscribe(() => {
       this.paymentInfoSaved.set(true);
     });
   }
@@ -257,8 +255,12 @@ export class TreasurerPanel {
   /** A student whose parent list includes the currently logged-in treasurer - deleting it
    *  would delete the treasurer's own account, so the delete button is disabled for it. */
   isOwnStudent(student: Student): boolean {
-    const myId = this.me()?.id;
-    return myId != null && student.parents.some((p) => p.id === myId);
+    return student.parents.some((p) => this.isOwnParentRecord(p));
+  }
+
+  /** The logged-in treasurer's own parent record - they can't delete themselves. */
+  isOwnParentRecord(parent: Parent): boolean {
+    return this.currentUser.ownParentIds().includes(parent.id);
   }
 
   deleteStudent(student: Student): void {

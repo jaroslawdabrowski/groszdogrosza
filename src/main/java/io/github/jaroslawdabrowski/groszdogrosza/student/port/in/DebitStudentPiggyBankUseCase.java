@@ -9,5 +9,5 @@ import java.math.BigDecimal;
  *  {@code bankstatement.domain.ContributionAllocationPolicy} first. */
 public interface DebitStudentPiggyBankUseCase {
 
-    Student debitPiggyBank(String studentId, BigDecimal amount);
+    Student debitPiggyBank(String classId, String studentId, BigDecimal amount);
 }

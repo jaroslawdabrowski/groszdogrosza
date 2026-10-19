@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 public interface ApplyAutomaticContributionUseCase {
 
     Contribution applyContribution(
+            String classId,
             String collectionId,
             String studentId,
             BigDecimal amount,

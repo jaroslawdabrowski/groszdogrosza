@@ -22,5 +22,5 @@ import java.util.List;
 public interface CreateCollectionUseCase {
 
     Collection createCollection(
-            String title, String description, BigDecimal baseAmountPerStudent, List<String> includedStudentIds);
+            String classId, String title, String description, BigDecimal baseAmountPerStudent, List<String> includedStudentIds);
 }

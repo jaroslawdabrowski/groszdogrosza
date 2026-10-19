@@ -14,7 +14,9 @@ import java.util.Map;
 import java.util.Optional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import io.github.jaroslawdabrowski.groszdogrosza.platform.persistence.ClassScopedReads;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
@@ -43,33 +45,36 @@ public class StudentDynamoDbAdapter implements StudentRepositoryPort {
     }
 
     @Override
-    public Optional<Student> findById(String studentId) {
-        Map<String, AttributeValue> item = dynamoDbClient.getItem(GetItemRequest.builder()
-                        .tableName(tableName)
-                        .key(Map.of("pk", s(pk(studentId)), "sk", s(SK)))
-                        .build())
-                .item();
-        return item == null || item.isEmpty() ? Optional.empty() : Optional.of(fromItem(item));
+    public Optional<Student> findById(String classId, String studentId) {
+        return ClassScopedReads.getInClass(dynamoDbClient, tableName, key(studentId), classId)
+                .map(StudentDynamoDbAdapter::fromItem);
     }
 
     @Override
-    public List<Student> findAll() {
-        return dynamoDbClient.scan(ScanRequest.builder()
-                        .tableName(tableName)
-                        .filterExpression("sk = :sk")
-                        .expressionAttributeValues(Map.of(":sk", s(SK)))
-                        .build())
-                .items().stream()
+    public List<Student> findAllInClass(String classId) {
+        return ClassScopedReads.scanInClass(dynamoDbClient, tableName, "sk = :sk", Map.of(":sk", s(SK)), classId)
+                .stream()
                 .map(StudentDynamoDbAdapter::fromItem)
                 .toList();
     }
 
     @Override
-    public void deleteById(String studentId) {
-        dynamoDbClient.deleteItem(DeleteItemRequest.builder()
-                .tableName(tableName)
-                .key(Map.of("pk", s(pk(studentId)), "sk", s(SK)))
-                .build());
+    public void deleteById(String classId, String studentId) {
+        // Conditional: deletes only the class's own student, never one that merely shares the id.
+        try {
+            dynamoDbClient.deleteItem(DeleteItemRequest.builder()
+                    .tableName(tableName)
+                    .key(key(studentId))
+                    .conditionExpression("classId = :classId")
+                    .expressionAttributeValues(Map.of(":classId", s(classId)))
+                    .build());
+        } catch (ConditionalCheckFailedException e) {
+            // Not this class's student (or already gone) - nothing to delete.
+        }
+    }
+
+    private static Map<String, AttributeValue> key(String studentId) {
+        return Map.of("pk", s(pk(studentId)), "sk", s(SK));
     }
 
     private static String pk(String studentId) {
@@ -81,6 +86,7 @@ public class StudentDynamoDbAdapter implements StudentRepositoryPort {
                 "pk", s(pk(student.id())),
                 "sk", s(SK),
                 "id", s(student.id()),
+                "classId", s(student.classId()),
                 "firstName", s(student.firstName()),
                 "lastName", s(student.lastName()),
                 "piggyBankBalance", n(student.piggyBankBalance()));
@@ -89,6 +95,7 @@ public class StudentDynamoDbAdapter implements StudentRepositoryPort {
     private static Student fromItem(Map<String, AttributeValue> item) {
         return new Student(
                 str(item, "id"),
+                str(item, "classId"),
                 str(item, "firstName"),
                 str(item, "lastName"),
                 decimal(item, "piggyBankBalance"));

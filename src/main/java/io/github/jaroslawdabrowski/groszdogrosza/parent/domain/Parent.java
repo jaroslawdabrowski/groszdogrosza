@@ -2,15 +2,16 @@ package io.github.jaroslawdabrowski.groszdogrosza.parent.domain;
 
 /**
  * A parent (or guardian) of a {@code student.domain.Student} - the login/contact record, not
- * the money-tracking unit anymore (that moved to {@code Student.piggyBankBalance} - see its
- * javadoc for why). A student has 0, 1 or 2 parents; a parent belongs to exactly one student
- * ({@link #studentId()}) - the relationship is deliberately owned by the student side (a
- * parent with two children in the class needs two separate {@code Parent} records, one per
- * student - an accepted simplification at this app's one-class scale).
+ * the money-tracking unit (that's {@code Student.piggyBankBalance}). A student has 0, 1 or 2
+ * parents; a parent record belongs to exactly one student ({@link #studentId()}). A person
+ * with children in several classes (or two children in one class) has one record per child,
+ * all with the same email - one login sees all of them (see docs/MULTI-CLASS.md).
  *
+ * @param classId            the class of {@link #studentId()} - copied onto the record so
+ *                           class-scoped reads can filter on it directly.
  * @param studentId          the student this parent belongs to. Always set in practice - a
  *                           {@code Parent} is only ever created via
- *                           {@code POST /api/students/{id}/parents}, never standalone.
+ *                           {@code POST /api/classes/{classId}/students/{id}/parents}.
  * @param expectedSenderName how the parent's name is expected to appear as the sender on a
  *                           bank transfer (e.g. "Jan Kowalski") - used by
  *                           {@code bankstatement.domain.PaymentMatchingPolicy} as the
@@ -21,15 +22,18 @@ package io.github.jaroslawdabrowski.groszdogrosza.parent.domain;
  * @param cognitoSubjectId   null until the parent has actually logged in once and been
  *                           linked to a Cognito/Keycloak identity - most parents never need
  *                           an account at all, only the treasurer does.
- * @param role               {@link ParentRole#TREASURER} or {@link ParentRole#PARENT} - see
- *                           {@code platform.security.AuthorizationSupport} for how this
- *                           drives every authorization decision in the app.
- * @param paymentInfo        null unless the treasurer has configured it - see
- *                           {@link PaymentInfo}. Shown on the public, unauthenticated
- *                           collection overview page so anyone can pay in.
+ * @param role               legacy, from the one-class version: who was the treasurer. Kept
+ *                           and written back unchanged so the previous version of the app
+ *                           still works on migrated data (rollback), but no longer used for
+ *                           any authorization - treasurers are per class now
+ *                           ({@code schoolclass}). Still used by the bank-statement matching
+ *                           to recognise the treasurer's own outgoing transfers.
+ * @param paymentInfo        legacy, same reason as {@code role}: payment details live on the
+ *                           class now ({@code schoolclass.domain.SchoolClass}).
  */
 public record Parent(
         String id,
+        String classId,
         String studentId,
         String firstName,
         String lastName,

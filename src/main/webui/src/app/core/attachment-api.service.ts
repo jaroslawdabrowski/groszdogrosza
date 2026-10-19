@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { CLASS_API } from './class.interceptor';
 import { Observable, catchError, from, switchMap, throwError } from 'rxjs';
 import { Attachment } from './models';
 
@@ -36,7 +37,7 @@ export class AttachmentApiService {
   private readonly http = inject(HttpClient);
 
   list(collectionId: string): Observable<Attachment[]> {
-    return this.http.get<Attachment[]>(`/api/collections/${collectionId}/attachments`);
+    return this.http.get<Attachment[]>(`${CLASS_API}/collections/${collectionId}/attachments`);
   }
 
   private requestUpload(
@@ -46,7 +47,7 @@ export class AttachmentApiService {
     sizeBytes: number,
   ): Observable<{ attachmentId: string; uploadUrl: string }> {
     return this.http.post<{ attachmentId: string; uploadUrl: string }>(
-      `/api/collections/${collectionId}/attachments/upload-url`,
+      `${CLASS_API}/collections/${collectionId}/attachments/upload-url`,
       { fileName, contentType, sizeBytes },
     );
   }
@@ -67,7 +68,7 @@ export class AttachmentApiService {
     contentType: string,
     sizeBytes: number,
   ): Observable<Attachment> {
-    return this.http.post<Attachment>(`/api/collections/${collectionId}/attachments/${attachmentId}/confirm`, {
+    return this.http.post<Attachment>(`${CLASS_API}/collections/${collectionId}/attachments/${attachmentId}/confirm`, {
       fileName,
       contentType,
       sizeBytes,
@@ -121,6 +122,6 @@ export class AttachmentApiService {
   }
 
   delete(collectionId: string, attachmentId: string): Observable<object> {
-    return this.http.delete(`/api/collections/${collectionId}/attachments/${attachmentId}`);
+    return this.http.delete(`${CLASS_API}/collections/${collectionId}/attachments/${attachmentId}`);
   }
 }

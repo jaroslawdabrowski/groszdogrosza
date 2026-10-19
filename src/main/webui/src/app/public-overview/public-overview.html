@@ -1,10 +1,10 @@
 <div class="page">
   <header class="page-head">
-    @if (isLoggedIn() && parentName(); as name) {
+    @if (memberView() && parentName(); as name) {
       <p class="eyebrow">{{ 'start.hello' | translate: { name: name } }}</p>
     }
     <h1>{{ 'start.title' | translate }}</h1>
-    @if (!isLoggedIn()) {
+    @if (!memberView()) {
       <p class="intro">{{ 'start.anonIntro' | translate }}</p>
     }
   </header>
@@ -12,7 +12,7 @@
   @if (loading()) {
     <app-loading-spinner [label]="'common.loading' | translate" />
   } @else if (overview(); as o) {
-    @if (isLoggedIn()) {
+    @if (memberView()) {
       <app-install-hint />
     }
 
@@ -43,7 +43,7 @@
       <div class="prepay">
         <p class="prepay-title">{{ 'start.prepayTitle' | translate }} <strong class="num">{{ suggestedPrepay(o) | money }} zł</strong></p>
         <p class="prepay-body">{{ 'start.prepayBody' | translate }}</p>
-        @if (isLoggedIn() && totalOwed(o) > 0) {
+        @if (memberView() && totalOwed(o) > 0) {
           <p class="prepay-due" data-testid="total-owed">{{ 'start.dueNow' | translate: { amount: (totalOwed(o) | money) } }}</p>
         }
       </div>
@@ -69,7 +69,7 @@
     @for (c of o.activeCollections; track c.collection.id) {
       <article class="sheet sheet--hero collection-sheet" data-testid="collection-sheet" [attr.data-title]="c.collection.title">
         <div class="sheet-head">
-          @if (isLoggedIn()) {
+          @if (memberView()) {
             <h2><a class="sheet-link" [routerLink]="['/collections', c.collection.id]">{{ c.collection.title }}</a></h2>
           } @else {
             <h2>{{ c.collection.title }}</h2>
@@ -91,7 +91,7 @@
           {{ 'start.legendPaid' | translate: { paid: c.studentsPaidCount, total: c.studentsCount } }}
         </p>
 
-        @if (isLoggedIn() && c.collection.myStudentStatus; as status) {
+        @if (memberView() && c.collection.myStudentStatus; as status) {
           <div class="my-child" data-testid="my-status" [attr.data-status]="status">
             @switch (status) {
               @case ('NOT_INCLUDED') {
@@ -113,7 +113,7 @@
           </div>
         }
 
-        @if (isLoggedIn()) {
+        @if (memberView()) {
           <a class="btn btn--text btn--sm details-link" [routerLink]="['/collections', c.collection.id]">
             {{ 'start.details' | translate }}<mat-icon>chevron_right</mat-icon>
           </a>

@@ -9,6 +9,7 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListAttachme
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RequestAttachmentUploadUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.out.AttachmentRepositoryPort;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.out.AttachmentStoragePort;
+import io.github.jaroslawdabrowski.groszdogrosza.collection.port.out.CollectionRepositoryPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Instant;
@@ -30,8 +31,12 @@ public class CollectionAttachmentService implements RequestAttachmentUploadUseCa
     @Inject
     AttachmentStoragePort attachmentStorage;
 
+    @Inject
+    CollectionRepositoryPort collectionRepository;
+
     @Override
-    public UploadTicket requestUpload(String collectionId, String fileName, String contentType, long sizeBytes) {
+    public UploadTicket requestUpload(String classId, String collectionId, String fileName, String contentType, long sizeBytes) {
+        requireCollectionInClass(classId, collectionId);
         AttachmentPolicy.validate(contentType, sizeBytes);
         String attachmentId = UUID.randomUUID().toString();
         String s3Key = s3Key(collectionId, attachmentId);
@@ -41,7 +46,9 @@ public class CollectionAttachmentService implements RequestAttachmentUploadUseCa
 
     @Override
     public CollectionAttachment confirmUpload(
-            String collectionId, String attachmentId, String fileName, String contentType, long sizeBytes) {
+            String classId, String collectionId, String attachmentId, String fileName, String contentType,
+            long sizeBytes) {
+        requireCollectionInClass(classId, collectionId);
         AttachmentPolicy.validate(contentType, sizeBytes);
         String s3Key = s3Key(collectionId, attachmentId);
         OptionalLong storedSize = attachmentStorage.objectSize(s3Key);
@@ -67,7 +74,8 @@ public class CollectionAttachmentService implements RequestAttachmentUploadUseCa
     }
 
     @Override
-    public List<AttachmentWithViewUrl> listAttachments(String collectionId) {
+    public List<AttachmentWithViewUrl> listAttachments(String classId, String collectionId) {
+        requireCollectionInClass(classId, collectionId);
         return attachmentRepository.findAttachmentsByCollectionId(collectionId).stream()
                 .map(attachment -> new AttachmentWithViewUrl(
                         attachment, attachmentStorage.presignGetUrl(attachment.s3Key(), attachment.fileName())))
@@ -75,11 +83,20 @@ public class CollectionAttachmentService implements RequestAttachmentUploadUseCa
     }
 
     @Override
-    public void deleteAttachment(String collectionId, String attachmentId) {
+    public void deleteAttachment(String classId, String collectionId, String attachmentId) {
+        requireCollectionInClass(classId, collectionId);
         CollectionAttachment attachment = attachmentRepository.findAttachment(collectionId, attachmentId)
                 .orElseThrow(() -> new NoSuchElementException("No such attachment: " + attachmentId));
         attachmentStorage.deleteObject(attachment.s3Key());
         attachmentRepository.deleteAttachment(collectionId, attachmentId);
+    }
+
+    /** Attachments hang off a collection; the collection must belong to the caller's class -
+     *  otherwise "no such collection", so another class's files can't be listed, added to or
+     *  deleted by guessing a collection id. */
+    private void requireCollectionInClass(String classId, String collectionId) {
+        collectionRepository.findCollectionById(classId, collectionId)
+                .orElseThrow(() -> new NoSuchElementException("No such collection: " + collectionId));
     }
 
     private static String s3Key(String collectionId, String attachmentId) {

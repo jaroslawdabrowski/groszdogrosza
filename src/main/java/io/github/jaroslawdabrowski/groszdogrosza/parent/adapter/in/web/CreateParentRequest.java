@@ -1,6 +1,6 @@
 package io.github.jaroslawdabrowski.groszdogrosza.parent.adapter.in.web;
 
-/** @param role "TREASURER" or "PARENT" (case-sensitive, matches {@code ParentRole}); null defaults to PARENT. */
-public record CreateParentRequest(String firstName, String lastName, String email, String expectedSenderName,
-        String role) {
+/** A new parent of a student. There's no role here: being a treasurer is a separate,
+ *  per-class membership (schoolclass), never something set on a parent record. */
+public record CreateParentRequest(String firstName, String lastName, String email, String expectedSenderName) {
 }

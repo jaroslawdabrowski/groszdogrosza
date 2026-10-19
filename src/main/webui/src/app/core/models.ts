@@ -90,9 +90,34 @@ export interface Parent {
   lastName: string;
   email: string;
   expectedSenderName: string;
+}
+
+/** One class the logged-in user belongs to, and in what role - see backend MeResource. */
+export interface ClassMembership {
+  id: string;
+  name: string;
   role: 'TREASURER' | 'PARENT';
+  /** The user's own children in this class. */
+  studentIds: string[];
+  /** The user's own parent records in this class. */
+  parentIds: string[];
+}
+
+/** GET /api/me - who the logged-in user is and which classes they belong to. */
+export interface Me {
+  email: string | null;
+  firstName: string | null;
+  admin: boolean;
+  classes: ClassMembership[];
+}
+
+/** GET /api/classes/{id} - the class itself. `publicToken` only for its treasurers. */
+export interface SchoolClass {
+  id: string;
+  name: string;
   bankAccountNumber: string | null;
   blikPhoneNumber: string | null;
+  publicToken: string | null;
 }
 
 /** A student has 0-2 parents - see the backend Parent.studentId javadoc for why the cap. */
@@ -129,6 +154,7 @@ export interface PublicPaymentInfo {
 
 /** GET /api/public/overview - unauthenticated. See backend PublicOverviewResponse. */
 export interface PublicOverview {
+  className: string;
   paymentInfo: PublicPaymentInfo | null;
   activeCollections: CollectionProgress[];
 }

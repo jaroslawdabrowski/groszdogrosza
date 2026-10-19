@@ -5,5 +5,5 @@ import java.util.List;
 
 public interface ListParentsForStudentUseCase {
 
-    List<Parent> listParentsForStudent(String studentId);
+    List<Parent> listParentsForStudent(String classId, String studentId);
 }

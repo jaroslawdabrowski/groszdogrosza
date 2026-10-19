@@ -11,6 +11,7 @@ import java.util.Map;
  */
 public record LedgerEntry(
         String id,
+        String classId,
         String studentId,
         LedgerEventType eventType,
         Instant occurredAt,

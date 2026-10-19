@@ -11,5 +11,5 @@ import java.math.BigDecimal;
  */
 public interface RecordManualContributionUseCase {
 
-    Contribution recordManualContribution(String collectionId, String studentId, BigDecimal amount);
+    Contribution recordManualContribution(String classId, String collectionId, String studentId, BigDecimal amount);
 }

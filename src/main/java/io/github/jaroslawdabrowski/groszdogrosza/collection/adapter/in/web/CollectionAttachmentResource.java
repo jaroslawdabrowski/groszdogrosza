@@ -4,9 +4,8 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ConfirmAttac
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.DeleteAttachmentUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.ListAttachmentsUseCase;
 import io.github.jaroslawdabrowski.groszdogrosza.collection.port.in.RequestAttachmentUploadUseCase;
-import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
+import io.github.jaroslawdabrowski.groszdogrosza.platform.security.ClassContext;
 import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -30,7 +29,7 @@ import java.util.List;
  * presigned URL and PUTs the file straight to S3, then confirms so metadata is only ever
  * written for a file that's actually there.
  */
-@Path("/api/collections/{collectionId}/attachments")
+@Path("/api/classes/{classId}/collections/{collectionId}/attachments")
 @Authenticated
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -49,23 +48,20 @@ public class CollectionAttachmentResource {
     DeleteAttachmentUseCase deleteAttachmentUseCase;
 
     @Inject
-    AuthorizationSupport authorizationSupport;
-
-    @Inject
-    SecurityIdentity identity;
+    ClassContext classContext;
 
     @GET
     public List<AttachmentResponse> list(@PathParam("collectionId") String collectionId) {
-        return listAttachmentsUseCase.listAttachments(collectionId).stream().map(AttachmentResponse::from).toList();
+        return listAttachmentsUseCase.listAttachments(classContext.classId(), collectionId).stream().map(AttachmentResponse::from).toList();
     }
 
     @POST
     @Path("/upload-url")
     public AttachmentUploadTicketResponse requestUpload(
             @PathParam("collectionId") String collectionId, RequestAttachmentUploadRequest request) {
-        authorizationSupport.requireTreasurer(identity);
+        classContext.requireTreasurer();
         return AttachmentUploadTicketResponse.from(requestAttachmentUploadUseCase.requestUpload(
-                collectionId, request.fileName(), request.contentType(), request.sizeBytes()));
+                classContext.classId(), collectionId, request.fileName(), request.contentType(), request.sizeBytes()));
     }
 
     @POST
@@ -73,12 +69,12 @@ public class CollectionAttachmentResource {
     public AttachmentResponse confirmUpload(
             @PathParam("collectionId") String collectionId, @PathParam("attachmentId") String attachmentId,
             RequestAttachmentUploadRequest request) {
-        authorizationSupport.requireTreasurer(identity);
+        classContext.requireTreasurer();
         var attachment = confirmAttachmentUploadUseCase.confirmUpload(
-                collectionId, attachmentId, request.fileName(), request.contentType(), request.sizeBytes());
+                classContext.classId(), collectionId, attachmentId, request.fileName(), request.contentType(), request.sizeBytes());
         // Re-fetch through the list use case to get a viewUrl in the response too, rather
         // than duplicating presign logic here.
-        return listAttachmentsUseCase.listAttachments(collectionId).stream()
+        return listAttachmentsUseCase.listAttachments(classContext.classId(), collectionId).stream()
                 .filter(a -> a.attachment().id().equals(attachment.id()))
                 .findFirst()
                 .map(AttachmentResponse::from)
@@ -88,7 +84,7 @@ public class CollectionAttachmentResource {
     @DELETE
     @Path("/{attachmentId}")
     public void delete(@PathParam("collectionId") String collectionId, @PathParam("attachmentId") String attachmentId) {
-        authorizationSupport.requireTreasurer(identity);
-        deleteAttachmentUseCase.deleteAttachment(collectionId, attachmentId);
+        classContext.requireTreasurer();
+        deleteAttachmentUseCase.deleteAttachment(classContext.classId(), collectionId, attachmentId);
     }
 }

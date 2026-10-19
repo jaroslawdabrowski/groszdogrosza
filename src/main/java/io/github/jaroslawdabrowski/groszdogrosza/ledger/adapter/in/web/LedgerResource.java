@@ -1,10 +1,9 @@
 package io.github.jaroslawdabrowski.groszdogrosza.ledger.adapter.in.web;
 
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.GetLedgerForStudentUseCase;
-import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
+import io.github.jaroslawdabrowski.groszdogrosza.platform.security.ClassContext;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.GetStudentUseCase;
 import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
@@ -20,7 +19,7 @@ import java.util.List;
  * for the same self-or-treasurer rule applied here ("self" = the caller's own Parent record
  * is linked to this student).
  */
-@Path("/api/students/{studentId}/ledger")
+@Path("/api/classes/{classId}/students/{studentId}/ledger")
 @Authenticated
 @Produces(MediaType.APPLICATION_JSON)
 public class LedgerResource {
@@ -32,15 +31,13 @@ public class LedgerResource {
     GetStudentUseCase getStudentUseCase;
 
     @Inject
-    AuthorizationSupport authorizationSupport;
-
-    @Inject
-    SecurityIdentity identity;
+    ClassContext classContext;
 
     @GET
     public List<LedgerEntryResponse> get(@PathParam("studentId") String studentId) {
-        getStudentUseCase.getStudent(studentId).orElseThrow(() -> new NotFoundException("No such student: " + studentId));
-        authorizationSupport.requireSelfOrTreasurerForStudent(identity, studentId);
-        return getLedgerForStudentUseCase.getLedgerFor(studentId).stream().map(LedgerEntryResponse::from).toList();
+        classContext.requireTreasurerOrGuardianOf(studentId);
+        getStudentUseCase.getStudent(classContext.classId(), studentId)
+                .orElseThrow(() -> new NotFoundException("No such student: " + studentId));
+        return getLedgerForStudentUseCase.getLedgerFor(classContext.classId(), studentId).stream().map(LedgerEntryResponse::from).toList();
     }
 }

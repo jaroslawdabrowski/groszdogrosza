@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { CLASS_API } from './class.interceptor';
 import { Observable } from 'rxjs';
 import { CollectionDetails, CollectionProgress, CollectionSummary, SettlementResult } from './models';
 
@@ -8,34 +9,34 @@ export class CollectionApiService {
   private readonly http = inject(HttpClient);
 
   list(): Observable<CollectionSummary[]> {
-    return this.http.get<CollectionSummary[]>('/api/collections');
+    return this.http.get<CollectionSummary[]>(`${CLASS_API}/collections`);
   }
 
   /** Returns CollectionDetails (treasurer) or CollectionProgress (regular parent) depending
    * on the caller's role - see the backend's CollectionResource.get. Use `isCollectionDetails`
    * from ./models to narrow the result. */
   get(id: string): Observable<CollectionDetails | CollectionProgress> {
-    return this.http.get<CollectionDetails | CollectionProgress>(`/api/collections/${id}`);
+    return this.http.get<CollectionDetails | CollectionProgress>(`${CLASS_API}/collections/${id}`);
   }
 
   /** `studentIds` are the students this collection asks money from - not every collection
    *  includes every student (a trip some families already opted their kid out of) - see the
    *  backend CreateCollectionUseCase's javadoc. */
   create(title: string, description: string, baseAmountPerStudent: number, studentIds: string[]): Observable<CollectionSummary> {
-    return this.http.post<CollectionSummary>('/api/collections', { title, description, baseAmountPerStudent, studentIds });
+    return this.http.post<CollectionSummary>(`${CLASS_API}/collections`, { title, description, baseAmountPerStudent, studentIds });
   }
 
   recordContribution(collectionId: string, studentId: string, amount: number): Observable<CollectionDetails> {
-    return this.http.post<CollectionDetails>(`/api/collections/${collectionId}/contributions`, { studentId, amount });
+    return this.http.post<CollectionDetails>(`${CLASS_API}/collections/${collectionId}/contributions`, { studentId, amount });
   }
 
   /** What settling at this cost would do - nothing is saved (see backend PreviewSettlementUseCase). */
   previewSettlement(collectionId: string, actualCostSpent: number): Observable<SettlementResult> {
-    return this.http.post<SettlementResult>(`/api/collections/${collectionId}/settle-preview`, { actualCostSpent });
+    return this.http.post<SettlementResult>(`${CLASS_API}/collections/${collectionId}/settle-preview`, { actualCostSpent });
   }
 
   settle(collectionId: string, actualCostSpent: number): Observable<SettlementResult> {
-    return this.http.post<SettlementResult>(`/api/collections/${collectionId}/settle`, { actualCostSpent });
+    return this.http.post<SettlementResult>(`${CLASS_API}/collections/${collectionId}/settle`, { actualCostSpent });
   }
 
   /** Takes a student out of an ACTIVE collection - whatever they'd already paid is refunded
@@ -44,7 +45,7 @@ export class CollectionApiService {
    *  `requireSelfOrTreasurerForStudent` - 403 otherwise), which is why the response is the
    *  same role-dependent shape `get` returns, not always CollectionDetails. */
   removeStudent(collectionId: string, studentId: string): Observable<CollectionDetails | CollectionProgress> {
-    return this.http.delete<CollectionDetails | CollectionProgress>(`/api/collections/${collectionId}/students/${studentId}`);
+    return this.http.delete<CollectionDetails | CollectionProgress>(`${CLASS_API}/collections/${collectionId}/students/${studentId}`);
   }
 
   /** Puts a student back into an ACTIVE collection they weren't part of - immediately sweeps
@@ -52,6 +53,6 @@ export class CollectionApiService {
    *  first created (see the backend AddStudentToCollectionUseCase). Same self-or-treasurer
    *  rule and response shape as removeStudent. */
   addStudent(collectionId: string, studentId: string): Observable<CollectionDetails | CollectionProgress> {
-    return this.http.post<CollectionDetails | CollectionProgress>(`/api/collections/${collectionId}/students/${studentId}`, {});
+    return this.http.post<CollectionDetails | CollectionProgress>(`${CLASS_API}/collections/${collectionId}/students/${studentId}`, {});
   }
 }

@@ -68,9 +68,10 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
 
     @Override
     public Collection createCollection(
-            String title, String description, BigDecimal baseAmountPerStudent, List<String> includedStudentIds) {
+            String classId, String title, String description, BigDecimal baseAmountPerStudent,
+            List<String> includedStudentIds) {
         NewCollectionPolicy.validate(title, baseAmountPerStudent, includedStudentIds);
-        Collection collection = new Collection(UUID.randomUUID().toString(), title.trim(), description,
+        Collection collection = new Collection(UUID.randomUUID().toString(), classId, title.trim(), description,
                 CollectionStatus.ACTIVE, baseAmountPerStudent, Instant.now());
         collection = collectionRepository.saveCollection(collection);
 
@@ -85,7 +86,7 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
         // a "whoever's coming on the trip owes money" collection are both real cases here) -
         // and, critically, no piggy bank debit either: addRequirementForStudent never runs
         // for them.
-        for (Student student : listStudentsUseCase.listStudents()) {
+        for (Student student : listStudentsUseCase.listStudents(classId)) {
             if (included.contains(student.id())) {
                 addRequirementForStudent(collection, student);
             }
@@ -95,8 +96,8 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
     }
 
     @Override
-    public void addStudentToCollection(String collectionId, String studentId) {
-        Collection collection = collectionRepository.findCollectionById(collectionId)
+    public void addStudentToCollection(String classId, String collectionId, String studentId) {
+        Collection collection = collectionRepository.findCollectionById(classId, collectionId)
                 .orElseThrow(() -> new NoSuchElementException("No such collection: " + collectionId));
         if (collection.status() != CollectionStatus.ACTIVE) {
             // Same reasoning as removeStudentFromCollection's guard - a settled collection's
@@ -106,7 +107,7 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
         if (collectionRepository.findRequirement(collectionId, studentId).isPresent()) {
             throw new StudentAlreadyInCollectionException(collectionId, studentId);
         }
-        Student student = getStudentUseCase.getStudent(studentId)
+        Student student = getStudentUseCase.getStudent(classId, studentId)
                 .orElseThrow(() -> new NoSuchElementException("No such student: " + studentId));
         addRequirementForStudent(collection, student);
     }
@@ -128,48 +129,52 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
 
         BigDecimal covered = student.piggyBankBalance().min(collection.baseAmountPerStudent());
         if (covered.signum() > 0) {
-            debitStudentPiggyBankUseCase.debitPiggyBank(student.id(), covered);
+            debitStudentPiggyBankUseCase.debitPiggyBank(collection.classId(), student.id(), covered);
             // Same params shape as BankStatementProcessingService.bookMatchedTransaction's
             // identical call for the real-payment case - collectionId, amount, no title
             // (the i18n string for this event type doesn't use one).
-            recordLedgerEntryUseCase.record(student.id(), LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION,
+            recordLedgerEntryUseCase.record(collection.classId(), student.id(), LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION,
                     java.util.Map.of(
                             "collectionId", collection.id(),
                             "amount", LedgerAmounts.format(covered)));
-            applyContribution(collection.id(), student.id(), covered, ContributionSource.PIGGY_BANK_APPLIED, null);
+            applyContribution(collection.classId(), collection.id(), student.id(), covered, ContributionSource.PIGGY_BANK_APPLIED, null);
         }
     }
 
     @Override
-    public Optional<CollectionDetails> getCollection(String collectionId) {
-        return collectionRepository.findCollectionById(collectionId).map(collection -> new CollectionDetails(
+    public Optional<CollectionDetails> getCollection(String classId, String collectionId) {
+        return collectionRepository.findCollectionById(classId, collectionId).map(collection -> new CollectionDetails(
                 collection,
                 collectionRepository.findRequirementsByCollectionId(collectionId),
                 collectionRepository.findContributionsByCollectionId(collectionId)));
     }
 
     @Override
-    public List<Collection> listCollections() {
-        return collectionRepository.findAllCollections();
+    public List<Collection> listCollections(String classId) {
+        return collectionRepository.findAllCollections(classId);
     }
 
     @Override
-    public Contribution recordManualContribution(String collectionId, String studentId, BigDecimal amount) {
-        return bookContribution(collectionId, studentId, amount, ContributionSource.MANUAL, null);
+    public Contribution recordManualContribution(String classId, String collectionId, String studentId, BigDecimal amount) {
+        return bookContribution(classId, collectionId, studentId, amount, ContributionSource.MANUAL, null);
     }
 
     @Override
     public Contribution applyContribution(
-            String collectionId, String studentId, BigDecimal amount, ContributionSource source,
+            String classId, String collectionId, String studentId, BigDecimal amount, ContributionSource source,
             String bankTransactionReference) {
-        return bookContribution(collectionId, studentId, amount, source, bankTransactionReference);
+        return bookContribution(classId, collectionId, studentId, amount, source, bankTransactionReference);
     }
 
     private Contribution bookContribution(
-            String collectionId, String studentId, BigDecimal amount, ContributionSource source,
+            String classId, String collectionId, String studentId, BigDecimal amount, ContributionSource source,
             String bankTransactionReference) {
-        Collection collection = collectionRepository.findCollectionById(collectionId)
+        Collection collection = collectionRepository.findCollectionById(classId, collectionId)
                 .orElseThrow(() -> new NoSuchElementException("No such collection: " + collectionId));
+        // The student must be in the same class as the collection - otherwise a treasurer could
+        // book money (and write log entries) for another class's child.
+        getStudentUseCase.getStudent(classId, studentId)
+                .orElseThrow(() -> new NoSuchElementException("No such student: " + studentId));
 
         Contribution contribution = new Contribution(UUID.randomUUID().toString(), collectionId, studentId, amount,
                 source, bankTransactionReference, Instant.now());
@@ -178,7 +183,7 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
         collectionRepository.findRequirement(collectionId, studentId).ifPresent(requirement ->
                 collectionRepository.saveRequirement(requirement.withAdditionalPayment(amount)));
 
-        recordLedgerEntryUseCase.record(studentId, LedgerEventType.CONTRIBUTION_RECEIVED, java.util.Map.of(
+        recordLedgerEntryUseCase.record(classId, studentId, LedgerEventType.CONTRIBUTION_RECEIVED, java.util.Map.of(
                 "collectionId", collectionId,
                 "collectionTitle", collection.title(),
                 "amount", LedgerAmounts.format(amount)));
@@ -187,8 +192,8 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
     }
 
     @Override
-    public List<ContributionRequirement> getActivePendingRequirements(String studentId) {
-        return collectionRepository.findActivePendingRequirementsForStudent(studentId);
+    public List<ContributionRequirement> getActivePendingRequirements(String classId, String studentId) {
+        return collectionRepository.findActivePendingRequirementsForStudent(classId, studentId);
     }
 
     /**
@@ -201,27 +206,27 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
      * balance as it stood BEFORE that step's own credit.
      */
     @Override
-    public void sweep(String studentId) {
-        Student student = getStudentUseCase.getStudent(studentId)
+    public void sweep(String classId, String studentId) {
+        Student student = getStudentUseCase.getStudent(classId, studentId)
                 .orElseThrow(() -> new NoSuchElementException("No such student: " + studentId));
-        List<ContributionRequirement> activeRequirements = getActivePendingRequirements(studentId);
+        List<ContributionRequirement> activeRequirements = getActivePendingRequirements(classId, studentId);
         ContributionAllocationPolicy.AllocationResult allocation = ContributionAllocationPolicy.allocate(
                 BigDecimal.ZERO, student.piggyBankBalance(), activeRequirements);
 
         for (ContributionAllocationPolicy.RequirementAllocation requirementAllocation : allocation.allocations()) {
-            debitStudentPiggyBankUseCase.debitPiggyBank(studentId, requirementAllocation.amountApplied());
-            recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION,
+            debitStudentPiggyBankUseCase.debitPiggyBank(classId, studentId, requirementAllocation.amountApplied());
+            recordLedgerEntryUseCase.record(classId, studentId, LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION,
                     java.util.Map.of(
                             "collectionId", requirementAllocation.collectionId(),
                             "amount", LedgerAmounts.format(requirementAllocation.amountApplied())));
-            applyContribution(requirementAllocation.collectionId(), studentId, requirementAllocation.amountApplied(),
+            applyContribution(classId, requirementAllocation.collectionId(), studentId, requirementAllocation.amountApplied(),
                     ContributionSource.PIGGY_BANK_APPLIED, null);
         }
     }
 
     @Override
-    public SettlementResult previewSettlement(String collectionId, BigDecimal actualCostSpent) {
-        Collection collection = collectionRepository.findCollectionById(collectionId)
+    public SettlementResult previewSettlement(String classId, String collectionId, BigDecimal actualCostSpent) {
+        Collection collection = collectionRepository.findCollectionById(classId, collectionId)
                 .orElseThrow(() -> new NoSuchElementException("No such collection: " + collectionId));
         if (collection.status() != CollectionStatus.ACTIVE) {
             throw new CollectionNotActiveException(collectionId, collection.status());
@@ -230,8 +235,8 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
     }
 
     @Override
-    public SettlementResult settleCollection(String collectionId, BigDecimal actualCostSpent) {
-        Collection collection = collectionRepository.findCollectionById(collectionId)
+    public SettlementResult settleCollection(String classId, String collectionId, BigDecimal actualCostSpent) {
+        Collection collection = collectionRepository.findCollectionById(classId, collectionId)
                 .orElseThrow(() -> new NoSuchElementException("No such collection: " + collectionId));
         if (collection.status() != CollectionStatus.ACTIVE) {
             // Not just a defensive check: without it, a double-clicked "Settle" button or a
@@ -245,11 +250,11 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
 
         for (SettlementResult.StudentSettlement settlement : result.studentSettlements()) {
             if (settlement.leftoverToCredit().signum() > 0) {
-                creditStudentPiggyBankUseCase.creditPiggyBank(settlement.studentId(), settlement.leftoverToCredit());
-                recordLedgerEntryUseCase.record(settlement.studentId(), LedgerEventType.PIGGY_BANK_CREDITED,
+                creditStudentPiggyBankUseCase.creditPiggyBank(classId, settlement.studentId(), settlement.leftoverToCredit());
+                recordLedgerEntryUseCase.record(classId, settlement.studentId(), LedgerEventType.PIGGY_BANK_CREDITED,
                         java.util.Map.of("amount", LedgerAmounts.format(settlement.leftoverToCredit())));
             }
-            recordLedgerEntryUseCase.record(settlement.studentId(), LedgerEventType.COLLECTION_SETTLED,
+            recordLedgerEntryUseCase.record(classId, settlement.studentId(), LedgerEventType.COLLECTION_SETTLED,
                     java.util.Map.of(
                             "collectionId", collectionId,
                             "collectionTitle", collection.title(),
@@ -261,8 +266,8 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
     }
 
     @Override
-    public void removeStudentFromCollection(String collectionId, String studentId) {
-        Collection collection = collectionRepository.findCollectionById(collectionId)
+    public void removeStudentFromCollection(String classId, String collectionId, String studentId) {
+        Collection collection = collectionRepository.findCollectionById(classId, collectionId)
                 .orElseThrow(() -> new NoSuchElementException("No such collection: " + collectionId));
         if (collection.status() != CollectionStatus.ACTIVE) {
             // Same reasoning as settleCollection's guard: a settled collection's numbers are
@@ -290,9 +295,9 @@ public class CollectionService implements CreateCollectionUseCase, GetCollection
         collectionRepository.deleteRequirement(collectionId, studentId);
 
         if (refunded.signum() > 0) {
-            creditStudentPiggyBankUseCase.creditPiggyBank(studentId, refunded);
+            creditStudentPiggyBankUseCase.creditPiggyBank(classId, studentId, refunded);
         }
-        recordLedgerEntryUseCase.record(studentId, LedgerEventType.REMOVED_FROM_COLLECTION, java.util.Map.of(
+        recordLedgerEntryUseCase.record(classId, studentId, LedgerEventType.REMOVED_FROM_COLLECTION, java.util.Map.of(
                 "collectionId", collectionId,
                 "collectionTitle", collection.title(),
                 "refundedAmount", LedgerAmounts.format(refunded)));

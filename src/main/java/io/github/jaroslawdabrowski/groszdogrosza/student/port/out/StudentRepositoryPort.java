@@ -8,10 +8,11 @@ public interface StudentRepositoryPort {
 
     Student save(Student student);
 
-    Optional<Student> findById(String studentId);
+    /** Empty when the student doesn't exist OR belongs to another class. */
+    Optional<Student> findById(String classId, String studentId);
 
-    List<Student> findAll();
+    List<Student> findAllInClass(String classId);
 
-    /** No-op if the id doesn't exist. */
-    void deleteById(String studentId);
+    /** No-op if the id doesn't exist in this class. */
+    void deleteById(String classId, String studentId);
 }

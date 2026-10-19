@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import io.github.jaroslawdabrowski.groszdogrosza.platform.persistence.ClassScopedReads;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
@@ -50,33 +51,25 @@ public class LedgerDynamoDbAdapter implements LedgerRepositoryPort {
     }
 
     @Override
-    public List<LedgerEntry> findByStudentId(String studentId) {
-        return dynamoDbClient.query(QueryRequest.builder()
+    public List<LedgerEntry> findByStudentId(String classId, String studentId) {
+        return ClassScopedReads.queryInClass(dynamoDbClient, QueryRequest.builder()
                         .tableName(tableName)
                         .keyConditionExpression("pk = :pk and begins_with(sk, :skPrefix)")
                         .expressionAttributeValues(Map.of(
                                 ":pk", s(pk(studentId)),
                                 ":skPrefix", s(SK_PREFIX)))
                         .scanIndexForward(false)
-                        .build())
-                .items().stream()
+                        .build(), classId)
+                .stream()
                 .map(LedgerDynamoDbAdapter::fromItem)
                 .toList();
     }
 
     @Override
-    public List<LedgerEntry> findAll() {
-        // Full table scan filtered by sk prefix - entries are partitioned per-student
-        // (pk = "STUDENT#<id>"), so there is no single partition a Query could target for
-        // "every entry across every student". Fine at this app's scale (see
-        // ParentDynamoDbAdapter.findAll's javadoc for the same accepted tradeoff); sorted
-        // in application code since Scan gives no ordering guarantee.
-        return dynamoDbClient.scan(ScanRequest.builder()
-                        .tableName(tableName)
-                        .filterExpression("begins_with(sk, :skPrefix)")
-                        .expressionAttributeValues(Map.of(":skPrefix", s(SK_PREFIX)))
-                        .build())
-                .items().stream()
+    public List<LedgerEntry> findAllInClass(String classId) {
+        return ClassScopedReads.scanInClass(dynamoDbClient, tableName, "begins_with(sk, :skPrefix)",
+                        Map.of(":skPrefix", s(SK_PREFIX)), classId)
+                .stream()
                 .map(LedgerDynamoDbAdapter::fromItem)
                 .sorted(Comparator.comparing(LedgerEntry::occurredAt).reversed())
                 .toList();
@@ -91,6 +84,7 @@ public class LedgerDynamoDbAdapter implements LedgerRepositoryPort {
                 "pk", s(pk(entry.studentId())),
                 "sk", s(SK_PREFIX + entry.occurredAt() + "#" + entry.id()),
                 "id", s(entry.id()),
+                "classId", s(entry.classId()),
                 "studentId", s(entry.studentId()),
                 "eventType", s(entry.eventType().name()),
                 "occurredAt", instant(entry.occurredAt()),
@@ -100,6 +94,7 @@ public class LedgerDynamoDbAdapter implements LedgerRepositoryPort {
     private static LedgerEntry fromItem(Map<String, AttributeValue> item) {
         return new LedgerEntry(
                 str(item, "id"),
+                str(item, "classId"),
                 str(item, "studentId"),
                 LedgerEventType.valueOf(str(item, "eventType")),
                 instant(item, "occurredAt"),

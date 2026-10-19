@@ -5,5 +5,5 @@ import java.util.Optional;
 
 public interface GetParentUseCase {
 
-    Optional<Parent> getParent(String parentId);
+    Optional<Parent> getParent(String classId, String parentId);
 }

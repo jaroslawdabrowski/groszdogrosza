@@ -10,5 +10,5 @@ package io.github.jaroslawdabrowski.groszdogrosza.parent.port.in;
  */
 public interface DeleteParentUseCase {
 
-    void deleteParent(String parentId);
+    void deleteParent(String classId, String parentId);
 }

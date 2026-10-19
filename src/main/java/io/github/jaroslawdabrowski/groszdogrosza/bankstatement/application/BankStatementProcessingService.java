@@ -92,6 +92,12 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
     @ConfigProperty(name = "groszdogrosza.bankstatement.dry-run", defaultValue = "false")
     boolean dryRun;
 
+    /** The one class whose bank account this mailbox receives notifications for. Matching
+     *  only ever looks at this class's students and parents, and money is booked only into
+     *  its collections (docs/MULTI-CLASS.md: automatic booking stays with the original class). */
+    @ConfigProperty(name = "groszdogrosza.bankstatement.class-id")
+    Optional<String> configuredClassId;
+
     @Override
     public PollResult pollAndProcess() {
         if (dryRun) {
@@ -99,10 +105,16 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
                     + "matches will be logged but nothing will be booked, and matched transactions will NOT be "
                     + "marked as processed, so they'll show up again on the next poll.");
         }
+        String classId = configuredClassId.filter(id -> !id.isBlank()).orElse(null);
+        if (classId == null) {
+            LOG.warn("Bank statement poll skipped - groszdogrosza.bankstatement.class-id is not set, "
+                    + "so there's no class to book payments into");
+            return new PollResult(0, 0, 0, 0, 0, 0);
+        }
         Instant since = Instant.now().minus(lookbackDays, ChronoUnit.DAYS);
         List<RawStatementAttachment> attachments = fetchPort.fetchNewStatementsSince(since);
-        List<Student> students = listStudentsUseCase.listStudents();
-        List<Parent> parents = listParentsUseCase.listParents();
+        List<Student> students = listStudentsUseCase.listStudents(classId);
+        List<Parent> parents = listParentsUseCase.listParents(classId);
 
         int seen = 0;
         int matched = 0;
@@ -179,7 +191,7 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
                 }
 
                 try {
-                    bookMatchedTransaction(transaction, match.get(), students);
+                    bookMatchedTransaction(classId, transaction, match.get(), students);
                     matched++;
                 } catch (RuntimeException e) {
                     // The reference is already claimed at this point, so this transaction
@@ -200,7 +212,8 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
         return new PollResult(seen, matched, unmatched, alreadyProcessed, failed, ignoredTreasurerOwnAccount);
     }
 
-    private void bookMatchedTransaction(BankTransaction transaction, MatchResult match, List<Student> students) {
+    private void bookMatchedTransaction(String classId, BankTransaction transaction, MatchResult match,
+            List<Student> students) {
         String studentId = match.studentId();
         BigDecimal balanceBeforeThisTransaction = students.stream()
                 .filter(s -> s.id().equals(studentId))
@@ -210,8 +223,8 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
 
         // Step 1: land the money in the piggy bank and leave an audit trail - this happens
         // unconditionally, even if it's immediately swept back out in step 2.
-        creditStudentPiggyBankUseCase.creditPiggyBank(studentId, transaction.amount());
-        recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_CREDITED, Map.of(
+        creditStudentPiggyBankUseCase.creditPiggyBank(classId, studentId, transaction.amount());
+        recordLedgerEntryUseCase.record(classId, studentId, LedgerEventType.PIGGY_BANK_CREDITED, Map.of(
                 "amount", LedgerAmounts.format(transaction.amount()),
                 "bankReference", transaction.bankReference()));
 
@@ -220,17 +233,17 @@ public class BankStatementProcessingService implements PollBankStatementsUseCase
         // collection first - not just this one transaction's amount, since an earlier
         // overpayment sitting in the piggy bank is just as spendable here.
         List<ContributionRequirement> activeRequirements = getActiveRequirementsForStudentUseCase
-                .getActivePendingRequirements(studentId);
+                .getActivePendingRequirements(classId, studentId);
         AllocationResult allocation = ContributionAllocationPolicy.allocate(
                 transaction.amount(), balanceBeforeThisTransaction, activeRequirements);
 
         for (ContributionAllocationPolicy.RequirementAllocation requirementAllocation : allocation.allocations()) {
-            debitStudentPiggyBankUseCase.debitPiggyBank(studentId, requirementAllocation.amountApplied());
-            recordLedgerEntryUseCase.record(studentId, LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION, Map.of(
+            debitStudentPiggyBankUseCase.debitPiggyBank(classId, studentId, requirementAllocation.amountApplied());
+            recordLedgerEntryUseCase.record(classId, studentId, LedgerEventType.PIGGY_BANK_APPLIED_TO_COLLECTION, Map.of(
                     "collectionId", requirementAllocation.collectionId(),
                     "amount", LedgerAmounts.format(requirementAllocation.amountApplied())));
             applyAutomaticContributionUseCase.applyContribution(
-                    requirementAllocation.collectionId(), studentId, requirementAllocation.amountApplied(),
+                    classId, requirementAllocation.collectionId(), studentId, requirementAllocation.amountApplied(),
                     ContributionSource.PIGGY_BANK_APPLIED, transaction.bankReference());
         }
     }

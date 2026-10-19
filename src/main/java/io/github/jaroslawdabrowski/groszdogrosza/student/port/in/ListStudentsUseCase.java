@@ -5,5 +5,5 @@ import java.util.List;
 
 public interface ListStudentsUseCase {
 
-    List<Student> listStudents();
+    List<Student> listStudents(String classId);
 }

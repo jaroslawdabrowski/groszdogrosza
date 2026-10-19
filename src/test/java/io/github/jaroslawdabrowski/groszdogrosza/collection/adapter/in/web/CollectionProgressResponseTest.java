@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 class CollectionProgressResponseTest {
 
     private static Collection collection(String baseAmount) {
-        return new Collection("c1", "Title", "Description", CollectionStatus.ACTIVE, new BigDecimal(baseAmount), Instant.now());
+        return new Collection("c1", "class-1", "Title", "Description", CollectionStatus.ACTIVE, new BigDecimal(baseAmount), Instant.now());
     }
 
     private static ContributionRequirement requirement(

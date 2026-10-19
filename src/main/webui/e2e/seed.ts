@@ -52,27 +52,70 @@ function putItem(tableName: string, item: unknown): void {
   );
 }
 
+function deleteItem(tableName: string, key: unknown): void {
+  execFileSync(
+    'aws',
+    ['dynamodb', 'delete-item', '--table-name', tableName, '--key', JSON.stringify(key),
+      '--endpoint-url', localstackEndpoint(), '--region', 'eu-central-1'],
+    { env: { ...process.env, AWS_ACCESS_KEY_ID: 'test', AWS_SECRET_ACCESS_KEY: 'test' } },
+  );
+}
+
+/** The class every spec works in - the same id application.properties uses as the dev
+ *  default class (`%dev.groszdogrosza.public.default-class-id`), so "/" shows it too. */
+export const E2E_CLASS_ID = 'dev-class';
+
+/** Creates (or re-creates, idempotently) a class with one treasurer membership. */
+export function seedClass(classId: string, name: string, treasurerEmail: string, publicToken: string): void {
+  putItem('groszdogrosza', {
+    pk: { S: `CLASS#${classId}` },
+    sk: { S: 'CLASS' },
+    id: { S: classId },
+    classId: { S: classId },
+    name: { S: name },
+    publicToken: { S: publicToken },
+    bankAccountNumber: { NULL: true },
+    blikPhoneNumber: { NULL: true },
+    createdAt: { S: new Date().toISOString() },
+  });
+  putItem('groszdogrosza', {
+    pk: { S: `CLASS#${classId}` },
+    sk: { S: `TREASURER#${treasurerEmail.toLowerCase()}` },
+    classId: { S: classId },
+    email: { S: treasurerEmail.toLowerCase() },
+  });
+}
+
+/** Removes a class and its treasurer membership (not its students - delete those via the API). */
+export function deleteClass(classId: string, treasurerEmail: string): void {
+  deleteItem('groszdogrosza', { pk: { S: `CLASS#${classId}` }, sk: { S: `TREASURER#${treasurerEmail.toLowerCase()}` } });
+  deleteItem('groszdogrosza', { pk: { S: `CLASS#${classId}` }, sk: { S: 'CLASS' } });
+}
+
 export interface SeededTreasurer {
   studentId: string;
   parentId: string;
 }
 
-/** Seeds a Student + a TREASURER Parent linked to it, matching the real shape
- *  ParentDynamoDbAdapter/StudentDynamoDbAdapter read - see those classes' `fromItem`. */
+/** Seeds the test class with `email` as its treasurer, plus the treasurer's own child (a
+ *  Student) and parent record, matching the real shape the DynamoDB adapters read. */
 export function seedTreasurer(
   email: string,
   firstName: string,
   lastName: string,
   studentFirstName: string,
   studentLastName: string,
+  classId: string = E2E_CLASS_ID,
 ): SeededTreasurer {
   const studentId = randomUUID();
   const parentId = randomUUID();
+  seedClass(classId, classId === E2E_CLASS_ID ? 'Klasa testowa' : classId, email, `${classId}-public-link`);
 
   putItem('groszdogrosza', {
     pk: { S: `STUDENT#${studentId}` },
     sk: { S: 'STUDENT' },
     id: { S: studentId },
+    classId: { S: classId },
     firstName: { S: studentFirstName },
     lastName: { S: studentLastName },
     piggyBankBalance: { N: '0' },
@@ -82,6 +125,7 @@ export function seedTreasurer(
     pk: { S: `PARENT#${parentId}` },
     sk: { S: 'PARENT' },
     id: { S: parentId },
+    classId: { S: classId },
     studentId: { S: studentId },
     firstName: { S: firstName },
     lastName: { S: lastName },

@@ -1,11 +1,10 @@
 package io.github.jaroslawdabrowski.groszdogrosza.ledger.adapter.in.web;
 
 import io.github.jaroslawdabrowski.groszdogrosza.ledger.port.in.GetFullLedgerUseCase;
-import io.github.jaroslawdabrowski.groszdogrosza.platform.security.AuthorizationSupport;
+import io.github.jaroslawdabrowski.groszdogrosza.platform.security.ClassContext;
 import io.github.jaroslawdabrowski.groszdogrosza.student.domain.Student;
 import io.github.jaroslawdabrowski.groszdogrosza.student.port.in.ListStudentsUseCase;
 import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -18,7 +17,7 @@ import java.util.Map;
  * Treasurer-only "log wszystkich transakcji" - every student's ledger entries in one feed,
  * unlike {@code LedgerResource} which only ever returns one student's own (self-or-treasurer).
  */
-@Path("/api/ledger")
+@Path("/api/classes/{classId}/ledger")
 @Authenticated
 @Produces(MediaType.APPLICATION_JSON)
 public class GlobalLedgerResource {
@@ -30,17 +29,14 @@ public class GlobalLedgerResource {
     ListStudentsUseCase listStudentsUseCase;
 
     @Inject
-    AuthorizationSupport authorizationSupport;
-
-    @Inject
-    SecurityIdentity identity;
+    ClassContext classContext;
 
     @GET
     public List<GlobalLedgerEntryResponse> get() {
-        authorizationSupport.requireTreasurer(identity);
-        Map<String, String> namesByStudentId = listStudentsUseCase.listStudents().stream()
+        classContext.requireTreasurer();
+        Map<String, String> namesByStudentId = listStudentsUseCase.listStudents(classContext.classId()).stream()
                 .collect(java.util.stream.Collectors.toMap(Student::id, Student::fullName, (a, b) -> a));
-        return getFullLedgerUseCase.getFullLedger().stream()
+        return getFullLedgerUseCase.getFullLedger(classContext.classId()).stream()
                 .map(entry -> GlobalLedgerEntryResponse.from(entry,
                         namesByStudentId.getOrDefault(entry.studentId(), entry.studentId())))
                 .toList();

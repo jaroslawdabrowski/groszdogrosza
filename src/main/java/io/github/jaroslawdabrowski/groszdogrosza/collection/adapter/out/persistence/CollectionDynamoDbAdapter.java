@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import io.github.jaroslawdabrowski.groszdogrosza.platform.persistence.ClassScopedReads;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
@@ -71,6 +72,7 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
                 "pk", s(collectionPk(collection.id())),
                 "sk", s(COLLECTION_SK),
                 "id", s(collection.id()),
+                "classId", s(collection.classId()),
                 "title", s(collection.title()),
                 "description", s(collection.description() == null ? "" : collection.description()),
                 "status", s(collection.status().name()),
@@ -80,30 +82,23 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
     }
 
     @Override
-    public Optional<Collection> findCollectionById(String collectionId) {
-        Map<String, AttributeValue> item = dynamoDbClient.getItem(GetItemRequest.builder()
-                        .tableName(tableName)
-                        .key(Map.of("pk", s(collectionPk(collectionId)), "sk", s(COLLECTION_SK)))
-                        .build())
-                .item();
-        return item == null || item.isEmpty() ? Optional.empty() : Optional.of(collectionFromItem(item));
+    public Optional<Collection> findCollectionById(String classId, String collectionId) {
+        return ClassScopedReads.getInClass(dynamoDbClient, tableName,
+                        Map.of("pk", s(collectionPk(collectionId)), "sk", s(COLLECTION_SK)), classId)
+                .map(CollectionDynamoDbAdapter::collectionFromItem);
     }
 
     @Override
-    public List<Collection> findAllCollections() {
-        return dynamoDbClient.scan(ScanRequest.builder()
-                        .tableName(tableName)
-                        .filterExpression("sk = :sk")
-                        .expressionAttributeValues(Map.of(":sk", s(COLLECTION_SK)))
-                        .build())
-                .items().stream()
+    public List<Collection> findAllCollections(String classId) {
+        return ClassScopedReads.scanInClass(dynamoDbClient, tableName, "sk = :sk", Map.of(":sk", s(COLLECTION_SK)), classId)
+                .stream()
                 .map(CollectionDynamoDbAdapter::collectionFromItem)
                 .toList();
     }
 
     private static Collection collectionFromItem(Map<String, AttributeValue> item) {
         return new Collection(
-                str(item, "id"), str(item, "title"), str(item, "description"),
+                str(item, "id"), str(item, "classId"), str(item, "title"), str(item, "description"),
                 CollectionStatus.valueOf(str(item, "status")),
                 decimal(item, "baseAmountPerStudent"),
                 instant(item, "createdAt"));
@@ -151,11 +146,11 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
     }
 
     @Override
-    public List<ContributionRequirement> findActivePendingRequirementsForStudent(String studentId) {
+    public List<ContributionRequirement> findActivePendingRequirementsForStudent(String classId, String studentId) {
         // See class javadoc: a table scan, filtered by sk suffix and status, then
         // re-checked per-collection for ACTIVE status and sorted oldest-collection-first
         // (what ContributionAllocationPolicy expects).
-        List<ContributionRequirement> candidates = dynamoDbClient.scan(ScanRequest.builder()
+        List<ContributionRequirement> candidates = dynamoDbClient.scanPaginator(ScanRequest.builder()
                         .tableName(tableName)
                         .filterExpression("sk = :sk and #status = :pending")
                         .expressionAttributeNames(Map.of("#status", "status"))
@@ -171,7 +166,7 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
         }
 
         return candidates.stream()
-                .map(r -> new CandidateWithCollection(r, findCollectionById(r.collectionId()).orElse(null)))
+                .map(r -> new CandidateWithCollection(r, findCollectionById(classId, r.collectionId()).orElse(null)))
                 .filter(c -> c.collection() != null && c.collection().status() == CollectionStatus.ACTIVE)
                 .sorted(Comparator.comparing(c -> c.collection().createdAt()))
                 .map(CandidateWithCollection::requirement)
@@ -229,11 +224,10 @@ public class CollectionDynamoDbAdapter implements CollectionRepositoryPort {
     // --- shared query helper ---
 
     private List<Map<String, AttributeValue>> queryByPkAndSkPrefix(String pk, String skPrefix) {
-        return dynamoDbClient.query(QueryRequest.builder()
+        return ClassScopedReads.queryAll(dynamoDbClient, QueryRequest.builder()
                         .tableName(tableName)
                         .keyConditionExpression("pk = :pk and begins_with(sk, :skPrefix)")
                         .expressionAttributeValues(Map.of(":pk", s(pk), ":skPrefix", s(skPrefix)))
-                        .build())
-                .items();
+                        .build());
     }
 }

@@ -5,5 +5,5 @@ import java.util.List;
 
 public interface GetLedgerForStudentUseCase {
 
-    List<LedgerEntry> getLedgerFor(String studentId);
+    List<LedgerEntry> getLedgerFor(String classId, String studentId);
 }

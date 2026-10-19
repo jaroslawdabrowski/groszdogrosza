@@ -11,6 +11,6 @@ import io.github.jaroslawdabrowski.groszdogrosza.collection.domain.CollectionAtt
  */
 public interface ConfirmAttachmentUploadUseCase {
 
-    CollectionAttachment confirmUpload(String collectionId, String attachmentId, String fileName, String contentType,
+    CollectionAttachment confirmUpload(String classId, String collectionId, String attachmentId, String fileName, String contentType,
             long sizeBytes);
 }
