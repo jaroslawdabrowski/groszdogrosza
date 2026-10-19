@@ -116,7 +116,9 @@ The rule: a single mistake in one place must not be enough to expose another cla
 
 ### Production rollout (in this order)
 
-1. `scripts/migrate-multiclass.py --table groszdogrosza-prod` (dry run), then `--apply`.
+1. `scripts/migrate-multiclass.py --table groszdogrosza-prod --compare-and-put` (dry run), then
+   with `--apply`. `--compare-and-put` because the deploy user has no `dynamodb:UpdateItem`:
+   each record is written back with `classId` only if it's still exactly what was read.
    The running (old) version keeps working.
 2. Deploy the new version (`terraform apply` also changes the Cognito setting above).
 3. Run the migration with `--apply` again - it gives a class to anything the old version

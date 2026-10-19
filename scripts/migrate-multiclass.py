@@ -65,6 +65,32 @@ def kind_of(item):
     return "LEDGER" if sk.startswith("LEDGER#") else sk.split("#")[0]
 
 
+def put_with_class_if_unchanged(client, table, item, class_id):
+    """Writes the item back with classId added - but only if the stored item is still exactly
+    the one that was read (every scalar attribute equal, the NULLs still NULL, no classId yet).
+    If the app changed it in the meantime the condition fails and nothing is written, so this
+    can never overwrite newer data. The only non-scalar attribute is a ledger entry's params
+    map, and ledger entries are never modified after they're written."""
+    names, values, conditions = {}, {}, ["attribute_exists(pk)", "attribute_not_exists(classId)"]
+    for n, (name, value) in enumerate(sorted(item.items())):
+        if name in ("pk", "sk"):
+            continue
+        names[f"#a{n}"] = name
+        if "NULL" in value:
+            values[":gg_null"] = {"S": "NULL"}
+            conditions.append(f"attribute_type(#a{n}, :gg_null)")
+        elif "S" in value or "N" in value:
+            values[f":v{n}"] = value
+            conditions.append(f"#a{n} = :v{n}")
+        elif "M" in value and kind_of(item) == "LEDGER":
+            conditions.append(f"attribute_exists(#a{n})")
+        else:
+            raise SystemExit(f"Unexpected attribute type in {key_of(item)}.{name} - stopping.")
+    client.put_item(TableName=table, Item={**item, "classId": {"S": class_id}},
+                    ConditionExpression=" AND ".join(conditions),
+                    ExpressionAttributeNames=names, ExpressionAttributeValues=values)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--table", required=True)
@@ -74,6 +100,9 @@ def main():
     parser.add_argument("--class-name", default="SP 34 - 2A")
     parser.add_argument("--backup-dir", default=os.path.expanduser("~/groszdogrosza-backups"))
     parser.add_argument("--apply", action="store_true", help="actually write (default: dry run)")
+    parser.add_argument("--compare-and-put", action="store_true",
+                        help="add classId with a conditional PutItem instead of UpdateItem (for credentials "
+                             "without dynamodb:UpdateItem) - see put_with_class_if_unchanged")
     args = parser.parse_args()
 
     client = boto3.client("dynamodb", region_name=args.region, endpoint_url=args.endpoint_url)
@@ -147,7 +176,10 @@ def main():
     for item in missing:
         counts[kind_of(item)] = counts.get(kind_of(item), 0) + 1
     print(f"add classId to {len(missing)} of {len(targets)} items: {counts}")
-    if args.apply:
+    if args.apply and args.compare_and_put:
+        for item in missing:
+            put_with_class_if_unchanged(client, args.table, item, class_id)
+    elif args.apply:
         for item in missing:
             client.update_item(
                 TableName=args.table,
